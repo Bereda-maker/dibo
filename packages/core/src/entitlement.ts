@@ -19,3 +19,5 @@ export function withinDailyLimit(e: Entitlements, f: "questionsPerDay" | "aiMess
   const l = limitFor(e, f);
   return l === null ? true : usedToday < l;
 }
+
+export const DEFAULT_PREMIUM: Entitlements = { questionsPerDay: 100000, mockExams: true, advancedAnalytics: true, personalizedRecommendations: true, aiMessagesPerDay: 200, fullQuestionBank: true, premiumNotes: true };

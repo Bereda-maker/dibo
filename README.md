@@ -49,22 +49,25 @@ See `.env.example`. API: `DATABASE_URL`, `SESSION_SECRET`, `WEB_ORIGIN`, `AI_*`,
 The **web app still runs on a local demo data layer** (`apps/web/lib/store.tsx`, `lib/mock.ts`, localStorage). Accounts, progress, exams and the admin panel are not shared between devices and are not secure. The **backend is real and tested but only partly built**, and the web is **not yet connected to it**. Do not launch to students until the checklist below is done.
 
 ### Backend status
-Built and tested (44 tests, including integration tests that run the generated migration and the Drizzle code on a real PostgreSQL engine via PGlite):
-- Auth (register/login/logout), role middleware, rate limiting, security headers, CSRF origin check, central errors, request IDs
-- `/api/attempts` start/resume, autosave, submit (server deadline, owner scoping, idempotent, limits, premium gating)
-- `/api/subscriptions/plans|checkout|verify`, `/api/payments/webhook/:provider` (signature + provider re-verification + amount match, transactional activation, idempotent)
-- `/api/content/subjects|topics|notes` (published only)
-- Env validation at boot, migrations (`packages/database/migrations`), seed script, Dockerfiles, `docker-compose.yml`, GitHub Actions CI (template in `docs/ci.yml.example`; copy to `.github/workflows/ci.yml`)
+Built and tested: **61 tests**, including integration and end-to-end tests that run the generated migration and the real Hono app on a PostgreSQL engine (PGlite): registration, login, cookies, authorization, data isolation, practice, progress, AI limits, admin and payments.
+- **Auth and platform:** register/login/logout (argon2id, hashed session tokens), role middleware (role always read from the database), rate limiting, security headers, CSRF origin check, central errors, request IDs, env validation at boot
+- **Student API** (`/api/students/me`, `/api/practice/*`, `/api/progress`, `/api/recommendations`, `/api/achievements`, `/api/notifications`): profile edit (strict schema; role/email cannot be changed), question delivery without answers, instant feedback, daily limits via entitlements, streaks, points, explainable recommendations (free plan: top one), readiness score, achievements with one-time notifications
+- **Exams** (`/api/attempts`): start/resume, autosave, submit; server deadline, owner scoping, idempotent submit, attempt limits, premium gating
+- **AI** (`/api/ai/*`): conversations (create/rename/delete/continue) strictly owner-scoped, retrieval from published notes only, injection screening, output redaction, per-minute and daily limits
+- **Payments** (`/api/subscriptions/*`, `/api/payments/webhook/:provider`): price from the database plan, signed webhook plus provider re-verification and amount match, transactional and idempotent activation
+- **Content** (`/api/content/*`): published subjects, topics, notes
+- **Admin** (`/api/admin/*`): overview, student list without contact details or school, suspend/activate, super-admin-only delete and price changes, question create/publish/unpublish/archive (re-validated at publish), audit log on every mutation
+- **Ops:** migrations, seed script, Dockerfiles, docker-compose, CI template (`docs/ci.yml.example`)
 
 ### Launch checklist (not done yet)
-1. Remaining API modules: students/profile, questions + practice recording, progress/recommendations/readiness persistence, achievements, notifications, AI conversations + `/api/ai` (service exists), admin (students, content CRUD, questions, exams, analytics, audit, settings).
-2. Replace the web demo store with API calls (`NEXT_PUBLIC_API_URL`) and add the `/payment/return` page that calls `/api/subscriptions/verify`.
+1. **Connect the web app to this API.** The UI still runs on the browser demo store (`apps/web/lib/store.tsx`); every endpoint it needs now exists except those below. Add an API client, replace the store reads/writes, and add the `/payment/return` page that calls `/api/subscriptions/verify`.
+2. Missing API pieces: exam list/read endpoints for students (`GET /api/exams`, results and review for a submitted attempt), bookmarks, notes completion, global search, leaderboard, data export/deletion for students, admin CRUD for subjects/topics/notes/exams and analytics queries.
 3. Email delivery for verification and password reset (tokens table exists, sender does not).
 4. Real content: reviewed Grade 12 questions, notes and explanations. Amharic/Afaan Oromo text needs native review.
-5. Run against a real PostgreSQL in staging; load test the exam submit path; set up backups, monitoring and alerting.
-6. Replace the in-memory rate limiter with a Redis store when running more than one API instance.
-7. Legal: privacy policy and parental-consent approach for minors reviewed against Ethiopian law; implement data export/deletion endpoints.
-8. Security review and a dependency audit before launch; rotate all secrets; set `SESSION_SECRET` (>= 32 chars).
+5. Run against managed PostgreSQL in staging; load test exam submit; backups, monitoring, alerting.
+6. Replace the in-memory rate limiter with Redis when running more than one API instance.
+7. Legal: privacy policy and parental consent for minors reviewed against Ethiopian law.
+8. Independent security review, dependency audit, secret rotation (`SESSION_SECRET` >= 32 chars).
 
 ## Deployment
 ```bash

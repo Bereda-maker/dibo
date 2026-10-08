@@ -214,7 +214,7 @@ CREATE TABLE IF NOT EXISTS "student_achievements" (
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "student_answers" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"attempt_id" uuid NOT NULL,
+	"attempt_id" uuid,
 	"student_id" uuid NOT NULL,
 	"question_id" uuid NOT NULL,
 	"context" text DEFAULT 'EXAM' NOT NULL,

@@ -61,3 +61,12 @@ export const aiMessageSchema = z.object({
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type SaveAnswersInput = z.infer<typeof saveAnswersSchema>;
+
+export const profileUpdateSchema = z.object({
+  fullName: z.string().trim().min(2).max(120).optional(), phone: z.string().trim().regex(ethiopianPhone, "Enter a valid Ethiopian phone number").optional(),
+  school: z.string().trim().min(2).max(160).optional(), region: z.string().trim().min(2).max(80).optional(), city: z.string().trim().min(2).max(80).optional(),
+  stream: z.string().trim().min(2).max(60).optional(), examYear: z.number().int().min(2020).max(2100).optional(),
+  subjectIds: z.array(z.string().uuid()).min(1).max(15).optional(), displayName: z.string().trim().min(2).max(30).optional(), leaderboardOptIn: z.boolean().optional(),
+}).strict(); // .strict(): role, status, email etc. can never be set through this endpoint
+export const practiceAnswerSchema = z.object({ questionId: z.string().uuid(), selectedOptionId: z.string().uuid().nullish(), numericAnswer: z.number().finite().nullish(), timeSpentSeconds: z.number().int().min(0).max(3600).default(0) });
+export const practiceQuerySchema = z.object({ topicId: z.string().uuid().optional(), difficulty: z.enum(DIFFICULTIES).optional(), mode: z.enum(["random", "wrong"]).default("random"), limit: z.coerce.number().int().min(1).max(30).default(10) });

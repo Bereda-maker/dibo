@@ -7,6 +7,14 @@ import { securityHeaders } from "./middleware/security-headers";
 import { authRoutes } from "./routes/auth";
 import { paymentRoutes } from "./routes/payments";
 import { attemptRoutes } from "./routes/attempts";
+import { studentRoutes } from "./routes/student";
+import { adminRoutes } from "./routes/admin";
+import { requireAdmin } from "./middleware/auth";
+import type { StudentService } from "./services/student.service";
+import type { PracticeService } from "./services/practice.service";
+import type { ProgressService } from "./services/progress.service";
+import type { AiChatService } from "./services/ai-chat.service";
+import type { AdminService } from "./services/admin.service";
 import { contentRoutes } from "./routes/content";
 import { publicPlanRoutes, subscriptionRoutes } from "./routes/subscriptions";
 import type { CheckoutService } from "./services/payments/checkout.service";
@@ -16,7 +24,7 @@ import type { AttemptService } from "./services/attempt.service";
 import type { AuthService } from "./services/auth.service";
 import type { PaymentService } from "./services/payments/payment.service";
 
-export function createApp(deps: { auth: AuthService; payments: PaymentService; checkout: CheckoutService; db: Db; defaultProvider: string; attempts: AttemptService; resolveStudent: (userId: string) => Promise<{ studentId: string; isPremium: boolean } | null>; webOrigin: string; isProd: boolean }) {
+export function createApp(deps: { auth: AuthService; payments: PaymentService; checkout: CheckoutService; db: Db; defaultProvider: string; attempts: AttemptService; students: StudentService; practice: PracticeService; progress: ProgressService; chat: AiChatService; admin: AdminService; resolveStudent: (userId: string) => Promise<{ studentId: string; isPremium: boolean } | null>; webOrigin: string; isProd: boolean }) {
   const app = new Hono();
   app.use("*", requestId, securityHeaders, logger());
   app.use("/api/*", cors({ origin: deps.webOrigin, credentials: true, allowMethods: ["GET", "POST", "PATCH", "DELETE"] }));
@@ -35,6 +43,11 @@ export function createApp(deps: { auth: AuthService; payments: PaymentService; c
   app.route("/api/subscriptions", subscriptionRoutes(deps.checkout, deps.payments, deps.defaultProvider));
   app.use("/api/content/*", requireAuth(deps.auth));
   app.route("/api/content", contentRoutes(deps.db));
+  app.use("/api/students/*", requireAuth(deps.auth), requireStudent);
+  for (const p of ["practice", "progress", "recommendations", "achievements", "notifications", "ai"]) app.use(`/api/${p}/*`, requireAuth(deps.auth), requireStudent);
+  app.route("/api", studentRoutes({ students: deps.students, practice: deps.practice, progress: deps.progress, chat: deps.chat, resolve: deps.resolveStudent }));
+  app.use("/api/admin/*", requireAuth(deps.auth), requireAdmin);
+  app.route("/api/admin", adminRoutes(deps.admin));
   app.use("/api/attempts/*", requireAuth(deps.auth), requireStudent);
   app.route("/api/attempts", attemptRoutes(deps.attempts, deps.resolveStudent));
   app.route("/api/payments", paymentRoutes(deps.payments));

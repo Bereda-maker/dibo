@@ -202,7 +202,7 @@ export const examAttempts = pgTable("exam_attempts", {
 
 export const studentAnswers = pgTable("student_answers", {
   id: id(),
-  attemptId: uuid("attempt_id").notNull().references(() => examAttempts.id, { onDelete: "cascade" }),
+  attemptId: uuid("attempt_id").references(() => examAttempts.id, { onDelete: "cascade" }), // null for practice answers
   studentId: uuid("student_id").notNull().references(() => studentProfiles.id, { onDelete: "cascade" }),
   questionId: uuid("question_id").notNull().references(() => questions.id),
   context: text("context").notNull().default("EXAM"), // EXAM | PRACTICE

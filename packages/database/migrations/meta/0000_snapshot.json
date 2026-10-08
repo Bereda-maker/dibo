@@ -1,5 +1,5 @@
 {
-  "id": "ad976f5a-a4a7-4826-84df-b594725046f9",
+  "id": "f4c02e87-5b2d-4223-9962-748939fefc64",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -2002,7 +2002,7 @@
           "name": "attempt_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "student_id": {
           "name": "student_id",
