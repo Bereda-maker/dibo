@@ -1,0 +1,1 @@
+{ "name": "@dibora/core", "version": "0.1.0", "exports": { "./*": "./src/*.ts" }, "dependencies": { "@dibora/types": "workspace:*" } }

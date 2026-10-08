@@ -1,0 +1,1 @@
+{ "name": "@dibora/validation", "version": "0.1.0", "main": "src/index.ts", "dependencies": { "zod": "^3.23.8", "@dibora/types": "workspace:*" } }

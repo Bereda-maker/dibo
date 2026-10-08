@@ -1,0 +1,25 @@
+{
+  "name": "@dibora/api",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "hono": "^4.6.0",
+    "drizzle-orm": "^0.36.0",
+    "zod": "^3.23.8",
+    "@hono/zod-validator": "^0.4.0",
+    "@dibora/database": "workspace:*",
+    "@dibora/types": "workspace:*",
+    "@dibora/validation": "workspace:*",
+    "@dibora/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "bun-types": "latest",
+    "typescript": "^5.6.0"
+  }
+}

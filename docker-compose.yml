@@ -1,0 +1,17 @@
+# Local/staging stack. For production use managed PostgreSQL and real secrets from your platform's secret store.
+services:
+  db:
+    image: postgres:16
+    environment: { POSTGRES_USER: dibora, POSTGRES_PASSWORD: dibora, POSTGRES_DB: dibora }
+    volumes: [dbdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U dibora"], interval: 5s, retries: 10 }
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    env_file: .env
+    environment: { DATABASE_URL: "postgres://dibora:dibora@db:5432/dibora" }
+    depends_on: { db: { condition: service_healthy } }
+    ports: ["8787:8787"]
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile, args: { NEXT_PUBLIC_API_URL: "http://localhost:8787" } }
+    ports: ["3000:3000"]
+volumes: { dbdata: {} }

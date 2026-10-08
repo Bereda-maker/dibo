@@ -1,0 +1,3 @@
+import { AppShell } from "../../components/AppShell";
+const items = [["/admin", "Dashboard"], ["/admin/students", "Students"], ["/admin/content", "Subjects & Notes"], ["/admin/questions", "Question Bank"], ["/admin/exams", "Exams & Results"], ["/admin/ai", "AI Management"], ["/admin/subscriptions", "Subscriptions & Payments"], ["/admin/notifications", "Notifications"], ["/admin/analytics", "Analytics"], ["/admin/audit", "Audit Logs"], ["/admin/settings", "Settings"]] as const;
+export default function L({ children }: { children: React.ReactNode }) { return <AppShell admin items={items}>{children}</AppShell>; }
