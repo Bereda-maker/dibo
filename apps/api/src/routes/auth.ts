@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
-import { zValidator } from "@hono/zod-validator";
+import { v as zValidator } from "../utils/validate";
 import { registerSchema, loginSchema } from "@dibora/validation";
 import type { AuthService } from "../services/auth.service";
 import { rateLimit } from "../middleware/rate-limit";
 import { ok } from "../utils/response";
+import { requireAuth, type AuthContext } from "../middleware/auth";
 
 export const authRoutes = (auth: AuthService, isProd: boolean) => {
   const r = new Hono();
@@ -28,5 +29,6 @@ export const authRoutes = (auth: AuthService, isProd: boolean) => {
     deleteCookie(c, "session", { path: "/" });
     return ok(c, { loggedOut: true });
   });
+  r.get("/me", requireAuth(auth), async (c) => { const a = (c as unknown as { get: (k: string) => unknown }).get("auth") as AuthContext; return ok(c, { userId: a.userId, role: a.role }); });
   return r;
 };

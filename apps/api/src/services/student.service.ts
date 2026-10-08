@@ -1,5 +1,5 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
-import { achievements, notifications, studentAchievements, studentProfiles, users, type Db } from "@dibora/database";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { achievements, aiConversations, aiMessages, bookmarks, examAttempts, notifications, sessions, studentAchievements, studentAnswers, studentProfiles, studentProgress, users, type Db } from "@dibora/database";
 import type { z } from "zod";
 import type { profileUpdateSchema } from "@dibora/validation";
 import { Errors } from "../utils/errors";
@@ -24,5 +24,27 @@ export class StudentService {
   async achievements(studentId: string) {
     const all = await this.db.select().from(achievements); const mine = await this.db.select().from(studentAchievements).where(eq(studentAchievements.studentId, studentId));
     return all.map((a) => ({ code: a.code, names: a.names, points: a.points, unlockedAt: mine.find((m) => m.achievementId === a.id)?.unlockedAt ?? null }));
+  }
+
+  /** Everything we hold about the student, as JSON. Password hash and session data are excluded. */
+  async exportData(userId: string, studentId: string) {
+    const convs = await this.db.select().from(aiConversations).where(eq(aiConversations.userId, userId));
+    return { exportedAt: new Date().toISOString(), profile: await this.me(userId),
+      progress: (await this.db.select().from(studentProgress).where(eq(studentProgress.studentId, studentId)))[0] ?? null,
+      answers: await this.db.select().from(studentAnswers).where(eq(studentAnswers.studentId, studentId)),
+      examAttempts: await this.db.select().from(examAttempts).where(eq(examAttempts.studentId, studentId)),
+      bookmarks: await this.db.select().from(bookmarks).where(eq(bookmarks.studentId, studentId)),
+      notifications: await this.notifications(userId), conversations: convs,
+      messages: convs.length ? await this.db.select().from(aiMessages).where(inArray(aiMessages.conversationId, convs.map((c) => c.id))) : [] };
+  }
+  /** Soft-deletes the account, ends all sessions, and removes private AI conversations. */
+  async deleteAccount(userId: string) {
+    await this.db.transaction(async (tx) => {
+      const now = new Date();
+      await tx.update(users).set({ deletedAt: now, isActive: false, email: `deleted+${userId}@deleted.invalid` }).where(eq(users.id, userId));
+      await tx.update(studentProfiles).set({ deletedAt: now, phone: null, school: null, city: null, displayName: null, leaderboardOptIn: false }).where(eq(studentProfiles.userId, userId));
+      await tx.delete(sessions).where(eq(sessions.userId, userId));
+      await tx.delete(aiConversations).where(eq(aiConversations.userId, userId));
+    });
   }
 }

@@ -1,11 +1,13 @@
 "use client";
+import { DEMO } from "../../../lib/config";
+import { LivePricing } from "../../../features/live/Social";
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge, Button, Card, Modal, useToast } from "../../../components/ui";
 import { useStore } from "../../../lib/store";
 import { formatBirr } from "../../../lib/mock";
-export default function P() {
+function DemoP() {
   const { state, update } = useStore(); const router = useRouter(); const toast = useToast(); const [pick, setPick] = useState<string | null>(null);
   const plans = state.plans; const sel = plans.find((p) => p.id === pick);
   return <div className="mx-auto max-w-6xl px-4 py-12"><h1 className="text-3xl font-bold">Pricing</h1><p className="mt-2 text-muted">Start free. Upgrade when you are ready for the full question bank and mock exams. Prices are set by Dibora and may change.</p>
@@ -16,3 +18,5 @@ export default function P() {
     <Modal open={!!sel} title="Confirm upgrade" onClose={() => setPick(null)}>
       <p className="text-sm">{sel?.name} — {sel && formatBirr(sel.priceMinor)}</p><p className="mt-2 rounded-xl bg-warning/15 p-3 text-xs text-warning">Demo mode: no real payment is taken. In production this opens the payment provider checkout and your plan activates only after the server verifies the payment.</p>
       <div className="mt-4 flex gap-2"><Button onClick={() => { update((s) => ({ ...s, user: s.user && { ...s.user, plan: "PREMIUM" } })); setPick(null); toast("Premium activated (demo)"); router.push("/dashboard"); }}>Continue (demo)</Button><Button variant="secondary" onClick={() => setPick(null)}>Cancel</Button></div></Modal></div>; }
+
+export default function Page() { return DEMO ? <DemoP /> : <LivePricing />; }

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
+import { v as zValidator } from "../utils/validate";
 import { z } from "zod";
 import { saveAnswersSchema } from "@dibora/validation";
 import type { AttemptService } from "../services/attempt.service";

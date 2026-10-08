@@ -8,7 +8,7 @@ export class CheckoutService {
 
   async plans() {
     const rows = await this.db.select().from(subscriptionPlans).where(eq(subscriptionPlans.isActive, true)).orderBy(subscriptionPlans.sortOrder);
-    return rows.map((p) => ({ code: p.code, interval: p.interval, names: p.names, priceMinor: p.priceMinor, currency: p.currency }));
+    return rows.map((p) => ({ code: p.code, interval: p.interval, names: p.names, priceMinor: p.priceMinor, currency: p.currency, entitlements: p.entitlements }));
   }
 
   /** The amount always comes from the database plan, never from the request. */

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
+import { v as zValidator } from "../utils/validate";
 import { z } from "zod";
 import type { CheckoutService } from "../services/payments/checkout.service";
 import type { PaymentService } from "../services/payments/payment.service";

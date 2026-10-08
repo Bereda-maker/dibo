@@ -8,16 +8,21 @@ import { ThemeToggle, LocaleSwitch } from "./Controls";
 import { Skeleton, cx } from "./ui";
 import { useStore } from "../lib/store";
 import { useT } from "../lib/i18n";
+import { useSession } from "../lib/session";
+import { DEMO } from "../lib/config";
 
 const main = [["/dashboard", "dashboard", LayoutDashboard], ["/notes", "notes", BookOpen], ["/practice", "practice", Dumbbell], ["/exams", "exams", ClipboardCheck], ["/assistant", "assistant", Bot], ["/progress", "progress", TrendingUp]] as const;
 const extra = [["/bookmarks", "My Bookmarks", Bookmark], ["/mistakes", "Questions I Got Wrong", XCircle], ["/search", "Search", Search], ["/achievements", "Achievements", Medal], ["/leaderboard", "Leaderboard", Trophy], ["/notifications", "Notifications", Bell], ["/profile", "Profile", UserCircle], ["/pricing", "Plans", Crown]] as const;
 
 export function AppShell({ children, admin = false, items }: { children: React.ReactNode; admin?: boolean; items?: readonly (readonly [string, string])[] }) {
-  const { state, ready, logout } = useStore(); const path = usePathname(); const router = useRouter(); const t = useT();
-  const u = state.user;
-  useEffect(() => { if (ready && (!u || (admin && u.role !== "ADMIN"))) router.replace("/login"); }, [ready, u, admin, router]);
-  if (!ready || !u || (admin && u.role !== "ADMIN")) return <div className="p-6 space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-40" /><Skeleton className="h-40" /></div>;
-  const unread = 3 - state.readNotifs.length;
+  const { state, ready: demoReady, logout: demoLogout } = useStore(); const sess = useSession(); const path = usePathname(); const router = useRouter(); const t = useT();
+  const ready = DEMO ? demoReady : sess.ready;
+  const role = DEMO ? state.user?.role ?? null : sess.role;
+  const u = DEMO ? state.user : role ? { name: sess.profile?.fullName ?? "Admin", role: role === "STUDENT" ? "STUDENT" : "ADMIN" } as NonNullable<typeof state.user> : null;
+  const logout = () => { if (DEMO) demoLogout(); else void sess.logout(); };
+  useEffect(() => { if (ready && (!u || (admin && u.role !== "ADMIN") || (!admin && !DEMO && role !== "STUDENT"))) router.replace("/login"); }, [ready, u, admin, router]);
+  if (!ready || !u || (admin && u.role !== "ADMIN") || (!admin && !DEMO && role !== "STUDENT")) return <div className="p-6 space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-40" /><Skeleton className="h-40" /></div>;
+  const unread = DEMO ? 3 - state.readNotifs.length : 0;
   const nav = admin ? (items ?? []).map(([h, l]) => ({ h, l, I: null as null })) : [...main.map(([h, k, I]) => ({ h, l: t(k), I })), ...extra.map(([h, l, I]) => ({ h, l, I }))];
   return (<div className="min-h-screen md:flex">
     <aside aria-label="Sidebar" className="hidden w-60 shrink-0 border-r border-border bg-surface p-4 md:block md:sticky md:top-0 md:h-screen md:overflow-y-auto">

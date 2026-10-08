@@ -1,4 +1,6 @@
 "use client";
+import { DEMO } from "../../../lib/config";
+import { LiveLogin } from "../../../features/live/AuthForms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -8,7 +10,7 @@ import { useStore, type User } from "../../../lib/store";
 
 export const demoUser = (role: User["role"]): User => ({ name: role === "ADMIN" ? "Admin User" : "Abel Tesfaye", email: role === "ADMIN" ? "admin@dibora.et" : "abel@example.com", phone: "0911223344", school: "Addis Ababa Science School", region: "Addis Ababa", city: "Addis Ababa", grade: 12, stream: "Natural Science", examYear: 2027, subjects: ["math", "phy", "chem", "bio", "eng"], role, plan: "FREE", leaderboardOptIn: false, learningStatus: "DIAGNOSTIC_PENDING" });
 
-export default function Login() {
+function DemoLogin() {
   const { state, update } = useStore(); const router = useRouter(); const [err, setErr] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false);
   const enter = (u: User) => { update((s) => ({ ...s, user: s.user && s.user.role === u.role ? s.user : u })); router.push(u.role === "ADMIN" ? "/admin" : "/dashboard"); };
   return <div className="mx-auto max-w-md px-4 py-12"><Card><h1 className="text-2xl font-bold">Welcome back</h1>
@@ -22,3 +24,5 @@ export default function Login() {
     <p className="mt-4 text-sm"><Link href="/forgot-password" className="text-primary underline">Forgot password?</Link> · <Link href="/register" className="text-primary underline">Create account</Link></p>
     <div className="mt-6 border-t border-border pt-4"><p className="text-xs text-muted">Demo mode (no server): explore with a sample account.</p>
       <div className="mt-2 flex gap-2"><Button variant="secondary" onClick={() => enter(demoUser("STUDENT"))}>Demo student</Button><Button variant="secondary" onClick={() => enter(demoUser("ADMIN"))}>Demo admin</Button></div></div></Card></div>; }
+
+export default function Page() { return DEMO ? <DemoLogin /> : <LiveLogin />; }

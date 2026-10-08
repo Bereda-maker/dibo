@@ -1,4 +1,6 @@
 "use client";
+import { DEMO } from "../../../lib/config";
+import { LiveProfile } from "../../../features/live/Social";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Download, Trash2 } from "lucide-react";
@@ -27,4 +29,6 @@ function Inner() {
     <Card className="mt-4"><h2 className="font-bold">Privacy</h2><label className="mt-2 flex items-center gap-3 text-sm"><input type="checkbox" checked={u.leaderboardOptIn} onChange={(e) => update((s) => ({ ...s, user: s.user && { ...s.user, leaderboardOptIn: e.target.checked } }))} />Show me on the leaderboard (display name and points only)</label>
       <div className="mt-4 flex flex-wrap gap-2"><Button variant="secondary" onClick={() => { const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "dibora-my-data.json"; a.click(); }}><Download size={16} />Export my data</Button><Button variant="danger" onClick={() => setDel(true)}><Trash2 size={16} />Delete account</Button></div></Card>
     <Modal open={del} title="Delete your account?" onClose={() => setDel(false)}><p className="text-sm">This permanently removes your profile, progress and conversations from this device. This cannot be undone.</p><div className="mt-4 flex gap-2"><Button variant="danger" onClick={() => { localStorage.removeItem("dibora_state_v1"); location.href = "/"; }}>Delete everything</Button><Button variant="secondary" onClick={() => setDel(false)}>Cancel</Button></div></Modal></>); }
-export default function P() { return <Suspense><Inner /></Suspense>; }
+function DemoP() { return <Suspense><Inner /></Suspense>; }
+
+export default function Page() { return DEMO ? <DemoP /> : <LiveProfile />; }

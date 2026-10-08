@@ -1,12 +1,15 @@
 import { Hono } from "hono";
 import { and, asc, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
-import { zValidator } from "@hono/zod-validator";
+import { v as zValidator } from "../utils/validate";
 import { subjects, topics, learningMaterials, notes, type Db } from "@dibora/database";
 import { ok } from "../utils/response";
 import { Errors } from "../utils/errors";
 
 /** Read-only published curriculum for signed-in students. Drafts and archived items are never returned. */
+/** Public (no login): needed by the registration form. */
+export const publicContentRoutes = (db: Db) => new Hono().get("/subjects", async (c) => ok(c, await db.select({ id: subjects.id, names: subjects.names, grade: subjects.grade, stream: subjects.stream }).from(subjects).where(eq(subjects.status, "PUBLISHED")).orderBy(asc(subjects.sortOrder))));
+
 export const contentRoutes = (db: Db) => {
   const r = new Hono();
   r.get("/subjects", async (c) => ok(c, await db.select({ id: subjects.id, slug: subjects.slug, names: subjects.names, grade: subjects.grade, stream: subjects.stream }).from(subjects).where(and(eq(subjects.status, "PUBLISHED"))).orderBy(asc(subjects.sortOrder))));

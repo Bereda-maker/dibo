@@ -14,8 +14,9 @@ import type { StudentService } from "./services/student.service";
 import type { PracticeService } from "./services/practice.service";
 import type { ProgressService } from "./services/progress.service";
 import type { AiChatService } from "./services/ai-chat.service";
+import type { LearningService } from "./services/learning.service";
 import type { AdminService } from "./services/admin.service";
-import { contentRoutes } from "./routes/content";
+import { contentRoutes, publicContentRoutes } from "./routes/content";
 import { publicPlanRoutes, subscriptionRoutes } from "./routes/subscriptions";
 import type { CheckoutService } from "./services/payments/checkout.service";
 import type { Db } from "@dibora/database";
@@ -24,7 +25,7 @@ import type { AttemptService } from "./services/attempt.service";
 import type { AuthService } from "./services/auth.service";
 import type { PaymentService } from "./services/payments/payment.service";
 
-export function createApp(deps: { auth: AuthService; payments: PaymentService; checkout: CheckoutService; db: Db; defaultProvider: string; attempts: AttemptService; students: StudentService; practice: PracticeService; progress: ProgressService; chat: AiChatService; admin: AdminService; resolveStudent: (userId: string) => Promise<{ studentId: string; isPremium: boolean } | null>; webOrigin: string; isProd: boolean }) {
+export function createApp(deps: { auth: AuthService; payments: PaymentService; checkout: CheckoutService; db: Db; defaultProvider: string; attempts: AttemptService; students: StudentService; practice: PracticeService; progress: ProgressService; chat: AiChatService; admin: AdminService; learning: LearningService; resolveStudent: (userId: string) => Promise<{ studentId: string; isPremium: boolean } | null>; webOrigin: string; isProd: boolean }) {
   const app = new Hono();
   app.use("*", requestId, securityHeaders, logger());
   app.use("/api/*", cors({ origin: deps.webOrigin, credentials: true, allowMethods: ["GET", "POST", "PATCH", "DELETE"] }));
@@ -41,11 +42,12 @@ export function createApp(deps: { auth: AuthService; payments: PaymentService; c
   app.route("/api/subscriptions", publicPlanRoutes(deps.checkout));
   app.use("/api/subscriptions/*", async (c, next) => (c.req.path.endsWith("/plans") ? next() : requireAuth(deps.auth)(c, next)));
   app.route("/api/subscriptions", subscriptionRoutes(deps.checkout, deps.payments, deps.defaultProvider));
+  app.route("/api/public", publicContentRoutes(deps.db));
   app.use("/api/content/*", requireAuth(deps.auth));
   app.route("/api/content", contentRoutes(deps.db));
   app.use("/api/students/*", requireAuth(deps.auth), requireStudent);
-  for (const p of ["practice", "progress", "recommendations", "achievements", "notifications", "ai"]) app.use(`/api/${p}/*`, requireAuth(deps.auth), requireStudent);
-  app.route("/api", studentRoutes({ students: deps.students, practice: deps.practice, progress: deps.progress, chat: deps.chat, resolve: deps.resolveStudent }));
+  for (const p of ["practice", "progress", "recommendations", "achievements", "notifications", "ai", "exams", "bookmarks", "leaderboard", "search", "notes", "attempts"]) app.use(`/api/${p}/*`, requireAuth(deps.auth), requireStudent);
+  app.route("/api", studentRoutes({ students: deps.students, practice: deps.practice, progress: deps.progress, chat: deps.chat, learning: deps.learning, resolve: deps.resolveStudent }));
   app.use("/api/admin/*", requireAuth(deps.auth), requireAdmin);
   app.route("/api/admin", adminRoutes(deps.admin));
   app.use("/api/attempts/*", requireAuth(deps.auth), requireStudent);

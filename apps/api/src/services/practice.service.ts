@@ -2,6 +2,7 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { questions, questionOptions, studentAnswers, notes, learningMaterials, type Db } from "@dibora/database";
 import { isCorrect } from "@dibora/core/exam-scoring";
 import { DEFAULT_FREE, DEFAULT_PREMIUM, withinDailyLimit } from "@dibora/core/entitlement";
+import { rowsOf } from "../utils/rows";
 import { AppError, Errors } from "../utils/errors";
 import type { ProgressService } from "./progress.service";
 
@@ -34,5 +35,14 @@ export class PracticeService {
     const ids = qs.map((q) => q.id); if (!ids.length) return [];
     const os = await this.db.select({ id: questionOptions.id, questionId: questionOptions.questionId, text: questionOptions.text }).from(questionOptions).where(sql`${questionOptions.questionId} in ${ids}`).orderBy(questionOptions.sortOrder);
     return qs.map((q) => ({ ...q, options: os.filter((o) => o.questionId === q.id).map((o) => ({ id: o.id, text: o.text })) }));
+  }
+
+  /** Latest answer per question was wrong. Answers are revealed here because the student already answered. */
+  async wrong(studentId: string) {
+    const last = rowsOf<{ id: string; is_correct: boolean }>(await this.db.execute(sql`select distinct on (question_id) question_id as id, is_correct from student_answers where student_id = ${studentId} and is_correct is not null order by question_id, answered_at desc`));
+    const ids = last.filter((l) => !l.is_correct).map((l) => l.id); if (!ids.length) return [];
+    const qs = await this.db.select().from(questions).where(sql`${questions.id} in ${ids}`);
+    const os = await this.db.select().from(questionOptions).where(sql`${questionOptions.questionId} in ${ids} and ${questionOptions.isCorrect}`);
+    return qs.map((q) => ({ id: q.id, text: q.text, difficulty: q.difficulty, topicId: q.topicId, correctAnswer: q.type === "NUMERICAL" ? q.numericAnswer : os.find((o) => o.questionId === q.id)?.text ?? null, explanation: q.explanation }));
   }
 }

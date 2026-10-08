@@ -1,3 +1,7 @@
 "use client";
+import { DEMO } from "../../../lib/config";
+import { LiveDiagnostic } from "../../../features/live/Pages";
 import { ExamRunner } from "../../../components/ExamRunner";
-export default function P() { return <ExamRunner examId="diag" />; }
+function DemoP() { return <ExamRunner examId="diag" />; }
+
+export default function Page() { return DEMO ? <DemoP /> : <LiveDiagnostic />; }

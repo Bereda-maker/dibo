@@ -18,6 +18,7 @@ import { PracticeService } from "../src/services/practice.service";
 import { ProgressService } from "../src/services/progress.service";
 import { AiChatService, DbRetriever } from "../src/services/ai-chat.service";
 import { AdminService } from "../src/services/admin.service";
+import { LearningService } from "../src/services/learning.service";
 import { AIService } from "../src/services/ai/ai.service";
 
 const raw = drizzle(new PGlite(), { schema: s }); const db = raw as unknown as Db;
@@ -25,7 +26,7 @@ const ORIGIN = "https://app.test";
 const progress = new ProgressService(db);
 const app = createApp({ auth: new AuthService(db), payments: new PaymentService({}, new DrizzlePaymentRepo(db)), checkout: new CheckoutService(db, {}, ORIGIN), db, defaultProvider: "x",
   attempts: new AttemptService(new DrizzleAttemptRepo(db)), resolveStudent: (u) => studentContext(db, u), students: new StudentService(db), practice: new PracticeService(db, progress), progress,
-  chat: new AiChatService(db, new AIService({ complete: async () => ({ text: "Use F = ma.", tokens: 5 }) }, new DbRetriever(db)), progress), admin: new AdminService(db), webOrigin: ORIGIN, isProd: false });
+  chat: new AiChatService(db, new AIService({ complete: async () => ({ text: "Use F = ma.", tokens: 5 }) }, new DbRetriever(db)), progress), admin: new AdminService(db), learning: new LearningService(db, progress), webOrigin: ORIGIN, isProd: false });
 
 let subjectId = "", topicId = "";
 let ipn = 0; const ip = () => `10.1.${Math.floor(++ipn / 250)}.${ipn % 250}`; // distinct client IP per request so the rate limiter does not interfere
@@ -124,5 +125,77 @@ describe("admin API", () => {
     // an incomplete draft (single option set via DB) must be rejected at publish time
     const [q2] = await raw.insert(s.questions).values({ subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "Incomplete question", explanation: "x" }).returning();
     expect((await post(`/api/admin/questions/${q2!.id}/publish`, {}, adm)).status).toBe(422);
+  });
+});
+
+describe("exam flow, bookmarks, leaderboard, search over HTTP", () => {
+  test("exam: list, start, hidden answers while in progress, submit, review reveals answers, other students blocked", async () => {
+    const a = await signup("ex1@x.et"), b = await signup("ex2@x.et");
+    const [e] = await raw.insert(s.exams).values({ type: "TOPIC", title: "Mechanics quiz", durationMinutes: 10, questionCount: 1, status: "PUBLISHED" }).returning();
+    const [q] = await raw.insert(s.questions).values({ subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "F equals?", explanation: "Newton", status: "PUBLISHED" }).returning();
+    const [good] = await raw.insert(s.questionOptions).values({ questionId: q!.id, text: "ma", isCorrect: true }).returning(); await raw.insert(s.questionOptions).values({ questionId: q!.id, text: "m/a", isCorrect: false });
+    await raw.insert(s.examQuestions).values({ examId: e!.id, questionId: q!.id });
+    const list = (await (await get("/api/exams", a)).json()).data; expect(list.some((x: { id: string }) => x.id === e!.id)).toBe(true);
+    const start = (await (await post("/api/attempts", { examId: e!.id }, a)).json()).data;
+    const live = (await (await get(`/api/attempts/${start.attemptId}`, a)).json()).data; expect(live.status).toBe("IN_PROGRESS"); expect(JSON.stringify(live)).not.toContain("isCorrect"); expect(live.questions[0].correctOptionId).toBeUndefined(); expect(live.result).toBeNull();
+    expect((await post(`/api/attempts/${start.attemptId}/answers`, { answers: [{ questionId: q!.id, selectedOptionId: good!.id }] }, a, "PUT")).status).toBe(200);
+    expect((await get(`/api/attempts/${start.attemptId}`, b)).status).toBe(404);
+    const res = (await (await post(`/api/attempts/${start.attemptId}/submit`, {}, a)).json()).data; expect(res.percentage).toBe(100);
+    const rev = (await (await get(`/api/attempts/${start.attemptId}`, a)).json()).data; expect(rev.status).toBe("SUBMITTED"); expect(rev.questions[0].correctOptionId).toBe(good!.id); expect(rev.questions[0].explanation).toBe("Newton"); expect(rev.questions[0].isCorrect).toBe(true);
+    expect(((await (await get("/api/exams", a)).json()).data.find((x: { id: string }) => x.id === e!.id)).bestPercentage).toBe(100);
+  });
+  test("bookmarks add/list/remove and note completion", async () => {
+    const c = await signup("bm1@x.et"); const [n] = await raw.select().from(s.notes);
+    expect((await post("/api/bookmarks", { type: "NOTE", id: n!.id }, c)).status).toBe(201); await post("/api/bookmarks", { type: "NOTE", id: n!.id }, c);
+    expect((await (await get("/api/bookmarks", c)).json()).data.length).toBe(1);
+    expect((await post("/api/bookmarks", { type: "NOTE", id: n!.id }, c, "DELETE")).status).toBe(200); expect((await (await get("/api/bookmarks", c)).json()).data.length).toBe(0);
+    expect((await post(`/api/notes/${n!.id}/complete`, {}, c)).status).toBe(200); expect((await (await get("/api/notes/completed", c)).json()).data.length).toBe(1);
+  });
+  test("leaderboard shows only opted-in students and only display name + points", async () => {
+    const c = await signup("lb1@x.et"); await signup("lb2@x.et");
+    expect((await (await get("/api/leaderboard?period=overall", c)).json()).data.length).toBe(0);
+    await post("/api/students/me", { leaderboardOptIn: true, displayName: "Abebe" }, c, "PATCH");
+    const lb = (await (await get("/api/leaderboard?period=overall", c)).json()).data; expect(lb.length).toBe(1); expect(Object.keys(lb[0]).sort()).toEqual(["name", "points", "rank"]); expect(lb[0].name).toBe("Abebe");
+    expect((await (await get("/api/leaderboard?period=weekly", c)).json()).data.length).toBe(1);
+  });
+  test("search finds published notes and never drafts; /auth/me returns role", async () => {
+    const c = await signup("se1@x.et"); const r = (await (await get("/api/search?q=Newton", c)).json()).data; expect(r.some((x: { kind: string }) => x.kind === "note")).toBe(true);
+    await raw.insert(s.questions).values({ subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "Secret draft Newton question", explanation: "x", status: "DRAFT" });
+    expect(JSON.stringify((await (await get("/api/search?q=Secret", c)).json()).data)).not.toContain("Secret draft");
+    expect((await (await get("/api/auth/me", c)).json()).data.role).toBe("STUDENT"); expect((await get("/api/auth/me")).status).toBe(401);
+  });
+});
+
+describe("regression: every protected route rejects anonymous callers", () => {
+  const paths: [string, string][] = [["GET", "/api/students/me"], ["GET", "/api/practice/questions"], ["POST", "/api/practice/answer"], ["GET", "/api/progress"], ["GET", "/api/recommendations"], ["GET", "/api/achievements"], ["GET", "/api/notifications"],
+    ["GET", "/api/ai/conversations"], ["POST", "/api/ai/messages"], ["GET", "/api/exams"], ["GET", "/api/attempts/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11"], ["POST", "/api/attempts"], ["GET", "/api/bookmarks"], ["GET", "/api/notes/completed"],
+    ["POST", "/api/notes/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11/complete"], ["GET", "/api/leaderboard"], ["GET", "/api/search?q=ab"], ["GET", "/api/content/subjects"], ["POST", "/api/subscriptions/checkout"], ["GET", "/api/admin/overview"], ["GET", "/api/admin/audit-logs"], ["GET", "/api/auth/me"]];
+  for (const [m, p] of paths) test(`${m} ${p} -> 401`, async () => { const r = await app.request(p, { method: m, headers: { origin: ORIGIN, "content-type": "application/json", "x-forwarded-for": ip() }, body: m === "GET" ? undefined : "{}" }); expect(r.status).toBe(401); });
+});
+
+describe("privacy, wrong-answers, public subjects", () => {
+  test("public subject list works without login", async () => { const r = await get("/api/public/subjects"); expect(r.status).toBe(200); expect((await r.json()).data.length).toBeGreaterThan(0); });
+  test("wrong answers list reveals answer + explanation only for missed questions", async () => {
+    const c = await signup("wr1@x.et"); const [q] = await raw.insert(s.questions).values({ subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "Wrong-list q", explanation: "because", status: "PUBLISHED" }).returning();
+    const [ok] = await raw.insert(s.questionOptions).values({ questionId: q!.id, text: "yes", isCorrect: true }).returning(); const [no] = await raw.insert(s.questionOptions).values({ questionId: q!.id, text: "no", isCorrect: false }).returning();
+    await post("/api/practice/answer", { questionId: q!.id, selectedOptionId: no!.id }, c);
+    let w = (await (await get("/api/practice/wrong", c)).json()).data; expect(w.find((x: { id: string }) => x.id === q!.id).correctAnswer).toBe("yes");
+    await post("/api/practice/answer", { questionId: q!.id, selectedOptionId: ok!.id }, c); w = (await (await get("/api/practice/wrong", c)).json()).data; expect(w.some((x: { id: string }) => x.id === q!.id)).toBe(false);
+  });
+  test("export contains the student's data but never the password hash; delete ends the session and blocks login", async () => {
+    const c = await signup("pv1@x.et"); await post("/api/ai/messages", { message: "question about force" }, c);
+    const exp = (await (await get("/api/students/me/export", c)).json()).data; expect(exp.profile.email).toBe("pv1@x.et"); expect(exp.messages.length).toBe(2); expect(JSON.stringify(exp)).not.toContain("passwordHash"); expect(JSON.stringify(exp)).not.toContain("argon2");
+    const del = await app.request("/api/students/me", { method: "DELETE", headers: { cookie: c, origin: ORIGIN } }); expect(del.status).toBe(200);
+    expect((await get("/api/students/me", c)).status).toBe(401); expect((await post("/api/auth/login", { email: "pv1@x.et", password: "strongpass12" })).status).toBe(401);
+    const [u] = await raw.select().from(s.users).where(eq(s.users.id, (await raw.select().from(s.users).where(eq(s.users.email, "deleted+" + (await raw.select().from(s.users)).find((x) => x.deletedAt && x.email.startsWith("deleted+"))!.id + "@deleted.invalid")))[0]!.id)); expect(u!.deletedAt).not.toBeNull();
+    expect((await raw.select().from(s.aiConversations)).length).toBeLessThan(10);
+  });
+});
+
+describe("error envelope", () => {
+  test("validation failures use the standard envelope with per-field details", async () => {
+    const r = await post("/api/auth/register", { fullName: "x", email: "bad", phone: "1", password: "short", confirmPassword: "z", grade: 12, school: "a", region: "a", city: "a", stream: "a", examYear: 2027, subjectIds: [] });
+    expect(r.status).toBe(400); const j = await r.json(); expect(j.success).toBe(false); expect(j.error.code).toBe("VALIDATION_ERROR"); expect(j.error.requestId).toBeTruthy();
+    expect(j.error.details.email[0]).toContain("valid email"); expect(JSON.stringify(j)).not.toContain("ZodError");
   });
 });

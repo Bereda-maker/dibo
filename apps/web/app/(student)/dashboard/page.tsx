@@ -1,4 +1,6 @@
 "use client";
+import { DEMO } from "../../../lib/config";
+import { LiveDashboard } from "../../../features/live/Learn";
 import Link from "next/link";
 import { Flame, Bell, ArrowRight } from "lucide-react";
 import { recommend } from "@dibora/core/recommendation";
@@ -10,7 +12,7 @@ import { ACHIEVEMENTS } from "../../../lib/mock";
 import { explainChange } from "@dibora/core/readiness";
 
 const completeness = (u: NonNullable<ReturnType<typeof useStore>["state"]["user"]>) => Math.round(([u.name, u.email, u.phone, u.school, u.region, u.city, u.stream, u.examYear, u.subjects.length].filter(Boolean).length / 9) * 100);
-export default function P() {
+function DemoP() {
   const { state } = useStore(); const u = state.user!; const hour = new Date().getHours();
   const diag = state.attempts.some((a) => a.type === "DIAGNOSTIC"); const stats = topicStats(state); const subs = subjectStats(state);
   const rec = recommend(stats, 1)[0]; const r = readinessFor(state); const wk = readinessFor(state, Date.now() - 7 * 864e5); const ch = explainChange(wk, r);
@@ -30,3 +32,5 @@ export default function P() {
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[["Questions done", qn], ["Exams taken", state.attempts.length], ["Notes read", state.notesDone.length], ["Achievements", `${done}/${ACHIEVEMENTS.length}`]].map(([l, v]) => <Card key={String(l)} className="!p-4 text-center"><p className="text-2xl font-bold text-primary">{v}</p><p className="text-xs text-muted">{l}</p></Card>)}</div>
     <div className="grid gap-4 md:grid-cols-2"><Card><h2 className="font-bold">Recent exams</h2>{state.attempts.length ? <ul className="mt-2 space-y-2 text-sm">{[...state.attempts].reverse().slice(0, 3).map((a) => <li key={a.id} className="flex justify-between"><Link href={`/results/${a.id}`} className="underline">{a.title}</Link><b>{Math.round(a.result.percentage)}%</b></li>)}</ul> : <p className="mt-2 text-sm text-muted">No exams yet.</p>}</Card>
       <Card><h2 className="flex items-center gap-2 font-bold"><Bell size={16} aria-hidden />Notifications</h2><ul className="mt-2 space-y-1 text-sm text-muted"><li>{diag ? "Your latest results are ready." : "Diagnostic assessment available."}</li><li>Study reminder: 15 minutes today keeps your streak alive.</li></ul><Link href="/notifications" className="mt-2 inline-block text-sm text-primary underline">See all</Link></Card></div></div>); }
+
+export default function Page() { return DEMO ? <DemoP /> : <LiveDashboard />; }

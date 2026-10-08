@@ -1,4 +1,6 @@
 "use client";
+import { DEMO } from "../../../lib/config";
+import { LivePractice } from "../../../features/live/Learn";
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, XCircle, Bookmark } from "lucide-react";
@@ -40,4 +42,6 @@ function Inner() {
     {shown && <Card className={correct ? "border-success" : "border-error"}><p className={cx("flex items-center gap-2 font-bold", correct ? "text-success" : "text-error")} role="status">{correct ? <><CheckCircle2 /> Correct! Well done.</> : <><XCircle /> Not quite.</>}</p>{!correct && <p className="mt-1 text-sm">Correct answer: <b>{correctText(q)}</b></p>}<p className="mt-2 text-sm">{q.explanation}</p>
       {!correct && <div className="mt-3 flex flex-wrap gap-2"><Badge>{topicName(q.topicId)}</Badge>{note && <Button href={`/notes/${note.id}`} variant="secondary">Read note</Button>}<Button variant="secondary" onClick={() => { const same = shuffle(QUESTIONS.filter((x) => x.topicId === q.topicId && x.id !== q.id)).slice(0, 5); setSession(same); setI(0); setSel(null); setShown(false); setScore(0); }}>Practice similar</Button></div>}</Card>}
     <div className="flex gap-2">{!shown ? <Button onClick={check} disabled={sel == null || sel === ""}>Check answer</Button> : <Button onClick={() => { setI(i + 1); setSel(null); setShown(false); }}>{i + 1 === session.length ? "Finish" : "Next question"}</Button>}<Button variant="ghost" onClick={() => setSession(null)}>End session</Button></div></div>); }
-export default function P() { return <Suspense><Inner /></Suspense>; }
+function DemoP() { return <Suspense><Inner /></Suspense>; }
+
+export default function Page() { return DEMO ? <DemoP /> : <LivePractice />; }

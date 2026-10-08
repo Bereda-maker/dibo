@@ -2,6 +2,7 @@ import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { adminAuditLogs, questions, questionOptions, studentProfiles, subscriptionPlans, users, type Db } from "@dibora/database";
 import { questionUpsertSchema } from "@dibora/validation";
 import type { z } from "zod";
+import { rowsOf } from "../utils/rows";
 import { Errors, AppError } from "../utils/errors";
 
 type Actor = { userId: string; ip?: string; requestId?: string };
@@ -56,7 +57,7 @@ export class AdminService {
   }
   auditLog(limit = 100) { return this.db.select().from(adminAuditLogs).orderBy(desc(adminAuditLogs.createdAt)).limit(limit); }
   async overview() {
-    const [r] = await this.db.execute(sql`select (select count(*) from users u join student_profiles s on s.user_id=u.id where u.deleted_at is null)::int as students, (select count(*) from student_profiles where subscription_status='PREMIUM')::int as premium, (select count(*) from exam_attempts)::int as attempts, (select count(*) from ai_messages where role='user')::int as ai_messages`) as unknown as Record<string, number>[];
+    const [r] = rowsOf<Record<string, number>>(await this.db.execute(sql`select (select count(*) from users u join student_profiles s on s.user_id=u.id where u.deleted_at is null)::int as students, (select count(*) from student_profiles where subscription_status='PREMIUM')::int as premium, (select count(*) from exam_attempts)::int as attempts, (select count(*) from ai_messages where role='user')::int as ai_messages`));
     return r;
   }
 }

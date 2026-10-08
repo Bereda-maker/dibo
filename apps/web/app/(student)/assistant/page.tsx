@@ -1,4 +1,6 @@
 "use client";
+import { DEMO } from "../../../lib/config";
+import { LiveAssistant } from "../../../features/live/Social";
 import { useEffect, useRef, useState } from "react";
 import { Send, Plus, Pencil, Trash2 } from "lucide-react";
 import { Button, Card, PageHeader, inputCls, useToast } from "../../../components/ui";
@@ -18,7 +20,7 @@ function localAnswer(msg: string, weak: string[]): { text: string; sources: stri
   if (!scored) return { text: "I could not find approved material for this in the platform, so I would rather not guess. Try naming a topic from your notes (for example 'quadratic equations' or 'Newton's second law'), or check your textbook.", sources: [] };
   const n = scored.n; return { text: `${n.summary} ${n.sections[0]!.body}${n.formulas.length ? `\n\nKey formula: ${n.formulas[0]}` : ""}${n.mistakes[0] ? `\n\nCommon mistake: ${n.mistakes[0]}` : ""}\n\n[Source: note “${n.title}”]`, sources: [n.id] };
 }
-export default function P() {
+function DemoP() {
   const { state, update, markActive } = useStore(); const toast = useToast(); const u = state.user!;
   const [cid, setCid] = useState<string | null>(state.conversations[0]?.id ?? null); const [text, setText] = useState(""); const [busy, setBusy] = useState(false); const end = useRef<HTMLDivElement>(null);
   const conv = state.conversations.find((c) => c.id === cid); const used = state.aiUsage[today()] ?? 0; const limited = u.plan !== "PREMIUM" && used >= FREE_LIMIT;
@@ -38,3 +40,5 @@ export default function P() {
         {conv?.messages.map((m, i) => <div key={i} className={m.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-primary px-4 py-2 text-sm text-white" : "max-w-[90%] whitespace-pre-line rounded-2xl bg-border/40 px-4 py-2 text-sm"}>{m.content}</div>)}{busy && <p className="text-sm text-muted">Thinking…</p>}<div ref={end} /></div>
         <form className="flex gap-2 border-t border-border p-3" onSubmit={(e) => { e.preventDefault(); send(text); }}><input aria-label="Message" maxLength={2000} className={inputCls} placeholder={limited ? "Daily free limit reached" : "Ask a question…"} value={text} onChange={(e) => setText(e.target.value)} disabled={limited} /><Button type="submit" aria-label="Send" disabled={limited || busy}><Send size={16} /></Button></form>
         <p className="px-4 pb-3 text-xs text-muted">{u.plan === "PREMIUM" ? "Premium: advanced assistant" : `${Math.max(0, FREE_LIMIT - used)} free messages left today`}{limited && <> · <a href="/pricing" className="underline">Upgrade</a></>}</p></Card></div></>); }
+
+export default function Page() { return DEMO ? <DemoP /> : <LiveAssistant />; }

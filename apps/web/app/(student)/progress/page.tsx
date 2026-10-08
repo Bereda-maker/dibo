@@ -1,9 +1,11 @@
 "use client";
+import { DEMO } from "../../../lib/config";
+import { LiveProgress } from "../../../features/live/Learn";
 import { Card, PageHeader } from "../../../components/ui";
 import { BarChart, LineChart } from "../../../components/Charts";
 import { useStore } from "../../../lib/store";
 import { subjectStats, topicStats, events, streak } from "../../../lib/analytics";
-export default function P() {
+function DemoP() {
   const { state } = useStore(); const ev = events(state); const c = ev.filter((e) => e.correct).length; const subs = subjectStats(state); const ts = topicStats(state).filter((t) => t.attempted);
   const days = [...new Set(state.days)].slice(-14); const premium = state.user!.plan === "PREMIUM";
   const trend = state.attempts.map((a, i) => ({ label: `#${i + 1}`, value: Math.round(a.result.percentage) })); const mocks = state.attempts.filter((a) => a.type === "MOCK");
@@ -15,3 +17,5 @@ export default function P() {
       <Card><h2 className="mb-3 font-bold">Topic performance</h2>{premium ? <BarChart label="Topic performance" data={ts.map((t) => ({ label: t.topicName, value: Math.round((t.correct / t.attempted) * 100) }))} /> : <p className="text-sm text-muted">Detailed topic analytics are part of Premium. <a href="/pricing" className="underline">See plans</a></p>}</Card>
       <Card><h2 className="mb-3 font-bold">Mock exam performance</h2><LineChart label="Mock exam scores" data={mocks.map((a, i) => ({ label: `Mock ${i + 1}`, value: Math.round(a.result.percentage) }))} /></Card>
       <Card className="md:col-span-2"><h2 className="font-bold">Study consistency</h2><p className="mt-1 text-sm text-muted">{days.length} active day(s) recently. Rest days are healthy — steady beats exhausting.</p><div className="mt-3 flex flex-wrap gap-1.5" aria-label="Recent active days">{days.map((d) => <span key={d} title={d} className="h-6 w-6 rounded bg-primary" />)}{!days.length && <span className="text-sm text-muted">No study days yet.</span>}</div></Card></div></>; }
+
+export default function Page() { return DEMO ? <DemoP /> : <LiveProgress />; }

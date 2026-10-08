@@ -1,4 +1,6 @@
 "use client";
+import { DEMO } from "../../../lib/config";
+import { LiveRegister } from "../../../features/live/AuthForms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -13,7 +15,7 @@ const STREAMS = ["Natural Science", "Social Science"];
 // The shared server schema requires UUID subject ids; the demo catalogue uses short ids, so relax only that field here.
 const formSchema = registerSchema.innerType().extend({ subjectIds: z.array(z.string()).min(1, "Select at least one subject") }).refine((v) => v.password === v.confirmPassword, { path: ["confirmPassword"], message: "Passwords do not match" });
 
-export default function Register() {
+function DemoRegister() {
   const { update } = useStore(); const router = useRouter(); const [err, setErr] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false); const [consent, setConsent] = useState(false);
   return <div className="mx-auto max-w-2xl px-4 py-10"><Card><h1 className="text-2xl font-bold">Create your account</h1><p className="mt-1 text-sm text-muted">We collect only what we need. Your details are never shown publicly.</p>
     <form noValidate className="mt-6 grid gap-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget);
@@ -39,3 +41,5 @@ export default function Register() {
       <div className="sm:col-span-2"><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={consent} onChange={(e) => setConsent(e.target.checked)} />I agree to the <Link href="/privacy" className="underline">privacy terms</Link>. If I am under 18, a parent or guardian is aware I am using Dibora.</label>{err.consent && <p className="mt-1 text-xs text-error">{err.consent}</p>}</div>
       <Button type="submit" loading={busy} className="sm:col-span-2">Create account</Button></form>
     <p className="mt-4 text-sm">Already registered? <Link href="/login" className="text-primary underline">Log in</Link></p></Card></div>; }
+
+export default function Page() { return DEMO ? <DemoRegister /> : <LiveRegister />; }

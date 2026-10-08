@@ -1,4 +1,6 @@
 "use client";
+import { DEMO } from "../../../../lib/config";
+import { LiveResultsRoute } from "../../../../features/live/Pages";
 import { useParams } from "next/navigation";
 import { recommend } from "@dibora/core/recommendation";
 import { Badge, Button, Card, EmptyState, PageHeader } from "../../../../components/ui";
@@ -8,7 +10,7 @@ import { TOPICS, SUBJECTS, subjectName, topicName } from "../../../../lib/mock";
 import { fmtTime } from "../../../../lib/exam";
 import { topicStats } from "../../../../lib/analytics";
 
-export default function P() {
+function DemoP() {
   const { id } = useParams<{ id: string }>(); const { state } = useStore();
   const a = state.attempts.find((x) => x.id === id);
   if (!a) return <EmptyState title="Result not found" action={<Button href="/exams">Back to exams</Button>} />;
@@ -28,3 +30,5 @@ export default function P() {
       <Card><h2 className="font-bold">Strong</h2><p className="text-sm text-muted">{strong.map((t) => t.label).join(", ") || "None yet"}</p><h2 className="mt-3 font-bold">Needs improvement</h2><p className="text-sm text-muted">{weak.map((t) => t.label).join(", ") || "Nothing flagged"}</p></Card></div>
     <Card className="mt-4"><h2 className="font-bold">Next steps</h2>{recs.length ? <ul className="mt-2 space-y-2 text-sm">{recs.map((x) => <li key={x.topicId} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-border/30 p-3"><span>{x.reason}</span><Button href={x.action === "READ_NOTE" ? "/notes" : `/practice?topic=${x.topicId}&difficulty=${x.difficulty}`} variant="secondary">{x.action === "READ_NOTE" ? "Read notes" : `Practice ${x.questionCount}`}</Button></li>)}</ul> : <p className="mt-2 text-sm text-muted">Keep practicing to unlock recommendations.</p>}</Card>
     <div className="mt-4 flex flex-wrap gap-2"><Button href={`/review/${a.id}`}>Review answers</Button><Button href="/dashboard" variant="secondary">Dashboard</Button><Button href={`/exams/${a.examId}`} variant="secondary">Retake</Button></div></>; }
+
+export default function Page() { return DEMO ? <DemoP /> : <LiveResultsRoute />; }
