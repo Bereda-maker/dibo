@@ -61,7 +61,99 @@ export function DiboraHero() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  useEffect(() => {\n    const video = videoRef.current;\n    const hero = heroRef.current;\n    if (!video || !hero) return;\n    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");\n\n    const onMouseMove = (event: MouseEvent) => {\n      if (!reduceMotion.matches) {\n        const bounds = hero.getBoundingClientRect();\n        if (bounds.width > 0 && bounds.height > 0) {\n          pointerTarget.current = {\n            x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),\n            y: Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height)),\n          };\n\n          if (pointerFrame.current === null) {\n            pointerFrame.current = window.requestAnimationFrame(() => {\n              const { x, y } = pointerTarget.current;\n              video.style.transition = "none";\n              video.style.transform = "translate3d(" + ((0.5 - x) * 14).toFixed(1) + "px, " + ((0.5 - y) * 8).toFixed(1) + "px, 0) scale(1.06)";\n              spotlightRef.current?.style.setProperty("--spotlight-x", (x * 100).toFixed(1) + "%");\n              spotlightRef.current?.style.setProperty("--spotlight-y", (y * 100).toFixed(1) + "%");\n              spotlightRef.current?.style.setProperty("opacity", "1");\n              pointerFrame.current = null;\n            });\n          }\n        }\n      }\n\n      if (!Number.isFinite(video.duration) || video.duration <= 0) return;\n      if (previousX.current === null) {\n        previousX.current = event.clientX;\n        return;\n      }\n\n      const delta = event.clientX - previousX.current;\n      previousX.current = event.clientX;\n      if (delta === 0) return;\n\n      const baseTime = pendingTime.current ?? video.currentTime;\n      const width = Math.max(window.innerWidth, 1);\n      const target = Math.max(\n        0,\n        Math.min(\n          video.duration,\n          baseTime + (delta / width) * SCRUB_SENSITIVITY * video.duration,\n        ),\n      );\n      pendingTime.current = target;\n\n      if (!seeking.current) {\n        if (Math.abs(video.currentTime - target) < 0.01) {\n          pendingTime.current = null;\n          return;\n        }\n        seeking.current = true;\n        video.currentTime = target;\n      }\n    };\n\n    const onMouseLeave = () => {\n      previousX.current = null;\n      if (pointerFrame.current !== null) {\n        window.cancelAnimationFrame(pointerFrame.current);\n        pointerFrame.current = null;\n      }\n      spotlightRef.current?.style.setProperty("opacity", "0");\n      if (!reduceMotion.matches) {\n        video.style.transition = "transform 650ms cubic-bezier(.22,1,.36,1)";\n        video.style.transform = "translate3d(0,0,0) scale(1.06)";\n      }\n    };\n\n    const onSeeked = () => {\n      const target = pendingTime.current;\n      if (target !== null && Math.abs(target - video.currentTime) > 0.03) {\n        video.currentTime = target;\n        return;\n      }\n      pendingTime.current = null;\n      seeking.current = false;\n    };\n\n    hero.addEventListener("mousemove", onMouseMove, { passive: true });\n    hero.addEventListener("mouseleave", onMouseLeave);\n    video.addEventListener("seeked", onSeeked);\n    return () => {\n      hero.removeEventListener("mousemove", onMouseMove);\n      hero.removeEventListener("mouseleave", onMouseLeave);\n      video.removeEventListener("seeked", onSeeked);\n      if (pointerFrame.current !== null) window.cancelAnimationFrame(pointerFrame.current);\n    };\n  }, []);
+  useEffect(() => {
+    const video = videoRef.current;
+    const hero = heroRef.current;
+    if (!video || !hero) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    const onMouseMove = (event: MouseEvent) => {
+      if (!reduceMotion.matches) {
+        const bounds = hero.getBoundingClientRect();
+        if (bounds.width > 0 && bounds.height > 0) {
+          pointerTarget.current = {
+            x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
+            y: Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height)),
+          };
+
+          if (pointerFrame.current === null) {
+            pointerFrame.current = window.requestAnimationFrame(() => {
+              const { x, y } = pointerTarget.current;
+              video.style.transition = "none";
+              video.style.transform = "translate3d(" + ((0.5 - x) * 14).toFixed(1) + "px, " + ((0.5 - y) * 8).toFixed(1) + "px, 0) scale(1.06)";
+              spotlightRef.current?.style.setProperty("--spotlight-x", (x * 100).toFixed(1) + "%");
+              spotlightRef.current?.style.setProperty("--spotlight-y", (y * 100).toFixed(1) + "%");
+              spotlightRef.current?.style.setProperty("opacity", "1");
+              pointerFrame.current = null;
+            });
+          }
+        }
+      }
+
+      if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+      if (previousX.current === null) {
+        previousX.current = event.clientX;
+        return;
+      }
+
+      const delta = event.clientX - previousX.current;
+      previousX.current = event.clientX;
+      if (delta === 0) return;
+
+      const baseTime = pendingTime.current ?? video.currentTime;
+      const width = Math.max(window.innerWidth, 1);
+      const target = Math.max(
+        0,
+        Math.min(
+          video.duration,
+          baseTime + (delta / width) * SCRUB_SENSITIVITY * video.duration,
+        ),
+      );
+      pendingTime.current = target;
+
+      if (!seeking.current) {
+        if (Math.abs(video.currentTime - target) < 0.01) {
+          pendingTime.current = null;
+          return;
+        }
+        seeking.current = true;
+        video.currentTime = target;
+      }
+    };
+
+    const onMouseLeave = () => {
+      previousX.current = null;
+      if (pointerFrame.current !== null) {
+        window.cancelAnimationFrame(pointerFrame.current);
+        pointerFrame.current = null;
+      }
+      spotlightRef.current?.style.setProperty("opacity", "0");
+      if (!reduceMotion.matches) {
+        video.style.transition = "transform 650ms cubic-bezier(.22,1,.36,1)";
+        video.style.transform = "translate3d(0,0,0) scale(1.06)";
+      }
+    };
+
+    const onSeeked = () => {
+      const target = pendingTime.current;
+      if (target !== null && Math.abs(target - video.currentTime) > 0.03) {
+        video.currentTime = target;
+        return;
+      }
+      pendingTime.current = null;
+      seeking.current = false;
+    };
+
+    hero.addEventListener("mousemove", onMouseMove, { passive: true });
+    hero.addEventListener("mouseleave", onMouseLeave);
+    video.addEventListener("seeked", onSeeked);
+    return () => {
+      hero.removeEventListener("mousemove", onMouseMove);
+      hero.removeEventListener("mouseleave", onMouseLeave);
+      video.removeEventListener("seeked", onSeeked);
+      if (pointerFrame.current !== null) window.cancelAnimationFrame(pointerFrame.current);
+    };
+  }, []);
 
   return (
     <section
