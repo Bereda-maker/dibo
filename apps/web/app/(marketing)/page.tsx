@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ClipboardList, BookOpen, Dumbbell, ClipboardCheck, BarChart3, Bot, Target, Gauge, Award, SearchCheck } from "lucide-react";
 import { ReadinessCard } from "../../components/ReadinessCard";
+import { DiboraHero } from "../../components/DiboraHero";
 
 const problems = ["Not knowing what to study next", "Weak areas that stay hidden", "No structured practice", "Little real exam simulation", "Progress that is hard to track", "No personal academic support"];
 const loop = [["Assess", "Find your starting point"], ["Learn", "Short, structured notes"], ["Practice", "Targeted questions"], ["Test", "Timed mock exams"], ["Analyze", "See topic-level results"], ["Improve", "Fix weak areas, repeat"]];
@@ -13,13 +14,16 @@ export const features = [
 
 export default function Home() {
   return (<>
-    <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
-      <div><p className="mb-3 inline-block rounded-full bg-accent/20 px-3 py-1 text-xs font-bold text-warning">Built for Ethiopian students</p>
-        <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">Prepare Smarter for Your Grade 12 Examination.</h1>
-        <p className="mt-4 text-lg text-muted">Learn through structured notes, practice questions, mock examinations, progress analytics, and AI-powered academic support. Learn smarter. Practice better. Know where you stand.</p>
-        <div className="mt-6 flex flex-wrap gap-3"><Link href="/register" className="rounded-xl bg-primary px-6 py-3 font-semibold text-white">Start Learning</Link><Link href="/features" className="rounded-xl border border-border bg-surface px-6 py-3 font-semibold">Explore Features</Link></div></div>
-      <div className="space-y-3"><ReadinessCard overall={72} delta={4} parts={{ knowledge: 78, practice: 72, mock: 69, consistency: 81 }} />
-        <div className="rounded-card border border-border bg-surface p-4 shadow-card text-sm"><p className="text-muted">Today&apos;s recommendation</p><p className="font-semibold">Physics → Mechanics · Practice 15 questions</p></div></div></section>
+    <DiboraHero />
+    <section className="mx-auto max-w-6xl px-4 py-8">
+      <div className="grid items-center gap-4 md:grid-cols-2">
+        <ReadinessCard overall={72} delta={4} parts={{ knowledge: 78, practice: 72, mock: 69, consistency: 81 }} />
+        <div className="rounded-card border border-border bg-surface p-4 text-sm shadow-card">
+          <p className="text-muted">Today&apos;s recommendation</p>
+          <p className="font-semibold">Physics → Mechanics · Practice 15 questions</p>
+        </div>
+      </div>
+    </section>
     <section className="mx-auto max-w-6xl px-4 py-10"><h2 className="text-2xl font-bold">Studying hard is not the same as studying right</h2>
       <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{problems.map((p) => <li key={p} className="rounded-card border border-border bg-surface p-4">{p}</li>)}</ul></section>
     <section className="mx-auto max-w-6xl px-4 py-10"><h2 className="text-2xl font-bold">One loop that keeps improving you</h2>
