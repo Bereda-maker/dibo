@@ -96,9 +96,9 @@ Flow: student picks a plan -> `POST /api/subscriptions/checkout` creates a `PEND
 
 
 ## Social login (Google and Telegram)
-Optional; the buttons on `/login` and `/register` appear only when configured. Endpoints: `GET /api/auth/providers`, `POST /api/auth/google`, `POST /api/auth/telegram`.
+The `/login` and `/register` pages let students choose Email or Telegram; Google remains available as a secondary option when configured. Endpoints: `GET /api/auth/providers`, `POST /api/auth/google`, `POST /api/auth/telegram`.
 - **Google**: set `GOOGLE_CLIENT_ID` (OAuth client of type "Web application"; add your site origin under Authorized JavaScript origins). The API verifies the ID token itself (RS256 signature against Google's keys, issuer, audience, expiry, `email_verified`). No client secret is used.
-- **Telegram**: create a bot with @BotFather, run `/setdomain` with your site's domain, then set `TELEGRAM_BOT_TOKEN` (secret) and `TELEGRAM_BOT_USERNAME`. The API verifies the Login Widget HMAC and rejects payloads older than 24 hours.
+- **Telegram**: configure the supplied bot [@DiboraStudentBot](https://t.me/DiboraStudentBot) with @BotFather, run `/setdomain` with your site's domain, and set `TELEGRAM_BOT_TOKEN` as an API-only secret. `TELEGRAM_BOT_USERNAME` is public and is prefilled as `DiboraStudentBot` in `.env.example`. Telegram sign-in creates or reuses an account; new students continue to `/profile?welcome=1` to complete their student profile. The API verifies the Login Widget HMAC and rejects payloads older than 24 hours.
 - **Accounts**: identities are stored in `auth_identities` (unique per provider account). A Google sign-in whose verified email matches an existing account links to it; if that account's email was never verified, its password and sessions are cleared first (prevents pre-registration takeover). Telegram has no email, so it always creates its own account with a placeholder `tg_<id>@telegram.invalid` email (password reset is not possible for these accounts). Social accounts get an unusable random password.
 - **Cookie**: in production the session cookie is `HttpOnly; Secure; SameSite=None` so it works between a Vercel site and a Render API. With a shared parent domain set `COOKIE_SAMESITE=Lax`.
 - **Migration**: `0002` adds `auth_identities` (additive).
