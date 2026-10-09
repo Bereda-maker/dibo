@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthLayout } from "../../../components/AuthLayout";
+import { AuthRedirectProgress } from "../../../components/AuthRedirectProgress";
 import { DEMO } from "../../../lib/config";
 import { DemoAuthMethodChoice, LiveRegister } from "../../../features/live/AuthForms";
 import Link from "next/link";
@@ -23,9 +24,11 @@ function DemoRegister() {
   const [error, setError] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
+      <AuthRedirectProgress message={progress} />
       <Card>
         <h1 className="text-2xl font-bold">Create your account</h1>
         <p className="mt-1 text-sm text-muted">We collect only what we need. Your details are never shown publicly.</p>
@@ -43,9 +46,11 @@ function DemoRegister() {
           if (!consent) { setError({ consent: "Please accept the privacy terms to continue" }); return; }
           setError({});
           setBusy(true);
+          setProgress("Creating your account…");
           const value = result.data;
           setTimeout(() => {
             update((current) => ({ ...current, user: { name: value.fullName, email: value.email, phone: value.phone, school: value.school, region: value.region, city: value.city, grade: value.grade, stream: value.stream, examYear: value.examYear, subjects: value.subjectIds, role: "STUDENT", plan: "FREE", leaderboardOptIn: false, learningStatus: "PROFILE_INCOMPLETE" } }));
+            setProgress("Taking you to complete your student profile…");
             router.push("/profile?welcome=1");
           }, 500);
         }}>

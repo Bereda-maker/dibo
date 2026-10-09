@@ -2,6 +2,7 @@
 
 import { DEMO } from "../../../lib/config";
 import { AuthLayout } from "../../../components/AuthLayout";
+import { AuthRedirectProgress } from "../../../components/AuthRedirectProgress";
 import { DemoAuthMethodChoice, LiveLogin } from "../../../features/live/AuthForms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -32,13 +33,17 @@ function DemoLogin() {
   const router = useRouter();
   const [error, setError] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const enter = (user: User) => {
     update((current) => ({ ...current, user: current.user && current.user.role === user.role ? current.user : user }));
-    router.push(user.role === "ADMIN" ? "/admin" : "/dashboard");
+    const destination = user.role === "ADMIN" ? "/admin" : "/dashboard";
+    setProgress(user.role === "ADMIN" ? "Opening your admin space…" : "Opening your dashboard…");
+    router.push(destination);
   };
 
   return (
     <div className="mx-auto max-w-md px-4 py-6">
+      <AuthRedirectProgress message={progress} />
       <Card>
         <h1 className="text-2xl font-bold">Welcome back</h1>
         <form noValidate className="mt-5 space-y-4" onSubmit={(event) => {
@@ -52,11 +57,15 @@ function DemoLogin() {
           }
           setError({});
           setBusy(true);
+          setProgress("Checking your login…");
           setTimeout(() => {
-            setBusy(false);
             const user = state.user;
             if (user && user.email === result.data.email) enter(user);
-            else setError({ form: "No account found on this device. Register first, or use a demo account below." });
+            else {
+              setProgress(null);
+              setBusy(false);
+              setError({ form: "No account found on this device. Register first, or use a demo account below." });
+            }
           }, 400);
         }}>
           <Field label="Email" error={error.email}>{(id, attributes) => <input id={id} name="email" type="email" autoComplete="email" className={inputCls} {...attributes} />}</Field>

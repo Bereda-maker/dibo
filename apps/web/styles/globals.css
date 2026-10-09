@@ -155,3 +155,20 @@ body {
     font-size: 0.875rem;
   }
 }
+
+@keyframes dibora-auth-progress {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(360%); }
+}
+
+.auth-redirect-progress {
+  animation: dibora-auth-progress 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-redirect-progress {
+    animation: none;
+    width: 100%;
+    opacity: 0.8;
+  }
+}
