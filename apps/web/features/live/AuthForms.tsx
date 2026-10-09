@@ -1,18 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Mail, Send, ShieldCheck } from "lucide-react";
+import { ArrowRight, Mail, ShieldCheck } from "lucide-react";
 
 import { registerSchema, loginSchema } from "@dibora/validation";
 import { Button, Card, Field, ErrorState, inputCls } from "../../components/ui";
+import { AuthRedirectProgress } from "../../components/AuthRedirectProgress";
 import { api, ApiError, fieldErrors } from "../../lib/api";
 import { useApi } from "../../lib/useApi";
 import { useSession } from "../../lib/session";
 import { REGIONS, STREAMS } from "../../lib/config";
 
-type AuthMethod = "email" | "telegram" | "google";
+type AuthMethod = "telegram" | "google" | "email";
 type SocialProvider = Exclude<AuthMethod, "email">;
 type Providers = { google: { clientId: string } | null; telegram: { botUsername: string } | null };
 type GoogleApi = { accounts: { id: { initialize: (options: { client_id: string; callback: (result: { credential: string }) => void }) => void; renderButton: (element: HTMLElement, options: Record<string, unknown>) => void } } };
@@ -28,19 +30,30 @@ const loadGsi = () => (gsiLoading ??= new Promise<void>((resolve, reject) => {
   document.head.appendChild(script);
 }));
 
-function MethodTabs({ value, onChange, label }: { value: AuthMethod; onChange: (method: AuthMethod) => void; label: string }) {
-  const buttonClass = (active: boolean) => `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition ${active ? "bg-surface text-primary shadow-sm" : "text-muted hover:text-text"}`;
+function ProviderMark({ provider }: { provider: SocialProvider }) {
+  // Use the provider-owned marks from Google Identity Services and Telegram.
+  const src = provider === "telegram" ? "/brand/telegram.svg" : "/brand/google-g.png";
   return (
-    <div role="group" aria-label={label} className="mb-6 grid grid-cols-3 rounded-2xl border border-border bg-background/80 p-1.5">
-      <button type="button" aria-pressed={value === "email"} onClick={() => onChange("email")} className={buttonClass(value === "email")}>
-        <Mail className="h-4 w-4" aria-hidden /> Email
-      </button>
-      <button type="button" aria-pressed={value === "telegram"} onClick={() => onChange("telegram")} className={buttonClass(value === "telegram")}>
-        <Send className="h-4 w-4" aria-hidden /> Telegram
-      </button>
-      <button type="button" aria-pressed={value === "google"} onClick={() => onChange("google")} className={buttonClass(value === "google")}>
-        <span aria-hidden className="font-extrabold text-[#4285F4]">G</span> Google
-      </button>
+    <span aria-hidden="true" className={`grid h-5 w-5 shrink-0 place-items-center ${provider === "google" ? "rounded-full bg-white" : ""}`}>
+      <Image src={src} alt="" width={20} height={20} unoptimized className="h-5 w-5 object-contain" />
+    </span>
+  );
+}
+
+function MethodTabs({ value, onChange, label }: { value: AuthMethod; onChange: (method: AuthMethod) => void; label: string }) {
+  const methods: { value: AuthMethod; label: string; icon: ReactNode }[] = [
+    { value: "telegram", label: "Telegram", icon: <ProviderMark provider="telegram" /> },
+    { value: "google", label: "Google", icon: <ProviderMark provider="google" /> },
+    { value: "email", label: "Email", icon: <Mail className="h-4 w-4 shrink-0" aria-hidden="true" /> },
+  ];
+  const buttonClass = (active: boolean) => `inline-flex min-h-11 min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-1.5 text-xs font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:gap-2 sm:px-3 sm:text-sm ${active ? "bg-surface text-primary shadow-sm ring-1 ring-border/70" : "text-muted hover:bg-surface/60 hover:text-text"}`;
+  return (
+    <div role="group" aria-label={label} className="mb-6 grid grid-cols-3 gap-1 rounded-2xl border border-border bg-background/80 p-1.5">
+      {methods.map((method) => (
+        <button key={method.value} type="button" aria-pressed={value === method.value} onClick={() => onChange(method.value)} className={buttonClass(value === method.value)}>
+          {method.icon}{method.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -72,17 +85,34 @@ function SocialLogin({ provider }: { provider: SocialProvider }) {
   const [providers, setProviders] = useState<Providers | null>(null);
   const [error, setError] = useState("");
   const [providerLoadError, setProviderLoadError] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState("");
+  const submittingRef = useRef(false);
   const googleHost = useRef<HTMLDivElement>(null);
   const telegramHost = useRef<HTMLDivElement>(null);
 
   const submit = async (path: SocialProvider, body: unknown) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setBusy(true);
     setError("");
+    setProgress(path === "google" ? "Verifying your Google sign-in…" : "Verifying your Telegram sign-in…");
+    let redirectStarted = false;
     try {
       const result = await api<{ role: string; isNew: boolean }>(`/auth/${path}`, { method: "POST", body });
       await refresh();
-      router.push(result.isNew ? "/profile?welcome=1" : result.role === "STUDENT" ? "/dashboard" : "/admin");
+      const destination = result.isNew ? "/profile?welcome=1" : result.role === "STUDENT" ? "/dashboard" : "/admin";
+      setProgress(result.isNew ? "Taking you to finish your student profile…" : result.role === "STUDENT" ? "Opening your dashboard…" : "Opening your admin space…");
+      router.push(destination);
+      redirectStarted = true;
     } catch (cause) {
+      setProgress("");
       setError(cause instanceof ApiError && cause.status === 429 ? "Too many attempts. Please wait a minute." : cause instanceof ApiError ? cause.message : "Sign-in failed. Please try again.");
+    } finally {
+      if (!redirectStarted) {
+        setBusy(false);
+        submittingRef.current = false;
+      }
     }
   };
 
@@ -130,54 +160,62 @@ function SocialLogin({ provider }: { provider: SocialProvider }) {
 
   if (provider === "telegram") {
     if (!providers) return <p role="status" className="rounded-2xl border border-border bg-background/70 p-4 text-sm text-muted">Connecting to Telegram…</p>;
-    if (providerLoadError) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Dibora couldn’t reach Telegram sign-in right now. Please try again later or continue with email.</div>;
-    if (!providers.telegram) return <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Telegram sign-in is not configured yet. You can continue with email for now.</div>;
+    if (providerLoadError) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Dibora couldn’t reach Telegram sign-in right now. Please try again later, or choose Google or Email.</div>;
+    if (!providers.telegram) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Telegram sign-in is not configured yet. You can choose Google or Email instead.</div>;
     return (
-      <div className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
-        <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#229ED9]/10 text-[#168ac0]"><Send className="h-5 w-5" aria-hidden /></div>
+      <>
+      <AuthRedirectProgress message={progress || null} />
+      <div aria-busy={busy} className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
+        <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#229ED9]/10"><ProviderMark provider="telegram" /></div>
         <h2 className="font-bold text-text">Continue with Telegram</h2>
-        <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Sign in securely with @{providers.telegram.botUsername}. New students can create an account here, then complete their Dibora profile.</p>
-        <div ref={telegramHost} className="mt-5 flex min-h-12 items-center justify-center" />
+        <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Use @{providers.telegram.botUsername} to sign in or create an account. New students finish a short profile next.</p>
+        <div ref={telegramHost} className={`mt-5 flex min-h-12 items-center justify-center ${busy ? "pointer-events-none opacity-60" : ""}`} />
         {error && <p role="alert" className="mt-3 text-sm text-error">{error}</p>}
         <p className="mt-3 flex items-center justify-center gap-2 text-xs text-muted"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden />Telegram verification is checked by Dibora’s API.</p>
       </div>
+      </>
     );
   }
 
   if (!providers) return <p role="status" className="rounded-2xl border border-border bg-background/70 p-4 text-center text-sm text-muted">Connecting to Google…</p>;
-  if (providerLoadError) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Dibora couldn’t reach Google sign-in right now. Please try again later or choose Email.</div>;
-  if (!providers.google) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Google sign-in is not configured on the Dibora API yet. You can choose Email instead.</div>;
+  if (providerLoadError) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Dibora couldn’t reach Google sign-in right now. Please try again later, or choose Telegram or Email.</div>;
+  if (!providers.google) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Google sign-in is not configured on the Dibora API yet. You can choose Telegram or Email instead.</div>;
   return (
-    <div className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
-      <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#4285F4]/10 text-xl font-extrabold text-[#4285F4]">G</div>
+    <>
+    <AuthRedirectProgress message={progress || null} />
+    <div aria-busy={busy} className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
+      <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-white shadow-sm"><ProviderMark provider="google" /></div>
       <h2 className="font-bold text-text">Continue with Google</h2>
-      <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Use your Google account to sign in or create your Dibora student account.</p>
-      <div ref={googleHost} className="mt-5 flex min-h-[44px] w-full justify-center" />
+      <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Use your Google account to sign in or create an account. New students finish a short profile next.</p>
+      <div ref={googleHost} className={`mt-5 flex min-h-[44px] w-full justify-center ${busy ? "pointer-events-none opacity-60" : ""}`} />
       {error && <p role="alert" className="mt-3 text-center text-sm text-error">{error}</p>}
     </div>
+    </>
   );
 }
 
 export function LiveLogin() {
   const { refresh } = useSession();
   const router = useRouter();
-  const [method, setMethod] = useState<AuthMethod>("email");
+  const [method, setMethod] = useState<AuthMethod>("telegram");
   const [error, setError] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("method");
-    if (requested === "telegram" || requested === "google") setMethod(requested);
+    if (requested === "telegram" || requested === "google" || requested === "email") setMethod(requested);
   }, []);
 
   return (
     <div className="mx-auto w-full max-w-xl">
+      <AuthRedirectProgress message={progress} />
       <div className="mb-7">
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Your learning space</p>
         <h1 className="text-3xl font-extrabold tracking-tight text-text sm:text-4xl">Welcome back.</h1>
-        <p className="mt-2 text-sm leading-6 text-muted">Choose Email, Telegram, or Google and pick up where you left off.</p>
+        <p className="mt-2 text-sm leading-6 text-muted">Use Telegram or Google to get back in quickly, or sign in with Email.</p>
       </div>
-      <MethodTabs value={method} onChange={(value) => { setMethod(value); setError({}); }} label="Choose how to sign in" />
+      <MethodTabs value={method} onChange={(value) => { setMethod(value); setError({}); setProgress(null); }} label="Choose how to sign in" />
 
       {method === "email" ? (
         <>
@@ -193,14 +231,20 @@ export function LiveLogin() {
               }
               setError({});
               setBusy(true);
+              setProgress("Checking your login…");
+              let redirectStarted = false;
               try {
                 const response = await api<{ role: string }>("/auth/login", { method: "POST", body: result.data });
                 await refresh();
-                router.push(response.role === "STUDENT" ? "/dashboard" : "/admin");
+                const destination = response.role === "STUDENT" ? "/dashboard" : "/admin";
+                setProgress(response.role === "STUDENT" ? "Opening your dashboard…" : "Opening your admin space…");
+                router.push(destination);
+                redirectStarted = true;
               } catch (cause) {
+                setProgress(null);
                 setError({ form: cause instanceof ApiError && cause.status === 429 ? "Too many attempts. Please wait a minute." : cause instanceof ApiError ? cause.message : "Login failed" });
               } finally {
-                setBusy(false);
+                if (!redirectStarted) setBusy(false);
               }
             }}>
               <Field label="Email" error={error.email}>{(id, attributes) => <input id={id} name="email" type="email" autoComplete="email" placeholder="you@example.com" className={inputCls} {...attributes} />}</Field>
@@ -226,26 +270,28 @@ export function LiveRegister() {
   const { refresh } = useSession();
   const router = useRouter();
   const subjectsResult = useApi(() => api<Subj[]>("/public/subjects"));
-  const [method, setMethod] = useState<AuthMethod>("email");
+  const [method, setMethod] = useState<AuthMethod>("telegram");
   const [error, setError] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("method");
-    if (requested === "telegram" || requested === "google") setMethod(requested);
+    if (requested === "telegram" || requested === "google" || requested === "email") setMethod(requested);
   }, []);
 
   if (subjectsResult.error) return <div className="mx-auto max-w-md p-6"><ErrorState message={subjectsResult.error.message} onRetry={subjectsResult.reload} /></div>;
 
   return (
     <div className="mx-auto w-full max-w-2xl">
+      <AuthRedirectProgress message={progress} />
       <div className="mb-7">
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Start with a clear plan</p>
         <h1 className="text-3xl font-extrabold tracking-tight text-text sm:text-4xl">Create your account.</h1>
-        <p className="mt-2 text-sm leading-6 text-muted">Choose Email, Telegram, or Google, then complete your learning profile.</p>
+        <p className="mt-2 text-sm leading-6 text-muted">Start with Telegram, continue with Google, or sign up with Email. New students finish a short profile next.</p>
       </div>
-      <MethodTabs value={method} onChange={(value) => { setMethod(value); setError({}); }} label="Choose how to create your account" />
+      <MethodTabs value={method} onChange={(value) => { setMethod(value); setError({}); setProgress(null); }} label="Choose how to create your account" />
 
       {method === "email" ? (
         <>
@@ -266,16 +312,21 @@ export function LiveRegister() {
               if (!consent) { setError({ consent: "Please accept the privacy terms to continue" }); return; }
               setError({});
               setBusy(true);
+              setProgress("Creating your account…");
+              let redirectStarted = false;
               try {
                 await api("/auth/register", { method: "POST", body: result.data });
                 await api("/auth/login", { method: "POST", body: { email: result.data.email, password: result.data.password } });
                 await refresh();
+                setProgress("Taking you to complete your student profile…");
                 router.push("/profile?welcome=1");
+                redirectStarted = true;
               } catch (cause) {
+                setProgress(null);
                 const fieldErrorsByName = fieldErrors(cause);
                 setError(Object.keys(fieldErrorsByName).length ? fieldErrorsByName : { form: cause instanceof ApiError ? cause.message : "Registration failed" });
               } finally {
-                setBusy(false);
+                if (!redirectStarted) setBusy(false);
               }
             }}>
               {Object.keys(error).length > 0 && <p id="register-errors" tabIndex={-1} role="alert" className="sm:col-span-2 rounded-2xl border border-error/20 bg-error/10 p-3 text-sm text-error">{error.form ?? "Please fix the highlighted fields."}</p>}
