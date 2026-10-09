@@ -12,8 +12,8 @@ import { useApi } from "../../lib/useApi";
 import { useSession } from "../../lib/session";
 import { REGIONS, STREAMS } from "../../lib/config";
 
-type AuthMethod = "email" | "telegram";
-type SocialProvider = "google" | "telegram";
+type AuthMethod = "email" | "telegram" | "google";
+type SocialProvider = Exclude<AuthMethod, "email">;
 type Providers = { google: { clientId: string } | null; telegram: { botUsername: string } | null };
 type GoogleApi = { accounts: { id: { initialize: (options: { client_id: string; callback: (result: { credential: string }) => void }) => void; renderButton: (element: HTMLElement, options: Record<string, unknown>) => void } } };
 type Subj = { id: string; names: Record<string, string> };
@@ -31,12 +31,15 @@ const loadGsi = () => (gsiLoading ??= new Promise<void>((resolve, reject) => {
 function MethodTabs({ value, onChange, label }: { value: AuthMethod; onChange: (method: AuthMethod) => void; label: string }) {
   const buttonClass = (active: boolean) => `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition ${active ? "bg-surface text-primary shadow-sm" : "text-muted hover:text-text"}`;
   return (
-    <div role="group" aria-label={label} className="mb-6 grid grid-cols-2 rounded-2xl border border-border bg-background/80 p-1.5">
+    <div role="group" aria-label={label} className="mb-6 grid grid-cols-3 rounded-2xl border border-border bg-background/80 p-1.5">
       <button type="button" aria-pressed={value === "email"} onClick={() => onChange("email")} className={buttonClass(value === "email")}>
         <Mail className="h-4 w-4" aria-hidden /> Email
       </button>
       <button type="button" aria-pressed={value === "telegram"} onClick={() => onChange("telegram")} className={buttonClass(value === "telegram")}>
         <Send className="h-4 w-4" aria-hidden /> Telegram
+      </button>
+      <button type="button" aria-pressed={value === "google"} onClick={() => onChange("google")} className={buttonClass(value === "google")}>
+        <span aria-hidden className="font-extrabold text-[#4285F4]">G</span> Google
       </button>
     </div>
   );
@@ -47,10 +50,15 @@ export function DemoAuthMethodChoice({ children, label }: { children: ReactNode;
   return (
     <div className="mx-auto w-full max-w-2xl">
       <MethodTabs value={method} onChange={setMethod} label={label} />
-      {method === "email" ? children : (
+      {method === "email" ? children : method === "telegram" ? (
         <div role="status" className="rounded-3xl border border-border bg-background/70 p-5 text-sm leading-6 text-muted sm:p-6">
           <h2 className="font-bold text-text">Telegram sign-in needs Live mode</h2>
           <p className="mt-2">This browser-only demo has no authentication API. To sign in with @DiboraStudentBot, use Live mode and configure the Dibora API; email demo access remains available here.</p>
+        </div>
+      ) : (
+        <div role="status" className="rounded-3xl border border-border bg-background/70 p-5 text-sm leading-6 text-muted sm:p-6">
+          <h2 className="font-bold text-text">Google sign-in needs Live mode</h2>
+          <p className="mt-2">This browser-only demo has no authentication API. Use Live mode with Google sign-in configured on the Dibora API; email demo access remains available here.</p>
         </div>
       )}
     </div>
@@ -136,13 +144,15 @@ function SocialLogin({ provider }: { provider: SocialProvider }) {
     );
   }
 
-  if (!providers) return null;
-  if (providerLoadError) return <p role="status" className="mt-4 text-center text-sm text-muted">Google sign-in couldn’t be checked right now. You can still use email.</p>;
-  if (!providers.google) return null;
+  if (!providers) return <p role="status" className="rounded-2xl border border-border bg-background/70 p-4 text-center text-sm text-muted">Connecting to Google…</p>;
+  if (providerLoadError) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Dibora couldn’t reach Google sign-in right now. Please try again later or choose Email.</div>;
+  if (!providers.google) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Google sign-in is not configured on the Dibora API yet. You can choose Email instead.</div>;
   return (
-    <div className="mt-5">
-      <div className="mb-4 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-border" />or continue with Google<span className="h-px flex-1 bg-border" /></div>
-      <div ref={googleHost} className="flex min-h-[44px] w-full justify-center" />
+    <div className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
+      <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#4285F4]/10 text-xl font-extrabold text-[#4285F4]">G</div>
+      <h2 className="font-bold text-text">Continue with Google</h2>
+      <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Use your Google account to sign in or create your Dibora student account.</p>
+      <div ref={googleHost} className="mt-5 flex min-h-[44px] w-full justify-center" />
       {error && <p role="alert" className="mt-3 text-center text-sm text-error">{error}</p>}
     </div>
   );
@@ -156,7 +166,8 @@ export function LiveLogin() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("method") === "telegram") setMethod("telegram");
+    const requested = new URLSearchParams(window.location.search).get("method");
+    if (requested === "telegram" || requested === "google") setMethod(requested);
   }, []);
 
   return (
@@ -164,16 +175,11 @@ export function LiveLogin() {
       <div className="mb-7">
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Your learning space</p>
         <h1 className="text-3xl font-extrabold tracking-tight text-text sm:text-4xl">Welcome back.</h1>
-        <p className="mt-2 text-sm leading-6 text-muted">Choose email or Telegram and pick up where you left off.</p>
+        <p className="mt-2 text-sm leading-6 text-muted">Choose Email, Telegram, or Google and pick up where you left off.</p>
       </div>
       <MethodTabs value={method} onChange={(value) => { setMethod(value); setError({}); }} label="Choose how to sign in" />
 
-      {method === "telegram" ? (
-        <div className="space-y-5">
-          <SocialLogin provider="telegram" />
-          <p className="text-center text-sm text-muted">New to Dibora? Telegram can create your account; you’ll complete your student profile next.</p>
-        </div>
-      ) : (
+      {method === "email" ? (
         <>
           <Card>
             <form noValidate className="space-y-4" onSubmit={async (event) => {
@@ -204,9 +210,13 @@ export function LiveLogin() {
               <Button type="submit" loading={busy} className="group w-full rounded-xl py-3">Log in <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></Button>
             </form>
           </Card>
-          <SocialLogin provider="google" />
           <p className="mt-5 text-center text-sm text-muted">New to Dibora? <Link href="/register" className="font-semibold text-primary underline-offset-4 hover:underline">Create an account</Link></p>
         </>
+      ) : (
+        <div className="space-y-5">
+          <SocialLogin provider={method} />
+          <p className="text-center text-sm text-muted">New to Dibora? {method === "google" ? "Google" : "Telegram"} can create your account; you’ll complete your student profile next.</p>
+        </div>
       )}
     </div>
   );
@@ -222,7 +232,8 @@ export function LiveRegister() {
   const [consent, setConsent] = useState(false);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("method") === "telegram") setMethod("telegram");
+    const requested = new URLSearchParams(window.location.search).get("method");
+    if (requested === "telegram" || requested === "google") setMethod(requested);
   }, []);
 
   if (subjectsResult.error) return <div className="mx-auto max-w-md p-6"><ErrorState message={subjectsResult.error.message} onRetry={subjectsResult.reload} /></div>;
@@ -232,16 +243,11 @@ export function LiveRegister() {
       <div className="mb-7">
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Start with a clear plan</p>
         <h1 className="text-3xl font-extrabold tracking-tight text-text sm:text-4xl">Create your account.</h1>
-        <p className="mt-2 text-sm leading-6 text-muted">Choose email or Telegram, then complete your learning profile.</p>
+        <p className="mt-2 text-sm leading-6 text-muted">Choose Email, Telegram, or Google, then complete your learning profile.</p>
       </div>
       <MethodTabs value={method} onChange={(value) => { setMethod(value); setError({}); }} label="Choose how to create your account" />
 
-      {method === "telegram" ? (
-        <div className="space-y-5">
-          <SocialLogin provider="telegram" />
-          <p className="text-center text-sm text-muted">Already have an account? <Link href="/login?method=telegram" className="font-semibold text-primary underline-offset-4 hover:underline">Continue to Telegram sign-in</Link></p>
-        </div>
-      ) : (
+      {method === "email" ? (
         <>
           <Card>
             <p className="mb-5 text-sm leading-6 text-muted">We collect only what we need. Your details stay private while we build your study plan.</p>
@@ -291,15 +297,19 @@ export function LiveRegister() {
                 {error.subjectIds && <p className="mt-1 text-xs text-error">{error.subjectIds}</p>}
               </fieldset>
               <div className="sm:col-span-2">
-                <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={consent} onChange={(event) => setConsent(event.target.checked)} />I agree to the <Link href="/privacy" className="underline">privacy terms</Link>. If I am under 18, a parent or guardian is aware I am using Dibora.</label>
+                <label className="flex items-start gap-2 text-sm leading-6"><input type="checkbox" className="mt-1 shrink-0" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span className="min-w-0">I agree to the <Link href="/privacy" className="underline">privacy terms</Link>. If I am under 18, a parent or guardian is aware I am using Dibora.</span></label>
                 {error.consent && <p className="mt-1 text-xs text-error">{error.consent}</p>}
               </div>
               <Button type="submit" loading={busy} className="sm:col-span-2">Create account</Button>
             </form>
           </Card>
-          <SocialLogin provider="google" />
           <p className="mt-5 text-center text-sm text-muted">Already registered? <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">Log in</Link></p>
         </>
+      ) : (
+        <div className="space-y-5">
+          <SocialLogin provider={method} />
+          <p className="text-center text-sm text-muted">Already have an account? <Link href={`/login?method=${method}`} className="font-semibold text-primary underline-offset-4 hover:underline">Continue with {method === "google" ? "Google" : "Telegram"}</Link></p>
+        </div>
       )}
     </div>
   );
