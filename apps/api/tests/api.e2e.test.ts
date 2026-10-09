@@ -10,6 +10,8 @@ import { createApp } from "../src/app";
 import { AuthService } from "../src/services/auth.service";
 import { PaymentService } from "../src/services/payments/payment.service";
 import { CheckoutService } from "../src/services/payments/checkout.service";
+import { VerifyEtPaymentProvider } from "../src/services/payments/verify-et.provider";
+import { LocalReceiptStorage } from "../src/services/payments/receipt";
 import { DrizzlePaymentRepo } from "../src/db/payment.repo";
 import { AttemptService } from "../src/services/attempt.service";
 import { DrizzleAttemptRepo, studentContext } from "../src/db/attempt.repo";
@@ -24,7 +26,7 @@ import { AIService } from "../src/services/ai/ai.service";
 const raw = drizzle(new PGlite(), { schema: s }); const db = raw as unknown as Db;
 const ORIGIN = "https://app.test";
 const progress = new ProgressService(db);
-const app = createApp({ auth: new AuthService(db), payments: new PaymentService({}, new DrizzlePaymentRepo(db)), checkout: new CheckoutService(db, {}, ORIGIN), db, defaultProvider: "x",
+const app = createApp({ auth: new AuthService(db), payments: new PaymentService(new VerifyEtPaymentProvider({ apiKey: "k", webhookSecret: "s" }), new DrizzlePaymentRepo(db), new LocalReceiptStorage("/tmp/dibora-e2e-receipts")), checkout: new CheckoutService(db, "verify-et"), db,
   attempts: new AttemptService(new DrizzleAttemptRepo(db)), resolveStudent: (u) => studentContext(db, u), students: new StudentService(db), practice: new PracticeService(db, progress), progress,
   chat: new AiChatService(db, new AIService({ complete: async () => ({ text: "Use F = ma.", tokens: 5 }) }, new DbRetriever(db)), progress), admin: new AdminService(db), learning: new LearningService(db, progress), webOrigin: ORIGIN, isProd: false });
 

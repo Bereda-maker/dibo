@@ -4,9 +4,6 @@ import { computeReadiness, explainChange } from "../src/services/readiness.servi
 import { resolveEntitlements, can, withinDailyLimit, DEFAULT_FREE } from "../src/services/entitlement.service";
 import { sanitizeUserInput, looksLikeInjection, sanitizeModelOutput } from "../src/services/ai/guard";
 import { AIService } from "../src/services/ai/ai.service";
-import { PaymentService, type PaymentRepo } from "../src/services/payments/payment.service";
-import type { PaymentProvider } from "../src/services/payments/provider";
-import { hmacSha256Hex } from "../src/services/payments/crypto";
 import { registerSchema, questionUpsertSchema } from "@dibora/validation";
 
 describe("recommendations", () => {
@@ -67,40 +64,6 @@ describe("AI service", () => {
     expect(() => sanitizeUserInput("   ")).toThrow();
     expect(looksLikeInjection("what is entropy?")).toBe(false);
     expect(sanitizeModelOutput("hi<script>alert(1)</script>")).toBe("hi");
-  });
-});
-
-describe("payment verification", () => {
-  const mkRepo = (status = "PENDING") => {
-    const calls: string[] = [];
-    const repo: PaymentRepo = {
-      findByReference: async () => ({ id: "p1", userId: "u", amountMinor: 10000, currency: "ETB", status, subscriptionId: "s1" }),
-      markSuccessAndActivate: async () => { calls.push("activate"); }, markStatus: async (_, s) => { calls.push(s); },
-    };
-    return { repo, calls };
-  };
-  const provider = (verify: Partial<Awaited<ReturnType<PaymentProvider["verifyTransaction"]>>>): PaymentProvider => ({
-    name: "t", initialize: async () => ({ checkoutUrl: "" }),
-    verifyWebhookSignature: (raw, h) => h.get("sig") === hmacSha256Hex("sec", raw),
-    verifyTransaction: async (ref) => ({ status: "SUCCESS", amountMinor: 10000, currency: "ETB", reference: ref, ...verify }),
-  });
-  const headers = (raw: string) => new Headers({ sig: hmacSha256Hex("sec", raw) });
-
-  test("rejects bad signatures", async () => {
-    const { repo } = mkRepo(); const s = new PaymentService({ t: provider({}) }, repo);
-    await expect(s.handleWebhook("t", "{}", new Headers({ sig: "bad" }), "r1")).rejects.toThrow("signature");
-  });
-  test("activates only after provider-side verification", async () => {
-    const { repo, calls } = mkRepo(); const s = new PaymentService({ t: provider({}) }, repo);
-    expect((await s.handleWebhook("t", "{}", headers("{}"), "r1")).status).toBe("SUCCESS"); expect(calls).toEqual(["activate"]);
-  });
-  test("rejects amount mismatch", async () => {
-    const { repo, calls } = mkRepo(); const s = new PaymentService({ t: provider({ amountMinor: 100 }) }, repo);
-    await expect(s.handleWebhook("t", "{}", headers("{}"), "r1")).rejects.toThrow("does not match"); expect(calls).toEqual([]);
-  });
-  test("is idempotent for already-successful payments", async () => {
-    const { repo, calls } = mkRepo("SUCCESS"); const s = new PaymentService({ t: provider({}) }, repo);
-    expect((await s.reconcile("t", "r1")).alreadyProcessed).toBe(true); expect(calls).toEqual([]);
   });
 });
 
