@@ -16,7 +16,7 @@ The web UI is complete in demo mode; the backend is a foundation. See "Demo mode
 - **Curriculum is data, not code**: education_level → grade → stream → subject → topic → subtopic → material → questions. Names are `{en, am, om}` JSON.
 - **Server-authoritative exams**: `exam_attempts.deadline_at` is set by the server; scoring is a pure function (`exam-scoring.service.ts`) over stored answers. Client-reported correctness is never trusted.
 - **Entitlements** are plan JSON (`subscription_plans.entitlements`) resolved by one function; no scattered premium checks. Prices are rows (`price_minor`), editable by admins.
-- **Payments**: `PaymentProvider` interface (Chapa implemented). Webhooks require a valid HMAC signature **and** a server-side re-verification of status, amount, currency and reference; activation is idempotent.
+- **Payments**: manual payment + receipt verification through Verify.et behind the `PaymentProvider` interface. See "Payments (Verify.et)". Access is granted only by a verified result whose amount/currency match the database price; webhooks are HMAC-signed and idempotent.
 - **AI**: all calls server-side through `AIService` using any OpenAI-compatible endpoint (`AI_BASE_URL`, `AI_MODEL`, `AI_PROVIDER_API_KEY`). Retrieval-first prompt with "say you don't know" rule, injection screening, output sanitising and secret redaction, rate limiting.
 - **Readiness score** is an internal metric with a built-in disclaimer and explainable change text.
 
@@ -34,10 +34,10 @@ bun test
 ```
 
 ## Environment variables
-See `.env.example`. API: `DATABASE_URL`, `SESSION_SECRET`, `WEB_ORIGIN`, `AI_*`, `PAYMENT_*`. Web: `NEXT_PUBLIC_API_URL`.
+See `.env.example`. API: `DATABASE_URL`, `SESSION_SECRET`, `WEB_ORIGIN`, `AI_*`, `VERIFY_ET_*`, `RECEIPT_STORAGE_DIR`, `PAYMENT_ACCOUNTS`. Web: `NEXT_PUBLIC_API_URL`.
 
 ## What exists
-- **API foundation**: full Drizzle schema, Hono app (request IDs, security headers, CORS/CSRF origin check, central errors, rate limiting), auth (register/login/logout, argon2id, hashed sessions), AI service (guard, retrieval-first prompt, redaction), payment abstraction with Chapa and verified webhooks.
+- **API foundation**: full Drizzle schema, Hono app (request IDs, security headers, CORS/CSRF origin check, central errors, rate limiting), auth (register/login/logout, argon2id, hashed sessions), AI service (guard, retrieval-first prompt, redaction), payment abstraction with Verify.et and verified webhooks.
 - **`packages/core`**: pure business logic shared by API and web: exam scoring + timer rule, recommendations, readiness score, entitlements. 30 passing tests (`bun test`).
 - **Web app (complete UI, demo mode)**: every page in the spec.
   - Public: home, features, how-it-works, pricing (prices come from admin settings), FAQ, about, contact, privacy, login, register, forgot/reset password.
@@ -47,7 +47,7 @@ See `.env.example`. API: `DATABASE_URL`, `SESSION_SECRET`, `WEB_ORIGIN`, `AI_*`,
 
 ## Live mode vs demo mode
 The web app has two modes, chosen at build time by `NEXT_PUBLIC_DEMO_MODE`:
-- **Live (default, `false`)**: every student screen talks to the Hono API with the session cookie: register/login/logout, profile (edit, export, delete), dashboard, practice, notes, exams (server-timed, autosaved), results and review, progress, bookmarks, "Questions I got wrong", AI assistant, notifications, achievements, leaderboard, search, pricing and checkout (with a `/payment/return` verification page). Admin: overview, students (suspend/activate, super-admin delete) and audit log.
+- **Live (default, `false`)**: every student screen talks to the Hono API with the session cookie: register/login/logout, profile (edit, export, delete), dashboard, practice, notes, exams (server-timed, autosaved), results and review, progress, bookmarks, "Questions I got wrong", AI assistant, notifications, achievements, leaderboard, search, pricing and manual payment (with a `/payment/return` page that submits the receipt and shows verification status). Admin: overview, students (suspend/activate, super-admin delete) and audit log.
 - **Demo (`true`)**: the original browser-only version with built-in sample content, stored in localStorage. It is for design review only: nothing is shared between devices and nothing is secure.
 
 Live mode needs the API on the same registrable site as the web app (for example `app.example.com` and `api.example.com`) so the session cookie is sent. Set `WEB_ORIGIN` on the API to the exact web origin.
@@ -55,7 +55,7 @@ Live mode needs the API on the same registrable site as the web app (for example
 ### Verification so far
 - 91 automated tests (unit, PostgreSQL integration, and HTTP end-to-end through the real Hono app), plus type checks for API and web, and a production web build.
 - The real API entry point (`config` validation, postgres-js driver, `migrate`, `seed`) was run against a PostgreSQL wire-protocol server and exercised over HTTP: register, login, practice, progress, admin, and student-blocked-from-admin, with no server errors.
-- **Not yet verified**: a real managed PostgreSQL server, the Docker images (no Docker daemon was available), the live web UI in a browser against the live API, real payment-provider calls (Chapa sandbox), and a real AI provider.
+- **Not yet verified**: a real managed PostgreSQL server, the Docker images (no Docker daemon was available), the live web UI in a browser against the live API, real Verify.et calls and webhook delivery, and a real AI provider.
 
 ### Launch checklist (not done yet)
 1. **Browser test the live web app against a staging API** (the screens were type-checked and built, but not clicked through). Fix whatever that finds.
@@ -82,3 +82,14 @@ Argon2id hashing; HttpOnly + SameSite cookies; session tokens stored hashed; rol
 
 ## Contributing
 Keep logic in services, validate with shared Zod schemas, add tests for any scoring/entitlement/payment change.
+
+
+## Payments (Verify.et)
+Flow: student picks a plan -> `POST /api/subscriptions/checkout` creates a `PENDING` payment (amount = database plan price, never client-supplied) -> student pays manually and uploads a receipt on `/payment/return?ref=...` -> `POST /api/subscriptions/payments/:reference/submit` (multipart: `method`, optional `transactionReference`, `image`) -> the API validates the image (JPEG/PNG/WebP, max 8 MB, magic bytes) and calls `POST {VERIFY_ET_BASE_URL}/api/verify` with `x-api-key` and `Idempotency-Key: dibora-payment-{paymentId}-{attempt}`.
+- HTTP 200: result applied immediately. HTTP 202: `requestId` stored, status `VERIFYING`, no access yet.
+- Webhook `POST https://api.dibora.app/api/webhooks/verify-et` (event `verification.completed`) is the source of truth. Signature: HMAC-SHA256 with `VERIFY_ET_WEBHOOK_SECRET` over `{X-Webhook-Timestamp}.{raw body}` (hex), 5-minute timestamp tolerance. Events are de-duplicated by `X-Webhook-Event-Id` in `payment_webhook_events`; retries return 200 without re-granting.
+- Statuses: `PENDING` (created / retryable), `VERIFYING` (submitted), `VERIFIED` (access granted through the existing subscription activation), `FAILED` (student may resubmit; new attempt = new idempotency key). Legacy `SUCCESS/CANCELLED/REFUNDED` rows remain readable.
+- Verified requires `verified === true` AND amount/currency equal to the stored payment AND the subscription belonging to the payer; otherwise `FAILED`.
+- Supported methods: cbe, boa, telebirr, mpesa, cbebirr, dashen, awash, siinqee, kaafiebirr, coopayebirr (`PAYMENT_METHODS` in `packages/types`).
+- Receipts are stored privately under `RECEIPT_STORAGE_DIR` (files 0600, never served publicly). Use a persistent volume in production.
+- Production setup: set `VERIFY_ET_API_KEY`, `VERIFY_ET_WEBHOOK_SECRET`, `PAYMENT_ACCOUNTS`; register the webhook URL above in the Verify.et dashboard; run `bun run db:migrate` (additive migration `0001`).
