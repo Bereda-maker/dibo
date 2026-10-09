@@ -355,8 +355,24 @@ export const payments = pgTable("payments", {
   providerTransactionId: text("provider_transaction_id"),
   status: paymentStatusEnum("status").notNull().default("PENDING"),
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  /** Verify.et manual-payment fields. */
+  paymentMethod: text("payment_method"),
+  transactionReference: text("transaction_reference"),
+  receiptPath: text("receipt_path"), // private storage key, never a public URL
+  verifyRequestId: text("verify_request_id"),
+  verificationResult: jsonb("verification_result").$type<Record<string, unknown>>(),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
   createdAt: createdAt(), updatedAt: updatedAt(),
 }, (t) => [uniqueIndex("payment_ref_uq").on(t.reference), index("payment_user_idx").on(t.userId, t.createdAt), index("payment_status_idx").on(t.status)]);
+
+/** One row per processed Verify.et webhook event; the unique event id makes retries no-ops. */
+export const paymentWebhookEvents = pgTable("payment_webhook_events", {
+  id: id(),
+  eventId: text("event_id").notNull(),
+  eventType: text("event_type").notNull(),
+  paymentId: uuid("payment_id").references(() => payments.id),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("payment_webhook_event_uq").on(t.eventId)]);
 
 // ---------- admin ----------
 export const adminAuditLogs = pgTable("admin_audit_logs", {

@@ -7,7 +7,9 @@ export const EXAM_TYPES = ["DIAGNOSTIC", "PRACTICE", "TOPIC", "SUBJECT", "MOCK"]
 export const CONTENT_STATUSES = ["DRAFT", "PUBLISHED", "ARCHIVED"] as const;
 export const PLAN_INTERVALS = ["FREE", "MONTHLY", "QUARTERLY", "ANNUAL"] as const;
 export const SUB_STATUSES = ["ACTIVE", "EXPIRED", "CANCELLED", "PENDING"] as const;
-export const PAYMENT_STATUSES = ["PENDING", "SUCCESS", "FAILED", "CANCELLED", "REFUNDED"] as const;
+/** SUCCESS/CANCELLED/REFUNDED are kept for historical (legacy) records. New flow: PENDING -> VERIFYING -> VERIFIED | FAILED. */
+export const PAYMENT_STATUSES = ["PENDING", "SUCCESS", "FAILED", "CANCELLED", "REFUNDED", "VERIFYING", "VERIFIED"] as const;
+export const PAYMENT_METHODS = ["cbe", "boa", "telebirr", "mpesa", "cbebirr", "dashen", "awash", "siinqee", "kaafiebirr", "coopayebirr"] as const;
 export const LOCALES = ["en", "am", "om"] as const;
 
 export type Role = (typeof ROLES)[number];
