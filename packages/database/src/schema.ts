@@ -37,6 +37,16 @@ export const users = pgTable("users", {
   createdAt: createdAt(), updatedAt: updatedAt(), deletedAt: deletedAt(),
 }, (t) => [uniqueIndex("users_email_uq").on(t.email), index("users_created_idx").on(t.createdAt)]);
 
+/** Links an external login (google / telegram) to one Dibora user. A provider account can belong to only one user. */
+export const authIdentities = pgTable("auth_identities", {
+  id: id(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  providerUserId: text("provider_user_id").notNull(),
+  email: text("email"),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("auth_identity_uq").on(t.provider, t.providerUserId), index("auth_identity_user_idx").on(t.userId)]);
+
 export const sessions = pgTable("sessions", {
   id: id(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

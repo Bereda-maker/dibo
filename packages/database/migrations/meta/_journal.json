@@ -15,6 +15,13 @@
       "when": 1791464304231,
       "tag": "0001_new_lyja",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791535396260,
+      "tag": "0002_clean_hydra",
+      "breakpoints": true
     }
   ]
 }

@@ -37,9 +37,14 @@ export class AuthService {
     const hash = u?.passwordHash ?? "$argon2id$v=19$m=65536,t=2,p=1$c29tZXNhbHQ$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     const valid = await Bun.password.verify(password, hash).catch(() => false);
     if (!u || !valid || !u.isActive || u.deletedAt) throw new AppError(401, "INVALID_CREDENTIALS", "Incorrect email or password");
+    return this.createSession(u.id, u.role as Role);
+  }
+
+  /** Shared by password and social login so every sign-in produces the same kind of session. */
+  async createSession(userId: string, role: Role) {
     const token = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
-    await this.db.insert(sessions).values({ userId: u.id, tokenHash: await sha256(token), expiresAt: new Date(Date.now() + SESSION_DAYS * 864e5) });
-    return { token, role: u.role as Role, maxAgeSeconds: SESSION_DAYS * 86400 };
+    await this.db.insert(sessions).values({ userId, tokenHash: await sha256(token), expiresAt: new Date(Date.now() + SESSION_DAYS * 864e5) });
+    return { token, role, maxAgeSeconds: SESSION_DAYS * 86400 };
   }
 
   async validateSession(token: string) {

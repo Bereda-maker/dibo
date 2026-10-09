@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { registerSchema, loginSchema } from "@dibora/validation";
 import { Button, Card, Field, ErrorState, inputCls } from "../../components/ui";
@@ -10,9 +10,42 @@ import { useApi } from "../../lib/useApi";
 import { useSession } from "../../lib/session";
 import { REGIONS, STREAMS } from "../../lib/config";
 
+type Providers = { google: { clientId: string } | null; telegram: { botUsername: string } | null };
+type GoogleApi = { accounts: { id: { initialize: (o: { client_id: string; callback: (r: { credential: string }) => void }) => void; renderButton: (el: HTMLElement, o: Record<string, unknown>) => void } } };
+let gsiLoading: Promise<void> | null = null;
+const loadGsi = () => (gsiLoading ??= new Promise<void>((res, rej) => { const el = document.createElement("script"); el.src = "https://accounts.google.com/gsi/client"; el.async = true; el.onload = () => res(); el.onerror = () => { gsiLoading = null; rej(new Error("gsi")); }; document.head.appendChild(el); }));
+
+/** "Continue with Google / Telegram". Buttons come from the providers' own scripts; the API verifies the result and sets the session cookie. */
+function SocialLogin() {
+  const { refresh } = useSession(); const router = useRouter(); const [p, setP] = useState<Providers | null>(null); const [err, setErr] = useState("");
+  const g = useRef<HTMLDivElement>(null); const t = useRef<HTMLDivElement>(null);
+  const submit = async (path: "google" | "telegram", body: unknown) => {
+    setErr("");
+    try { const r = await api<{ role: string; isNew: boolean }>(`/auth/${path}`, { method: "POST", body }); await refresh(); router.push(r.isNew ? "/profile?welcome=1" : r.role === "STUDENT" ? "/dashboard" : "/admin"); }
+    catch (x) { setErr(x instanceof ApiError && x.status === 429 ? "Too many attempts. Please wait a minute." : x instanceof ApiError ? x.message : "Sign-in failed. Please try again."); }
+  };
+  useEffect(() => { api<Providers>("/auth/providers").then(setP).catch(() => setP({ google: null, telegram: null })); }, []);
+  useEffect(() => {
+    const cid = p?.google?.clientId; if (!cid || !g.current) return; let off = false; const el = g.current;
+    loadGsi().then(() => { if (off) return; const gg = (window as unknown as { google?: GoogleApi }).google; if (!gg) return; gg.accounts.id.initialize({ client_id: cid, callback: (r) => void submit("google", { credential: r.credential }) }); gg.accounts.id.renderButton(el, { theme: "outline", size: "large", text: "continue_with", shape: "pill", width: Math.min(320, el.clientWidth || 320) }); }).catch(() => setErr("Google sign-in could not load. Check your connection."));
+    return () => { off = true; };
+  }, [p]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const bot = p?.telegram?.botUsername; if (!bot || !t.current) return; const el = t.current;
+    (window as unknown as { onDiboraTelegramAuth?: (u: unknown) => void }).onDiboraTelegramAuth = (u) => void submit("telegram", u);
+    const sc = document.createElement("script"); sc.src = "https://telegram.org/js/telegram-widget.js?22"; sc.async = true; sc.setAttribute("data-telegram-login", bot); sc.setAttribute("data-size", "large"); sc.setAttribute("data-radius", "20"); sc.setAttribute("data-onauth", "onDiboraTelegramAuth(user)");
+    el.appendChild(sc); return () => { el.replaceChildren(); };
+  }, [p]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!p || (!p.google && !p.telegram)) return null;
+  return <div className="mt-5"><div className="flex flex-col items-center gap-3">{p.google && <div ref={g} className="flex min-h-[44px] w-full justify-center" />}{p.telegram && <div ref={t} className="flex min-h-[44px] w-full justify-center" />}</div>
+    {err && <p role="alert" className="mt-3 text-center text-sm text-error">{err}</p>}
+    <p className="mt-3 text-center text-xs text-muted">By continuing you accept our <Link href="/privacy" className="underline">privacy terms</Link>.</p>
+    <div className="my-4 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-border" />or use your email<span className="h-px flex-1 bg-border" /></div></div>;
+}
+
 export function LiveLogin() {
   const { refresh } = useSession(); const router = useRouter(); const [err, setErr] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false);
-  return <div className="mx-auto max-w-md px-4 py-12"><Card><h1 className="text-2xl font-bold">Welcome back</h1>
+  return <div className="mx-auto max-w-md px-4 py-12"><Card><h1 className="text-2xl font-bold">Welcome back</h1><SocialLogin />
     <form noValidate className="mt-5 space-y-4" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const r = loginSchema.safeParse({ email: f.get("email"), password: f.get("password") });
       if (!r.success) { setErr({ email: r.error.flatten().fieldErrors.email ? "Enter a valid email address" : "", password: r.error.flatten().fieldErrors.password ? "Enter your password" : "" }); return; }
       setErr({}); setBusy(true);
@@ -29,7 +62,7 @@ export function LiveRegister() {
   const { refresh } = useSession(); const router = useRouter(); const subj = useApi(() => api<Subj[]>("/public/subjects"));
   const [err, setErr] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false); const [consent, setConsent] = useState(false);
   if (subj.error) return <div className="mx-auto max-w-md p-6"><ErrorState message={subj.error.message} onRetry={subj.reload} /></div>;
-  return <div className="mx-auto max-w-2xl px-4 py-10"><Card><h1 className="text-2xl font-bold">Create your account</h1><p className="mt-1 text-sm text-muted">We collect only what we need. Your details are never shown publicly.</p>
+  return <div className="mx-auto max-w-2xl px-4 py-10"><Card><h1 className="text-2xl font-bold">Create your account</h1><p className="mt-1 text-sm text-muted">We collect only what we need. Your details are never shown publicly.</p><SocialLogin />
     <form noValidate className="mt-6 grid gap-4 sm:grid-cols-2" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget);
       const body = { fullName: f.get("fullname"), email: f.get("email"), phone: f.get("phone"), password: f.get("password"), confirmPassword: f.get("confirm"), educationLevel: "SECONDARY", grade: Number(f.get("grade")), school: f.get("school"), region: f.get("region"), city: f.get("city"), stream: f.get("stream"), examYear: Number(f.get("year")), subjectIds: f.getAll("subjects") };
       const r = registerSchema.safeParse(body); if (!r.success) { const m: Record<string, string> = {}; for (const i of r.error.issues) m[String(i.path[0])] = i.message; setErr(m); return; }
