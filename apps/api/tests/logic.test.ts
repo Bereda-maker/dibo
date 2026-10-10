@@ -3,7 +3,7 @@ import { recommend } from "../src/services/recommendation.service";
 import { computeReadiness, explainChange } from "../src/services/readiness.service";
 import { resolveEntitlements, can, withinDailyLimit, DEFAULT_FREE } from "../src/services/entitlement.service";
 import { sanitizeUserInput, looksLikeInjection, sanitizeModelOutput } from "../src/services/ai/guard";
-import { AIService } from "../src/services/ai/ai.service";
+import { AIService, buildRetrievalQuery } from "../src/services/ai/ai.service";
 import { loadConfig } from "../src/config";
 import { registerSchema, questionUpsertSchema } from "@dibora/validation";
 
@@ -60,6 +60,25 @@ describe("AI service", () => {
     const ai = new AIService({ complete: async (m) => { sys = m[0]!.content; return { text: "Use F = ma. key=SECRET-KEY-123" }; } }, retriever, ["SECRET-KEY-123"]);
     const r = await ai.answer({ message: "Explain Newton's second law", history: [], context: ctx });
     expect(sys).toContain("F = ma"); expect(sys).toContain("Never invent"); expect(r.text).not.toContain("SECRET-KEY-123"); expect(r.sources).toEqual(["n1"]);
+  });
+  test("answers broad learning questions without requiring a chapter or retrieved note", async () => {
+    let prompt = "";
+    const ai = new AIService({ complete: async (messages) => { prompt = messages[0]!.content; return { text: "The capital of Ethiopia is Addis Ababa." }; } }, { search: async () => [] });
+    const r = await ai.answer({ message: "capital ethiopia?", history: [], context: ctx });
+    expect(r.text).toContain("Addis Ababa");
+    expect(prompt).toContain("relevant general-knowledge questions");
+    expect(prompt).toContain("not a prerequisite for answering");
+  });
+  test("uses the previous user turn to ground a short follow-up", async () => {
+    let searched = "";
+    const ai = new AIService({ complete: async () => ({ text: "In Ethiopia, the Blue Nile flows from Lake Tana. [#1]" }) }, { search: async (query) => { searched = query; return [{ id: "n2", title: "Blue Nile", text: "The Blue Nile flows from Lake Tana." }]; } });
+    const r = await ai.answer({ message: "In Ethiopia?", history: [{ role: "user", content: "Where does the Blue Nile begin?" }, { role: "assistant", content: "Which country's context do you mean?" }], context: ctx });
+    expect(searched).toContain("Where does the Blue Nile begin?");
+    expect(searched).toContain("In Ethiopia?");
+    expect(r.sources).toEqual(["n2"]);
+  });
+  test("leaves a substantive new question's retrieval query unchanged", () => {
+    expect(buildRetrievalQuery("Explain photosynthesis in flowering plants", [{ role: "user", content: "Solve a quadratic equation" }])).toBe("Explain photosynthesis in flowering plants");
   });
   test("maps unexpected provider failures to a safe 503 without leaking provider details", async () => {
     const ai = new AIService({ complete: async () => { throw new Error("private upstream response"); } }, retriever);
