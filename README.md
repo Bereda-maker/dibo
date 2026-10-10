@@ -17,7 +17,7 @@ The web UI is complete in demo mode; the backend is a foundation. See "Demo mode
 - **Server-authoritative exams**: `exam_attempts.deadline_at` is set by the server; scoring is a pure function (`exam-scoring.service.ts`) over stored answers. Client-reported correctness is never trusted.
 - **Entitlements** are plan JSON (`subscription_plans.entitlements`) resolved by one function; no scattered premium checks. Prices are rows (`price_minor`), editable by admins.
 - **Payments**: manual payment + receipt verification through Verify.et behind the `PaymentProvider` interface. See "Payments (Verify.et)". Access is granted only by a verified result whose amount/currency match the database price; webhooks are HMAC-signed and idempotent.
-- **AI**: all calls server-side through `AIService` using any OpenAI-compatible endpoint (`AI_BASE_URL`, `AI_MODEL`, `AI_PROVIDER_API_KEY`). Retrieval-first prompt with "say you don't know" rule, injection screening, output sanitising and secret redaction, rate limiting.
+- **AI**: calls are server-side through `AIService`. OpenAI defaults to `https://api.openai.com/v1` and `gpt-6-luna`; only `AI_PROVIDER_API_KEY` is required for that default. A custom OpenAI-compatible endpoint/model can override those defaults. Student prompts and limited study context are sent to the configured provider; the API key stays server-only.
 - **Readiness score** is an internal metric with a built-in disclaimer and explainable change text.
 
 ## Requirements
@@ -34,7 +34,7 @@ bun test
 ```
 
 ## Environment variables
-See `.env.example`. API: `DATABASE_URL`, `SESSION_SECRET`, `WEB_ORIGIN`, `AI_*`, `VERIFY_ET_*`, `RECEIPT_STORAGE_DIR`, `PAYMENT_ACCOUNTS`, and social-login settings. Web: `NEXT_PUBLIC_API_URL` must be the browser-reachable API origin without `/api` (the client appends `/api`); set it in the web deployment's Preview and Production environments. Never expose `TELEGRAM_BOT_TOKEN` through a `NEXT_PUBLIC_*` variable.
+See `.env.example`. API: `DATABASE_URL`, `SESSION_SECRET`, `WEB_ORIGIN`, `AI_PROVIDER_API_KEY` (required to enable the default OpenAI assistant), optional overrides `AI_BASE_URL` and `AI_MODEL`, `VERIFY_ET_*`, `RECEIPT_STORAGE_DIR`, `PAYMENT_ACCOUNTS`, and social-login settings. Web: `NEXT_PUBLIC_API_URL` must be the browser-reachable API origin without `/api` (the client appends `/api`); set it in the web deployment's Preview and Production environments. Never expose `TELEGRAM_BOT_TOKEN` through a `NEXT_PUBLIC_*` variable.
 
 ## What exists
 - **API foundation**: full Drizzle schema, Hono app (request IDs, security headers, CORS/CSRF origin check, central errors, rate limiting), auth (register/login/logout, argon2id, hashed sessions), AI service (guard, retrieval-first prompt, redaction), payment abstraction with Verify.et and verified webhooks.
@@ -53,9 +53,9 @@ The web app has two modes, chosen at build time by `NEXT_PUBLIC_DEMO_MODE`:
 Live mode needs the API on the same registrable site as the web app (for example `app.example.com` and `api.example.com`) so the session cookie is sent. Set `WEB_ORIGIN` on the API to the exact web origin.
 
 ### Verification so far
-- 133 automated tests (unit, PostgreSQL integration, and HTTP end-to-end through the real Hono app), plus type checks for API and web, and a production web build.
+- 140 automated tests (unit, PostgreSQL integration, and HTTP end-to-end through the real Hono app), plus type checks for API and web, and a production web build.
 - The real API entry point (`config` validation, postgres-js driver, `migrate`, `seed`) was run against a PostgreSQL wire-protocol server and exercised over HTTP: register, login, practice, progress, admin, and student-blocked-from-admin, with no server errors.
-- **Not yet verified**: a real managed PostgreSQL server, the Docker images (no Docker daemon was available), the live web UI in a browser against the live API, real Verify.et calls and webhook delivery, and a real AI provider.
+- **Not yet verified**: a real managed PostgreSQL server, the Docker images (no Docker daemon was available), the live web UI in a browser against the live API, real Verify.et calls and webhook delivery, and a live OpenAI call (the Render API key has not been configured yet).
 
 ### Launch checklist (not done yet)
 1. **Browser test the live web app against a staging API** (the screens were type-checked and built, but not clicked through). Fix whatever that finds.
@@ -78,7 +78,7 @@ docker compose exec api bun run --cwd packages/database seed
 Production: use managed PostgreSQL, TLS termination, secrets from your platform's secret store, run `migrate` as a release step for general schema changes, and put the API and web behind HTTPS on the same site (or set `WEB_ORIGIN` precisely) so SameSite cookies and the CORS/CSRF checks work. The API Docker image idempotently ensures the contact inbox table exists before starting; if you override its command, preserve that step.
 
 ## Security notes
-Argon2id hashing; HttpOnly + SameSite cookies; session tokens stored hashed; role resolved server-side from the DB; Zod on every request; Drizzle parameterised queries; signed+verified payment webhooks; AI keys server-only. Students may be minors: collect minimal data, keep leaderboard opt-in, never expose contact/school/academic records or AI chats.
+Argon2id hashing; HttpOnly + SameSite cookies; session tokens stored hashed; role resolved server-side from the DB; Zod on every request; Drizzle parameterised queries; signed+verified payment webhooks; AI keys server-only. The assistant sends student prompts and limited study context to the configured AI provider. Students may be minors: collect minimal data, keep leaderboard opt-in, and never expose contact, school, academic records or AI chats publicly.
 
 ## Contributing
 Keep logic in services, validate with shared Zod schemas, add tests for any scoring/entitlement/payment change.

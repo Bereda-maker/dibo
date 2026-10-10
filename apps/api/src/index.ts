@@ -20,6 +20,7 @@ import { OpenAICompatibleProvider } from "./services/ai/provider";
 import { SocialAuthService } from "./services/social-auth.service";
 import { GoogleIdTokenVerifier } from "./services/social-verifiers";
 import { loadConfig } from "./config";
+import { AppError } from "./utils/errors";
 const cfg = loadConfig();
 const env = (k: string) => (cfg as Record<string, unknown>)[k] as string;
 const db = createDb(env("DATABASE_URL"));
@@ -36,7 +37,7 @@ const social = new SocialAuthService(db, auth, {
 });
 
 const progress = new ProgressService(db);
-const aiProvider = cfg.AI_BASE_URL && cfg.AI_PROVIDER_API_KEY && cfg.AI_MODEL ? new OpenAICompatibleProvider({ baseUrl: cfg.AI_BASE_URL, apiKey: cfg.AI_PROVIDER_API_KEY, model: cfg.AI_MODEL }) : { complete: async () => { throw new Error("AI provider is not configured"); } };
+const aiProvider = cfg.AI_PROVIDER_API_KEY ? new OpenAICompatibleProvider({ baseUrl: cfg.AI_BASE_URL, apiKey: cfg.AI_PROVIDER_API_KEY, model: cfg.AI_MODEL }) : { complete: async () => { throw new AppError(503, "AI_NOT_CONFIGURED", "The Study Assistant is not configured yet. Please try again later."); } };
 const chat = new AiChatService(db, new AIService(aiProvider, new DbRetriever(db), [cfg.AI_PROVIDER_API_KEY ?? "", cfg.VERIFY_ET_API_KEY, cfg.VERIFY_ET_WEBHOOK_SECRET, cfg.TELEGRAM_BOT_TOKEN ?? ""]), progress);
 
 const app = createApp({

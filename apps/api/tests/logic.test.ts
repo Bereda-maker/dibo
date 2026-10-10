@@ -4,6 +4,7 @@ import { computeReadiness, explainChange } from "../src/services/readiness.servi
 import { resolveEntitlements, can, withinDailyLimit, DEFAULT_FREE } from "../src/services/entitlement.service";
 import { sanitizeUserInput, looksLikeInjection, sanitizeModelOutput } from "../src/services/ai/guard";
 import { AIService } from "../src/services/ai/ai.service";
+import { loadConfig } from "../src/config";
 import { registerSchema, questionUpsertSchema } from "@dibora/validation";
 
 describe("recommendations", () => {
@@ -60,10 +61,23 @@ describe("AI service", () => {
     const r = await ai.answer({ message: "Explain Newton's second law", history: [], context: ctx });
     expect(sys).toContain("F = ma"); expect(sys).toContain("Never invent"); expect(r.text).not.toContain("SECRET-KEY-123"); expect(r.sources).toEqual(["n1"]);
   });
+  test("maps unexpected provider failures to a safe 503 without leaking provider details", async () => {
+    const ai = new AIService({ complete: async () => { throw new Error("private upstream response"); } }, retriever);
+    await expect(ai.answer({ message: "Explain Newton's second law", history: [], context: ctx })).rejects.toMatchObject({ status: 503, code: "AI_UNAVAILABLE", message: "The Study Assistant is temporarily unavailable. Please try again shortly." });
+  });
   test("guards", () => {
     expect(() => sanitizeUserInput("   ")).toThrow();
     expect(looksLikeInjection("what is entropy?")).toBe(false);
     expect(sanitizeModelOutput("hi<script>alert(1)</script>")).toBe("hi");
+  });
+});
+
+describe("AI configuration", () => {
+  test("defaults to OpenAI GPT-6 Luna and only requires the API key", () => {
+    const config = loadConfig({ DATABASE_URL: "postgres://localhost/dibora", SESSION_SECRET: "s".repeat(32), WEB_ORIGIN: "https://app.example.test", VERIFY_ET_API_KEY: "verify-key", VERIFY_ET_WEBHOOK_SECRET: "webhook-secret", AI_BASE_URL: "", AI_MODEL: "" });
+    expect(config.AI_BASE_URL).toBe("https://api.openai.com/v1");
+    expect(config.AI_MODEL).toBe("gpt-6-luna");
+    expect(config.AI_PROVIDER_API_KEY).toBeUndefined();
   });
 });
 

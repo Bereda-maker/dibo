@@ -34,11 +34,15 @@ export class AiChatService {
     const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0);
     const used = ((await this.db.select({ n: sql<number>`count(*)::int` }).from(aiMessages).innerJoin(aiConversations, eq(aiConversations.id, aiMessages.conversationId)).where(and(eq(aiConversations.userId, userId), eq(aiMessages.role, "user"), gte(aiMessages.createdAt, midnight)))) as { n: number }[])[0]!.n;
     if (!withinDailyLimit(isPremium ? DEFAULT_PREMIUM : DEFAULT_FREE, "aiMessagesPerDay", used)) throw new AppError(402, "DAILY_LIMIT", "You have reached today's AI message limit", { feature: "aiMessagesPerDay" });
-    const conv = input.conversationId ? await this.owned(userId, input.conversationId) : (await this.db.insert(aiConversations).values({ userId, title: input.message.slice(0, 40), topicId: input.topicId ?? null }).returning())[0]!;
-    const history = await this.db.select({ role: aiMessages.role, content: aiMessages.content }).from(aiMessages).where(eq(aiMessages.conversationId, conv.id)).orderBy(desc(aiMessages.createdAt)).limit(10);
-    const answer = await this.ai.answer({ message: input.message, topicId: input.topicId ?? conv.topicId ?? undefined, history: history.reverse().map((h) => ({ role: h.role === "assistant" ? "assistant" as const : "user" as const, content: h.content })), context: await this.context(studentId) });
-    await this.db.insert(aiMessages).values([{ conversationId: conv.id, role: "user", content: input.message.slice(0, 2000) }, { conversationId: conv.id, role: "assistant", content: answer.text, sources: answer.sources, tokensUsed: answer.tokens }]);
-    await this.db.update(aiConversations).set({ updatedAt: new Date() }).where(eq(aiConversations.id, conv.id));
+    const existing = input.conversationId ? await this.owned(userId, input.conversationId) : undefined;
+    const history = existing ? await this.db.select({ role: aiMessages.role, content: aiMessages.content }).from(aiMessages).where(eq(aiMessages.conversationId, existing.id)).orderBy(desc(aiMessages.createdAt)).limit(10) : [];
+    const answer = await this.ai.answer({ message: input.message, topicId: input.topicId ?? existing?.topicId ?? undefined, history: history.reverse().map((h) => ({ role: h.role === "assistant" ? "assistant" as const : "user" as const, content: h.content })), context: await this.context(studentId) });
+    const conv = await this.db.transaction(async (tx) => {
+      const current = existing ?? (await tx.insert(aiConversations).values({ userId, title: input.message.slice(0, 40), topicId: input.topicId ?? null }).returning())[0]!;
+      await tx.insert(aiMessages).values([{ conversationId: current.id, role: "user", content: input.message.slice(0, 2000) }, { conversationId: current.id, role: "assistant", content: answer.text, sources: answer.sources, tokensUsed: answer.tokens }]);
+      await tx.update(aiConversations).set({ updatedAt: new Date() }).where(eq(aiConversations.id, current.id));
+      return current;
+    });
     if (!answer.blocked) await this.progress.recordActivity(studentId, "AI");
     return { conversationId: conv.id, reply: answer.text, sources: answer.sources, blocked: answer.blocked };
   }

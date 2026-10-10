@@ -1,5 +1,6 @@
 import type { AIProvider, ChatMessage } from "./provider";
 import { sanitizeUserInput, looksLikeInjection, sanitizeModelOutput } from "./guard";
+import { AppError } from "../../utils/errors";
 
 export type StudentContext = { grade: number; stream?: string | null; subjects: string[]; weakTopics: string[]; recentScores: { title: string; percentage: number }[]; currentTopic?: string | null };
 export type ContentChunk = { id: string; title: string; text: string };
@@ -45,7 +46,13 @@ export class AIService {
       ...input.history.slice(-10).map((m) => ({ role: m.role === "assistant" ? "assistant" as const : "user" as const, content: m.content.slice(0, 2000) })),
       { role: "user", content: message },
     ];
-    const res = await this.provider.complete(messages);
+    let res: { text: string; tokens?: number };
+    try {
+      res = await this.provider.complete(messages);
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(503, "AI_UNAVAILABLE", "The Study Assistant is temporarily unavailable. Please try again shortly.");
+    }
     const text = sanitizeModelOutput(res.text, this.secrets) || NO_CONTENT_NOTICE;
     return { text, sources: chunks.map((c) => c.id), tokens: res.tokens ?? 0, blocked: false };
   }

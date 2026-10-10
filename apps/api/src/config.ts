@@ -14,7 +14,9 @@ const schema = z.object({
   RECEIPT_STORAGE_DIR: z.string().default("./data/receipts"),
   /** Public receiving accounts shown to students, e.g. [{"method":"telebirr","accountName":"Dibora","accountNumber":"09..."}] */
   PAYMENT_ACCOUNTS: z.string().optional().transform((s, ctx) => { if (!s) return []; try { return z.array(z.object({ method: z.string(), accountName: z.string(), accountNumber: z.string() })).parse(JSON.parse(s)); } catch { ctx.addIssue({ code: "custom", message: "PAYMENT_ACCOUNTS must be a JSON array of {method,accountName,accountNumber}" }); return z.NEVER; } }),
-  AI_PROVIDER_API_KEY: z.string().optional(), AI_BASE_URL: z.string().url().optional(), AI_MODEL: z.string().optional(),
+  AI_PROVIDER_API_KEY: z.string().optional().transform((v) => v?.trim() || undefined),
+  AI_BASE_URL: z.preprocess((v) => typeof v === "string" && !v.trim() ? undefined : v, z.string().url().default("https://api.openai.com/v1")),
+  AI_MODEL: z.preprocess((v) => typeof v === "string" && !v.trim() ? undefined : v, z.string().trim().min(1).default("gpt-6-luna")),
 });
 /** Fail fast at boot with a readable message instead of failing on the first request. */
 export function loadConfig(env: Record<string, string | undefined> = process.env) {
