@@ -75,7 +75,7 @@ docker compose up --build       # local stack (Postgres + API + web)
 docker compose exec api bun run --cwd packages/database migrate
 docker compose exec api bun run --cwd packages/database seed
 ```
-Production: use managed PostgreSQL, TLS termination, secrets from your platform's secret store, and put the API and web behind HTTPS on the same site (or set `WEB_ORIGIN` precisely) so SameSite cookies and the CORS/CSRF checks work. The API Docker image applies pending database migrations before starting the server; if you override its command, keep the migration step before the API process.
+Production: use managed PostgreSQL, TLS termination, secrets from your platform's secret store, run `migrate` as a release step for general schema changes, and put the API and web behind HTTPS on the same site (or set `WEB_ORIGIN` precisely) so SameSite cookies and the CORS/CSRF checks work. The API Docker image idempotently ensures the contact inbox table exists before starting; if you override its command, preserve that step.
 
 ## Security notes
 Argon2id hashing; HttpOnly + SameSite cookies; session tokens stored hashed; role resolved server-side from the DB; Zod on every request; Drizzle parameterised queries; signed+verified payment webhooks; AI keys server-only. Students may be minors: collect minimal data, keep leaderboard opt-in, never expose contact/school/academic records or AI chats.
