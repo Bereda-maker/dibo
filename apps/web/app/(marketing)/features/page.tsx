@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 import { features } from "../page";
+import { AccountAwareLink } from "../../../components/AccountAwareLink";
 import { MarketingPageHeader } from "../../../components/MarketingPageHeader";
 
 export const metadata = { title: "Features" };
@@ -20,7 +20,7 @@ export default function FeaturesPage() {
         <div className="flex items-start gap-3"><span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-surface text-primary"><ShieldCheck size={18} aria-hidden="true" /></span><div><h2 className="font-bold">Built around steady progress</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-muted">Readiness is a learning guide, not a prediction of official exam results. Your personal learning information stays private.</p></div></div>
         <ul className="flex shrink-0 flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-primary">{["Learn", "Practice", "Reflect"].map((item) => <li key={item} className="inline-flex items-center gap-1.5"><Check size={15} aria-hidden="true" />{item}</li>)}</ul>
       </section>
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-secondary px-5 py-6 text-white sm:px-7"><div><p className="font-bold">Ready to find your focus?</p><p className="mt-1 text-sm text-white/70">Start with a free student account.</p></div><Link href="/login" className="group inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 py-2.5 font-bold text-secondary transition hover:-translate-y-0.5">Continue with Google or Telegram <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" aria-hidden="true" /></Link></div>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-secondary px-5 py-6 text-white sm:px-7"><div><p className="font-bold">Ready to find your focus?</p><p className="mt-1 text-sm text-white/70">Start with a free student account.</p></div><AccountAwareLink className="group inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 py-2.5 font-bold text-secondary transition hover:-translate-y-0.5">Continue with Google or Telegram <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" aria-hidden="true" /></AccountAwareLink></div>
     </div>
   );
 }

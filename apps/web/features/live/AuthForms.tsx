@@ -12,6 +12,8 @@ type Provider = "telegram" | "google";
 type Providers = { google: { clientId: string } | null; telegram: { botUsername: string } | null };
 type GoogleApi = { accounts: { id: { initialize: (options: { client_id: string; callback: (result: { credential: string }) => void }) => void; renderButton: (element: HTMLElement, options: Record<string, unknown>) => void } } };
 let gsiLoading: Promise<void> | null = null;
+let gsiInitialized = false;
+let googleCredentialHandler: ((credential: string) => void) | null = null;
 const loadGsi = () => (gsiLoading ??= new Promise<void>((resolve, reject) => {
   const script = document.createElement("script"); script.src = "https://accounts.google.com/gsi/client"; script.async = true;
   script.onload = () => resolve(); script.onerror = () => { gsiLoading = null; reject(new Error("gsi")); }; document.head.appendChild(script);
@@ -45,11 +47,16 @@ function SocialLogin({ provider }: { provider: Provider }) {
   useEffect(() => {
     const clientId = provider === "google" ? providers?.google?.clientId : undefined; if (!clientId || !googleHost.current) return;
     let cancelled = false; const element = googleHost.current;
+    const credentialHandler = (credential: string) => { void submit("google", { credential }); };
     loadGsi().then(() => { if (cancelled) return; const google = (window as unknown as { google?: GoogleApi }).google; if (!google) return;
-      google.accounts.id.initialize({ client_id: clientId, callback: (result) => void submit("google", { credential: result.credential }) });
+      googleCredentialHandler = credentialHandler;
+      if (!gsiInitialized) {
+        google.accounts.id.initialize({ client_id: clientId, callback: (result) => googleCredentialHandler?.(result.credential) });
+        gsiInitialized = true;
+      }
       google.accounts.id.renderButton(element, { theme: "outline", size: "large", text: "continue_with", shape: "pill", width: Math.min(320, element.clientWidth || 320) });
     }).catch(() => setError("Google sign-in could not load. Check your connection."));
-    return () => { cancelled = true; element.replaceChildren(); };
+    return () => { cancelled = true; element.replaceChildren(); if (googleCredentialHandler === credentialHandler) googleCredentialHandler = null; };
   }, [provider, providers?.google?.clientId]);
   useEffect(() => {
     const bot = provider === "telegram" ? providers?.telegram?.botUsername : undefined; if (!bot || !telegramHost.current) return;

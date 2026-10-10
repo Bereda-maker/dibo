@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { AccountAwareLink } from "./AccountAwareLink";
 import { useT } from "../lib/i18n";
 
 const SCRUB_SENSITIVITY = 0.8;
@@ -220,14 +221,13 @@ export function DiboraHero() {
             className={`mt-6 flex flex-wrap gap-3 transition-[opacity,transform] duration-500 ease-out motion-reduce:transition-none ${actionsVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}
             style={{ pointerEvents: actionsVisible ? "auto" : "none" }}
           >
-            <Link
-              href="/login"
+            <AccountAwareLink
               tabIndex={actionsVisible ? undefined : -1}
               className="group inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-lg transition-[transform,background-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:bg-primary-light hover:shadow-xl active:translate-y-0 active:scale-[0.98] focus-visible:outline-white motion-reduce:transform-none motion-reduce:transition-none"
             >
               {t("cta.start")}
               <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none">→</span>
-            </Link>
+            </AccountAwareLink>
             <Link
               href="/features"
               tabIndex={actionsVisible ? undefined : -1}

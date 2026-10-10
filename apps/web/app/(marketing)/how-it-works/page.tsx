@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { ArrowRight, Check, ClipboardCheck, Compass, GraduationCap, LineChart, NotebookPen } from "lucide-react";
+import { AccountAwareLink } from "../../../components/AccountAwareLink";
 import { MarketingPageHeader } from "../../../components/MarketingPageHeader";
 
 export const metadata = { title: "How it works" };
@@ -23,7 +23,7 @@ export default function HowItWorksPage() {
           </li>
         ))}
       </ol>
-      <section className="mt-8 grid gap-4 rounded-3xl bg-primary p-5 text-white sm:grid-cols-[1fr_auto] sm:items-center sm:p-8"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-white/65">One step at a time</p><h2 className="mt-2 text-xl font-extrabold sm:text-2xl">Your study plan starts with a single session.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">No long setup form to begin—choose Google or Telegram, then complete the details that help personalize your learning.</p></div><Link href="/login" className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 font-bold text-secondary transition hover:-translate-y-0.5">Start learning <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" aria-hidden="true" /></Link></section>
+      <section className="mt-8 grid gap-4 rounded-3xl bg-primary p-5 text-white sm:grid-cols-[1fr_auto] sm:items-center sm:p-8"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-white/65">One step at a time</p><h2 className="mt-2 text-xl font-extrabold sm:text-2xl">Your study plan starts with a single session.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">No long setup form to begin—choose Google or Telegram, then complete the details that help personalize your learning.</p></div><AccountAwareLink className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 font-bold text-secondary transition hover:-translate-y-0.5">Start learning <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" aria-hidden="true" /></AccountAwareLink></section>
     </div>
   );
 }

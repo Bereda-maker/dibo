@@ -10,4 +10,4 @@ ENV NODE_ENV=production
 EXPOSE 8787
 USER bun
 HEALTHCHECK --interval=30s --timeout=3s CMD bun -e "fetch('http://localhost:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["bun", "apps/api/src/index.ts"]
+CMD ["sh", "-c", "bun run --cwd packages/database migrate && bun apps/api/src/index.ts"]
