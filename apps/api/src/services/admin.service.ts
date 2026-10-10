@@ -1,5 +1,5 @@
 import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
-import { adminAuditLogs, questions, questionOptions, studentProfiles, subscriptionPlans, users, type Db } from "@dibora/database";
+import { adminAuditLogs, contactMessages, questions, questionOptions, studentProfiles, subscriptionPlans, users, type Db } from "@dibora/database";
 import { questionUpsertSchema } from "@dibora/validation";
 import type { z } from "zod";
 import { rowsOf } from "../utils/rows";
@@ -56,6 +56,15 @@ export class AdminService {
     if (!p) throw Errors.notFound("Plan"); await this.audit(a, "PLAN_UPDATED", "plan", code, patch as Record<string, unknown>);
   }
   auditLog(limit = 100) { return this.db.select().from(adminAuditLogs).orderBy(desc(adminAuditLogs.createdAt)).limit(limit); }
+  listContactMessages(limit = 50) {
+    return this.db.select({ id: contactMessages.id, name: contactMessages.name, email: contactMessages.email, message: contactMessages.message, status: contactMessages.status, createdAt: contactMessages.createdAt })
+      .from(contactMessages).orderBy(desc(contactMessages.createdAt)).limit(limit);
+  }
+  async setContactMessageStatus(a: Actor, id: string, status: "NEW" | "READ" | "RESOLVED") {
+    const [updated] = await this.db.update(contactMessages).set({ status, updatedAt: new Date() }).where(eq(contactMessages.id, id)).returning({ id: contactMessages.id });
+    if (!updated) throw Errors.notFound("Contact message");
+    await this.audit(a, "CONTACT_MESSAGE_STATUS_UPDATED", "contact_message", id, { status });
+  }
   async overview() {
     const [r] = rowsOf<Record<string, number>>(await this.db.execute(sql`select (select count(*) from users u join student_profiles s on s.user_id=u.id where u.deleted_at is null)::int as students, (select count(*) from student_profiles where subscription_status='PREMIUM')::int as premium, (select count(*) from exam_attempts)::int as attempts, (select count(*) from ai_messages where role='user')::int as ai_messages`));
     return r;

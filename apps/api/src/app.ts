@@ -25,6 +25,7 @@ import type { AttemptService } from "./services/attempt.service";
 import type { AuthService } from "./services/auth.service";
 import type { SocialAuthService } from "./services/social-auth.service";
 import type { PaymentService } from "./services/payments/payment.service";
+import { contactRoutes } from "./routes/contact";
 
 export function createApp(deps: { auth: AuthService; payments: PaymentService; checkout: CheckoutService; db: Db; attempts: AttemptService; students: StudentService; practice: PracticeService; progress: ProgressService; chat: AiChatService; admin: AdminService; learning: LearningService; resolveStudent: (userId: string) => Promise<{ studentId: string; isPremium: boolean } | null>; webOrigin: string; isProd: boolean; social?: SocialAuthService; cookieSameSite?: "Lax" | "None" | "Strict" }) {
   const app = new Hono();
@@ -39,6 +40,7 @@ export function createApp(deps: { auth: AuthService; payments: PaymentService; c
     await next();
   });
   app.get("/health", (c) => c.json({ success: true, data: { status: "ok" } }));
+  app.route("/api/contact", contactRoutes(deps.db));
   app.route("/api/auth", authRoutes(deps.auth, deps.isProd, { social: deps.social, sameSite: deps.cookieSameSite }));
   app.route("/api/subscriptions", publicPlanRoutes(deps.checkout));
   app.use("/api/subscriptions/*", async (c, next) => (c.req.path.endsWith("/plans") ? next() : requireAuth(deps.auth)(c, next)));

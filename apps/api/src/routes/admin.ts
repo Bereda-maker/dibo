@@ -21,5 +21,7 @@ export const adminRoutes = (admin: AdminService) => {
   r.post("/questions/:id/archive", zValidator("param", id), async (c) => { await admin.setQuestionStatus(actor(c as never), c.req.valid("param").id, "ARCHIVED"); return ok(c, { done: true }); });
   r.patch("/plans/:code", requireSuperAdmin, zValidator("json", z.object({ priceMinor: z.number().int().min(0).max(100_000_000).optional(), names: z.record(z.string()).optional(), isActive: z.boolean().optional() })), async (c) => { await admin.updatePlan(actor(c as never), c.req.param("code"), c.req.valid("json")); return ok(c, { done: true }); });
   r.get("/audit-logs", async (c) => ok(c, await admin.auditLog()));
+  r.get("/contact-messages", zValidator("query", z.object({ limit: z.coerce.number().int().min(1).max(100).default(50) })), async (c) => ok(c, await admin.listContactMessages(c.req.valid("query").limit)));
+  r.patch("/contact-messages/:id", zValidator("param", id), zValidator("json", z.object({ status: z.enum(["NEW", "READ", "RESOLVED"]) })), async (c) => { await admin.setContactMessageStatus(actor(c as never), c.req.valid("param").id, c.req.valid("json").status); return ok(c, { done: true }); });
   return r;
 };

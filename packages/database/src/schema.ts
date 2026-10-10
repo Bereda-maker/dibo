@@ -64,6 +64,17 @@ export const verificationTokens = pgTable("verification_tokens", {
   usedAt: timestamp("used_at", { withTimezone: true }),
 }, (t) => [uniqueIndex("vtokens_hash_uq").on(t.tokenHash)]);
 
+/** Messages submitted through the public contact form; only admins can read them. */
+export const contactMessages = pgTable("contact_messages", {
+  id: id(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  message: text("message").notNull(),
+  status: text("status").notNull().default("NEW"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [index("contact_messages_created_idx").on(t.createdAt), index("contact_messages_status_idx").on(t.status)]);
+
 export const studentProfiles = pgTable("student_profiles", {
   id: id(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

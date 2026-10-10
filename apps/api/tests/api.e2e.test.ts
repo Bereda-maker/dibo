@@ -171,7 +171,7 @@ describe("exam flow, bookmarks, leaderboard, search over HTTP", () => {
 describe("regression: every protected route rejects anonymous callers", () => {
   const paths: [string, string][] = [["GET", "/api/students/me"], ["GET", "/api/practice/questions"], ["POST", "/api/practice/answer"], ["GET", "/api/progress"], ["GET", "/api/recommendations"], ["GET", "/api/achievements"], ["GET", "/api/notifications"],
     ["GET", "/api/ai/conversations"], ["POST", "/api/ai/messages"], ["GET", "/api/exams"], ["GET", "/api/attempts/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11"], ["POST", "/api/attempts"], ["GET", "/api/bookmarks"], ["GET", "/api/notes/completed"],
-    ["POST", "/api/notes/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11/complete"], ["GET", "/api/leaderboard"], ["GET", "/api/search?q=ab"], ["GET", "/api/content/subjects"], ["POST", "/api/subscriptions/checkout"], ["GET", "/api/admin/overview"], ["GET", "/api/admin/audit-logs"], ["GET", "/api/auth/me"]];
+    ["POST", "/api/notes/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11/complete"], ["GET", "/api/leaderboard"], ["GET", "/api/search?q=ab"], ["GET", "/api/content/subjects"], ["POST", "/api/subscriptions/checkout"], ["GET", "/api/admin/overview"], ["GET", "/api/admin/audit-logs"], ["GET", "/api/admin/contact-messages"], ["GET", "/api/auth/me"]];
   for (const [m, p] of paths) test(`${m} ${p} -> 401`, async () => { const r = await app.request(p, { method: m, headers: { origin: ORIGIN, "content-type": "application/json", "x-forwarded-for": ip() }, body: m === "GET" ? undefined : "{}" }); expect(r.status).toBe(401); });
 });
 
@@ -199,5 +199,30 @@ describe("error envelope", () => {
     const r = await post("/api/auth/register", { fullName: "x", email: "bad", phone: "1", password: "short", confirmPassword: "z", grade: 12, school: "a", region: "a", city: "a", stream: "a", examYear: 2027, subjectIds: [] });
     expect(r.status).toBe(400); const j = await r.json(); expect(j.success).toBe(false); expect(j.error.code).toBe("VALIDATION_ERROR"); expect(j.error.requestId).toBeTruthy();
     expect(j.error.details.email[0]).toContain("valid email"); expect(JSON.stringify(j)).not.toContain("ZodError");
+  });
+});
+describe("contact inbox", () => {
+  test("accepts a valid public message and exposes it only to admins", async () => {
+    const sent = await post("/api/contact", { name: "A Student", email: "STUDENT@EXAMPLE.ET", message: "Please add more practice questions for physics." });
+    expect(sent.status).toBe(201);
+    const id = (await sent.json()).data.id as string;
+    expect((await get("/api/admin/contact-messages")).status).toBe(401);
+    const student = await signup("contact-student@x.et");
+    expect((await get("/api/admin/contact-messages", student)).status).toBe(403);
+    const admin = await adminCookie("ADMIN", "contact-admin@x.et");
+    const list = (await (await get("/api/admin/contact-messages", admin)).json()).data as Array<{ id: string; email: string; status: string }>;
+    expect(list.find((message) => message.id === id)).toMatchObject({ email: "student@example.et", status: "NEW" });
+    expect((await post(`/api/admin/contact-messages/${id}`, { status: "RESOLVED" }, admin, "PATCH")).status).toBe(200);
+    const updated = (await (await get("/api/admin/contact-messages", admin)).json()).data as Array<{ id: string; status: string }>;
+    expect(updated.find((message) => message.id === id)?.status).toBe("RESOLVED");
+  });
+
+  test("rejects invalid messages and silently drops bot honeypot submissions", async () => {
+    expect((await post("/api/contact", { name: "x", email: "not-an-email", message: "short" })).status).toBe(400);
+    const bot = await post("/api/contact", { name: "A Bot", email: "bot@example.et", message: "This should not be stored as a real support request.", website: "spam" });
+    expect(bot.status).toBe(201);
+    const admin = await adminCookie("ADMIN", "contact-bot-check@x.et");
+    const list = (await (await get("/api/admin/contact-messages", admin)).json()).data as Array<{ email: string }>;
+    expect(list.some((message) => message.email === "bot@example.et")).toBe(false);
   });
 });
