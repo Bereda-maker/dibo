@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, ShieldCheck } from "lucide-react";
+import { LoaderCircle, Send, ShieldCheck } from "lucide-react";
 import { api, ApiError } from "../../lib/api";
 import { useSession } from "../../lib/session";
 import { useRouter } from "next/navigation";
 import { DEMO } from "../../lib/config";
+import { finishNavigationProgress, startNavigationProgress } from "../../components/NavigationProgress";
 
 type Provider = "telegram" | "google";
 type Providers = { google: { clientId: string } | null; telegram: { botUsername: string } | null };
@@ -26,12 +27,16 @@ function ProviderTabs({ value, onChange }: { value: Provider; onChange: (provide
 
 function SocialLogin({ provider }: { provider: Provider }) {
   const { refresh } = useSession(); const router = useRouter(); const [providers, setProviders] = useState<Providers | null>(null);
-  const [error, setError] = useState(""); const [providerLoadError, setProviderLoadError] = useState(false);
-  const googleHost = useRef<HTMLDivElement>(null); const telegramHost = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState(""); const [providerLoadError, setProviderLoadError] = useState(false); const [submitting, setSubmitting] = useState(false);
+  const googleHost = useRef<HTMLDivElement>(null); const telegramHost = useRef<HTMLDivElement>(null); const submittingRef = useRef(false);
   const submit = async (path: Provider, body: unknown) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
     setError("");
+    startNavigationProgress();
     try { const result = await api<{ role: string; isNew: boolean }>(`/auth/${path}`, { method: "POST", body }); await refresh(); router.push(result.isNew ? "/profile?welcome=1" : result.role === "STUDENT" ? "/dashboard" : "/admin"); }
-    catch (cause) { setError(cause instanceof ApiError && cause.status === 429 ? "Too many attempts. Please wait a minute." : cause instanceof ApiError ? cause.message : "Sign-in failed. Please try again."); }
+    catch (cause) { submittingRef.current = false; setError(cause instanceof ApiError && cause.status === 429 ? "Too many attempts. Please wait a minute." : cause instanceof ApiError ? cause.message : "Sign-in failed. Please try again."); setSubmitting(false); finishNavigationProgress(); }
   };
   useEffect(() => {
     let active = true; api<Providers>("/auth/providers").then((value) => { if (active) { setProviders(value); setProviderLoadError(false); } }).catch(() => { if (active) { setProviders({ google: null, telegram: null }); setProviderLoadError(true); } });
@@ -60,15 +65,17 @@ function SocialLogin({ provider }: { provider: Provider }) {
   if (providerLoadError) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Dibora could not reach {providerName} sign-in. Please try the other sign-in option or come back later.</div>;
   if (provider === "telegram" && !providers.telegram) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Telegram sign-in is not configured yet. Please choose Google or try again later.</div>;
   if (provider === "google" && !providers.google) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Google sign-in is not configured yet. Please choose Telegram or try again later.</div>;
-  return provider === "telegram" ? <div className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
+  return provider === "telegram" ? <div aria-busy={submitting} className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
     <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#229ED9]/10 text-[#168ac0]"><Send className="h-5 w-5" aria-hidden="true" /></div><h2 className="font-bold text-text">Continue with Telegram</h2>
     <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Sign in securely with @{providers.telegram!.botUsername}. New students can create an account here, then complete their Dibora profile.</p>
-    <div ref={telegramHost} className="mt-5 flex min-h-12 items-center justify-center" />{error && <p role="alert" className="mt-3 text-sm text-error">{error}</p>}
+    {submitting && <p role="status" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary"><LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />Signing in with Telegram…</p>}
+    <div ref={telegramHost} className={`mt-5 flex min-h-12 items-center justify-center ${submitting ? "pointer-events-none opacity-50" : ""}`} />{error && <p role="alert" className="mt-3 text-sm text-error">{error}</p>}
     <p className="mt-3 flex items-center justify-center gap-2 text-xs text-muted"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />Telegram verification is checked by Dibora’s API.</p>
-  </div> : <div className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
+  </div> : <div aria-busy={submitting} className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
     <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#4285F4]/10 text-xl font-extrabold text-[#4285F4]">G</div><h2 className="font-bold text-text">Continue with Google</h2>
     <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Use your Google account to sign in or create your Dibora student account.</p>
-    <div ref={googleHost} className="mt-5 flex min-h-[44px] w-full justify-center" />{error && <p role="alert" className="mt-3 text-center text-sm text-error">{error}</p>}
+    {submitting && <p role="status" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary"><LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />Signing in with Google…</p>}
+    <div ref={googleHost} className={`mt-5 flex min-h-[44px] w-full justify-center ${submitting ? "pointer-events-none opacity-50" : ""}`} />{error && <p role="alert" className="mt-3 text-center text-sm text-error">{error}</p>}
   </div>;
 }
 
