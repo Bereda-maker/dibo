@@ -4,10 +4,10 @@ import { useEffect, useRef, createContext, useContext, useState, useCallback } f
 import { Loader2 } from "lucide-react";
 
 export const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
-export function Card({ children, className }: { children: React.ReactNode; className?: string }) { return <div className={cx("rounded-card border border-border bg-surface shadow-card p-5", className)}>{children}</div>; }
+export function Card({ children, className }: { children: React.ReactNode; className?: string }) { return <div className={cx("min-w-0 rounded-card border border-border bg-surface p-4 shadow-card sm:p-5", className)}>{children}</div>; }
 type BtnProps = { href?: string; variant?: "primary" | "secondary" | "ghost" | "danger"; loading?: boolean } & React.ButtonHTMLAttributes<HTMLButtonElement>;
 export function Button({ href, variant = "primary", loading, className, children, ...p }: BtnProps) {
-  const c = cx("inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50 min-h-[44px]",
+  const c = cx("inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
     variant === "primary" && "bg-primary text-white hover:bg-primary-light", variant === "secondary" && "border border-border bg-surface hover:bg-border/40",
     variant === "ghost" && "hover:bg-border/40", variant === "danger" && "bg-error text-white", className);
   if (href) return <Link href={href} className={c}>{children}</Link>;
@@ -23,7 +23,7 @@ export function Progress({ value, label, tone = "primary" }: { value: number; la
 }
 export const toneFor = (v: number | null) => (v == null ? "primary" : v < 50 ? "error" : v < 70 ? "warning" : "primary") as "primary" | "warning" | "error";
 export function PageHeader({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
-  return <div className="mb-6 flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-bold">{title}</h1>{sub && <p className="mt-1 text-sm text-muted">{sub}</p>}</div>{action}</div>;
+  return <div className="mb-6 flex flex-wrap items-end justify-between gap-3"><div className="min-w-0"><h1 className="text-balance text-[clamp(1.4rem,3vw,1.9rem)] font-bold leading-tight tracking-tight">{title}</h1>{sub && <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted">{sub}</p>}</div>{action}</div>;
 }
 export function Skeleton({ className }: { className?: string }) { return <div aria-hidden className={cx("animate-pulse rounded-xl bg-border/70", className)} />; }
 export function EmptyState({ title, body, action }: { title: string; body?: string; action?: React.ReactNode }) {
@@ -36,7 +36,7 @@ export function Field({ label, error, children, hint }: { label: string; error?:
   const id = label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   return <div><label htmlFor={id} className="mb-1 block text-sm font-medium">{label}</label>{children(id, { "aria-invalid": !!error, "aria-describedby": error ? `${id}-err` : undefined })}{hint && !error && <p className="mt-1 text-xs text-muted">{hint}</p>}{error && <p id={`${id}-err`} className="mt-1 text-xs text-error">{error}</p>}</div>;
 }
-export const inputCls = "w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm min-h-[44px] aria-[invalid=true]:border-error";
+export const inputCls = "min-h-[44px] w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 aria-[invalid=true]:border-error";
 
 export function Modal({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);

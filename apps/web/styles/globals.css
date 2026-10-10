@@ -68,6 +68,8 @@
 body {
   background-color: var(--background);
   color: var(--text);
+  min-width: 320px;
+  overflow-x: clip;
   font-family: "Noto Sans Ethiopic", "Inter", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -75,9 +77,38 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+main {
+  min-width: 0;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @keyframes dibora-page-enter {

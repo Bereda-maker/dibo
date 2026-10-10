@@ -24,17 +24,17 @@ export function AppShell({ children, admin = false, items }: { children: React.R
   if (!ready || !u || (admin && u.role !== "ADMIN") || (!admin && !DEMO && role !== "STUDENT")) return <div className="p-6 space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-40" /><Skeleton className="h-40" /></div>;
   const unread = DEMO ? 3 - state.readNotifs.length : 0;
   const nav = admin ? (items ?? []).map(([h, l]) => ({ h, l, I: null as null })) : [...main.map(([h, k, I]) => ({ h, l: t(k), I })), ...extra.map(([h, l, I]) => ({ h, l, I }))];
-  return (<div className="min-h-screen md:flex">
-    <aside aria-label="Sidebar" className="hidden w-60 shrink-0 border-r border-border bg-surface p-4 md:block md:sticky md:top-0 md:h-screen md:overflow-y-auto">
+  return (<div className="min-h-dvh min-w-0 overflow-x-clip md:flex">
+    <aside aria-label="Sidebar" className="hidden w-60 shrink-0 border-r border-border bg-surface p-4 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto">
       <Logo />{admin && <p className="mt-1 text-xs font-semibold text-accent">ADMIN</p>}
       <nav className="mt-6 space-y-1">{nav.map(({ h, l, I }) => <Link key={h} href={h} aria-current={path === h ? "page" : undefined} className={cx("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium", path === h || (h !== "/admin" && path.startsWith(h + "/")) ? "bg-primary text-white" : "hover:bg-border/50")}>{I && <I size={18} aria-hidden />}{l}{h === "/notifications" && unread > 0 && <span className="ml-auto rounded-full bg-accent px-2 text-xs text-black">{unread}</span>}</Link>)}</nav>
       <button onClick={() => { logout(); router.push("/"); }} className="mt-6 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-border/50"><LogOut size={18} aria-hidden />Log out</button></aside>
     <div className="min-w-0 flex-1">
-      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-bg/90 px-4 py-2 backdrop-blur"><div className="md:hidden"><Logo /></div><p className="hidden text-sm text-muted md:block">{u.name}</p>
+      <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between border-b border-border bg-bg/90 px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] backdrop-blur sm:px-5"><div className="md:hidden"><Logo /></div><p className="hidden max-w-[40vw] truncate text-sm text-muted md:block">{u.name}</p>
         <div className="flex items-center gap-1"><LocaleSwitch /><ThemeToggle /></div></header>
-      <div className="mx-auto max-w-5xl p-4 pb-28 md:p-8">{children}</div></div>
-    {!admin && <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface md:hidden">
-      {[...main.slice(0, 4), ["/more", "more", Menu] as const].map(([h, k, I]) => <Link key={h} href={h} aria-current={path === h ? "page" : undefined} className={cx("flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-[11px]", path === h ? "font-bold text-primary" : "text-muted")}><I size={20} aria-hidden />{t(k)}</Link>)}</nav>}
-    {admin && <nav aria-label="Admin" className="fixed inset-x-0 bottom-0 z-30 flex overflow-x-auto border-t border-border bg-surface md:hidden">{nav.map(({ h, l }) => <Link key={h} href={h} className={cx("whitespace-nowrap px-4 py-4 text-sm", path === h ? "font-bold text-primary" : "text-muted")}>{l}</Link>)}</nav>}
+      <div className="mx-auto max-w-6xl px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-5 sm:px-5 md:p-8">{children}</div></div>
+    {!admin && <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur md:hidden">
+      {[...main.slice(0, 4), ["/more", "more", Menu] as const].map(([h, k, I]) => { const mobileRouteActive = main.slice(0, 4).some(([route]) => path === route || path.startsWith(route + "/")); const active = path === h || (h === "/more" && !mobileRouteActive); return <Link key={h} href={h} aria-current={active ? "page" : undefined} className={cx("flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[11px] transition-colors", active ? "font-bold text-primary" : "text-muted hover:text-primary")}><I size={20} aria-hidden />{t(k)}</Link>; })}</nav>}
+    {admin && <nav aria-label="Admin" className="fixed inset-x-0 bottom-0 z-30 flex overflow-x-auto border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">{nav.map(({ h, l }) => <Link key={h} href={h} aria-current={path === h ? "page" : undefined} className={cx("min-h-14 shrink-0 whitespace-nowrap px-4 py-4 text-sm", path === h ? "font-bold text-primary" : "text-muted")}>{l}</Link>)}</nav>}
   </div>);
 }
