@@ -38,7 +38,7 @@ export function LiveAdminAudit() {
   const q = useApi(() => api<Audit[]>("/admin/audit-logs"));
   return <><PageHeader title="Audit logs" /><Async q={q}>{(rows) => <Card><DataTable rows={rows} empty="No admin actions recorded yet." cols={[{ key: "t", label: "When", render: (r) => new Date(r.createdAt).toLocaleString() }, { key: "a", label: "Action", render: (r) => r.action }, { key: "o", label: "Target", render: (r) => `${r.targetType ?? ""} ${r.targetId?.slice(0, 8) ?? ""}` }]} /></Card>}</Async></>;
 }
-const LIVE_ADMIN = ["/admin", "/admin/students", "/admin/contact", "/admin/audit"];
+const LIVE_ADMIN = ["/admin", "/admin/students", "/admin/contact", "/admin/audit", "/admin/diagnostics"];
 export function AdminGate({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   if (LIVE_ADMIN.includes(path)) return <>{children}</>;

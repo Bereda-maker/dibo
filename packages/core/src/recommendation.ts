@@ -8,20 +8,20 @@ export type Recommendation = {
   difficulty: "EASY" | "MEDIUM" | "HARD"; questionCount: number; reason: string; score: number;
 };
 
-const MIN_SAMPLE = 5;
+export const MIN_RECOMMENDATION_SAMPLE = 5;
 
 /** Explainable rules: every recommendation carries a human-readable reason. */
 export function recommend(stats: TopicStat[], limit = 5): Recommendation[] {
   const out: Recommendation[] = [];
   for (const s of stats) {
-    if (s.attempted < MIN_SAMPLE) {
+    if (s.attempted < MIN_RECOMMENDATION_SAMPLE) {
       out.push({ topicId: s.topicId, priority: "LOW", action: s.noteCompleted ? "PRACTICE" : "READ_NOTE", difficulty: "EASY", questionCount: 10, score: 20,
         reason: `You have only answered ${s.attempted} ${s.topicName} question${s.attempted === 1 ? "" : "s"} so far — not enough to judge your level yet.` });
       continue;
     }
     // Weight recent performance more heavily when there is enough recent data.
     const overall = (s.correct / s.attempted) * 100;
-    const recent = s.recentAttempted >= MIN_SAMPLE ? (s.recentCorrect / s.recentAttempted) * 100 : overall;
+    const recent = s.recentAttempted >= MIN_RECOMMENDATION_SAMPLE ? (s.recentCorrect / s.recentAttempted) * 100 : overall;
     const acc = Math.round(0.4 * overall + 0.6 * recent);
     const stale = s.daysSincePracticed != null && s.daysSincePracticed > 14 ? 10 : 0;
     const score = 100 - acc + stale;

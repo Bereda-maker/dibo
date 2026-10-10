@@ -148,6 +148,46 @@ describe("admin API", () => {
     const [q2] = await raw.insert(s.questions).values({ subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "Incomplete question", explanation: "x" }).returning();
     expect((await post(`/api/admin/questions/${q2!.id}/publish`, {}, adm)).status).toBe(422);
   });
+  test("diagnostic builder protects the answer key, saves drafts, gates thin topic coverage, and allows one live test", async () => {
+    const admin = await adminCookie("ADMIN", "diagnostic-builder-admin@x.et");
+    const student = await signup("diagnostic-builder-student@x.et");
+    expect((await get("/api/admin/diagnostics/builder")).status).toBe(401);
+    expect((await get("/api/admin/diagnostics/builder", student)).status).toBe(403);
+
+    const questionIds: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const [q] = await raw.insert(s.questions).values({ subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: `Diagnostic builder question ${i}`, explanation: "Explanation for the diagnostic item.", status: "PUBLISHED" }).returning();
+      questionIds.push(q!.id);
+      await raw.insert(s.questionOptions).values([{ questionId: q!.id, text: `Correct option ${i}`, isCorrect: true }, { questionId: q!.id, text: `Wrong option ${i}`, isCorrect: false }]);
+    }
+    const bankResponse = await get("/api/admin/diagnostics/builder", admin); expect(bankResponse.status).toBe(200);
+    const bank = (await bankResponse.json()).data;
+    expect(bank.minimumQuestionsPerTopic).toBe(5);
+    expect(JSON.stringify(bank.questions.filter((q: { id: string }) => questionIds.includes(q.id)))).not.toMatch(/isCorrect|numericAnswer|correctOptionId/);
+
+    const draftInput = { title: "Mechanics readiness check", description: "Find the first study priorities.", instructions: "Work independently.", durationMinutes: 25, randomize: true, questionIds: questionIds.slice(0, 4) };
+    const created = await post("/api/admin/diagnostics", draftInput, admin); expect(created.status).toBe(201);
+    const draftId = (await created.json()).data.id as string;
+    const blocked = await post(`/api/admin/diagnostics/${draftId}/publish`, {}, admin);
+    expect(blocked.status).toBe(422); expect((await blocked.json()).error.code).toBe("DIAGNOSTIC_COVERAGE");
+
+    const revised = await post(`/api/admin/diagnostics/${draftId}`, { ...draftInput, questionIds }, admin, "PATCH"); expect(revised.status).toBe(200);
+    expect((await post(`/api/admin/diagnostics/${draftId}/publish`, {}, admin)).status).toBe(200);
+    const studentExams = (await (await get("/api/exams", student)).json()).data;
+    expect(studentExams.some((exam: { id: string; type: string }) => exam.id === draftId && exam.type === "DIAGNOSTIC")).toBe(true);
+
+    const second = await post("/api/admin/diagnostics", { ...draftInput, title: "Second readiness check", questionIds }, admin);
+    const secondId = (await second.json()).data.id as string;
+    expect((await post(`/api/admin/diagnostics/${secondId}/publish`, {}, admin)).status).toBe(409);
+    expect((await post(`/api/admin/diagnostics/${draftId}/unpublish`, {}, admin)).status).toBe(200);
+    expect((await post(`/api/admin/diagnostics/${secondId}/publish`, {}, admin)).status).toBe(200);
+    expect((await post(`/api/admin/diagnostics/${secondId}/unpublish`, {}, admin)).status).toBe(200);
+
+    expect((await post(`/api/admin/questions/${questionIds[0]}/archive`, {}, admin)).status).toBe(200);
+    const refreshed = (await (await get("/api/admin/diagnostics/builder", admin)).json()).data;
+    expect(refreshed.questions.find((q: { id: string }) => q.id === questionIds[0])?.status).toBe("ARCHIVED");
+    expect(refreshed.diagnostics.find((exam: { id: string }) => exam.id === draftId)?.inactiveQuestionCount).toBe(1);
+  });
 });
 
 describe("exam flow, bookmarks, leaderboard, search over HTTP", () => {
@@ -191,7 +231,7 @@ describe("exam flow, bookmarks, leaderboard, search over HTTP", () => {
 describe("regression: every protected route rejects anonymous callers", () => {
   const paths: [string, string][] = [["GET", "/api/students/me"], ["GET", "/api/practice/questions"], ["POST", "/api/practice/answer"], ["GET", "/api/progress"], ["GET", "/api/recommendations"], ["GET", "/api/achievements"], ["GET", "/api/notifications"],
     ["GET", "/api/ai/conversations"], ["POST", "/api/ai/messages"], ["GET", "/api/exams"], ["GET", "/api/attempts/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11"], ["POST", "/api/attempts"], ["GET", "/api/bookmarks"], ["GET", "/api/notes/completed"],
-    ["POST", "/api/notes/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11/complete"], ["GET", "/api/leaderboard"], ["GET", "/api/search?q=ab"], ["GET", "/api/content/subjects"], ["POST", "/api/subscriptions/checkout"], ["GET", "/api/admin/overview"], ["GET", "/api/admin/audit-logs"], ["GET", "/api/admin/contact-messages"], ["GET", "/api/auth/me"]];
+    ["POST", "/api/notes/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11/complete"], ["GET", "/api/leaderboard"], ["GET", "/api/search?q=ab"], ["GET", "/api/content/subjects"], ["POST", "/api/subscriptions/checkout"], ["GET", "/api/admin/overview"], ["GET", "/api/admin/diagnostics/builder"], ["POST", "/api/admin/diagnostics"], ["GET", "/api/admin/audit-logs"], ["GET", "/api/admin/contact-messages"], ["GET", "/api/auth/me"]];
   for (const [m, p] of paths) test(`${m} ${p} -> 401`, async () => { const r = await app.request(p, { method: m, headers: { origin: ORIGIN, "content-type": "application/json", "x-forwarded-for": ip() }, body: m === "GET" ? undefined : "{}" }); expect(r.status).toBe(401); });
 });
 

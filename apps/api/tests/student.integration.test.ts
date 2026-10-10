@@ -43,6 +43,11 @@ describe("practice, progress and recommendations on PostgreSQL", () => {
   test("weak topic produces an explainable HIGH recommendation", async () => {
     const [r] = await progress.recommendations(st); expect(r!.priority).toBe("HIGH"); expect(r!.reason).toContain("Physics → Mechanics");
   });
+  test("recommendation action respects whether the topic note is complete", async () => {
+    const [before] = await progress.recommendations(st); expect(before!.action).toBe("READ_NOTE");
+    await raw.insert(s.topicProgress).values({ studentId: st, topicId: topic, noteCompleted: true }).onConflictDoUpdate({ target: [s.topicProgress.studentId, s.topicProgress.topicId], set: { noteCompleted: true } });
+    const [after] = await progress.recommendations(st); expect(after!.action).toBe("PRACTICE");
+  });
   test("previously-wrong mode returns only missed questions", async () => {
     const wrong = await practice.next(st, { mode: "wrong", limit: 50 }); const ids = new Set(wrong.map((w) => w.id));
     expect(ids.has(q[0]!.id)).toBe(false); expect(ids.has(q[1]!.id)).toBe(true);

@@ -53,6 +53,19 @@ export const questionUpsertSchema = z
     if (q.type === "MULTIPLE_CHOICE" && q.options.length < 2) ctx.addIssue({ code: "custom", path: ["options"], message: "At least 2 options required" });
   });
 
+export const diagnosticUpsertSchema = z.object({
+  title: z.string().trim().min(3, "Give the diagnostic a title").max(160),
+  description: z.string().trim().max(500).optional(),
+  instructions: z.string().trim().max(2000).optional(),
+  durationMinutes: z.number().int().min(5).max(300),
+  randomize: z.boolean().default(true),
+  questionIds: z.array(z.string().uuid()).min(1).max(300),
+}).strict().superRefine((value, ctx) => {
+  if (new Set(value.questionIds).size !== value.questionIds.length) {
+    ctx.addIssue({ code: "custom", path: ["questionIds"], message: "A question can only be added once" });
+  }
+});
+
 export const aiMessageSchema = z.object({
   conversationId: z.string().uuid().optional(),
   topicId: z.string().uuid().optional(),

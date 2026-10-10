@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
-import { examAttempts, exams, notifications, questions, studentAchievements, achievements, studentAnswers, studentProgress, studySessions, topics, subjects, type Db } from "@dibora/database";
+import { examAttempts, exams, notifications, questions, studentAchievements, achievements, studentAnswers, studentProgress, studySessions, topicProgress, topics, subjects, type Db } from "@dibora/database";
 import { recommend, type TopicStat } from "@dibora/core/recommendation";
 import { computeReadiness } from "@dibora/core/readiness";
 
@@ -27,8 +27,9 @@ export class ProgressService {
     const by = new Map<string, { c: boolean; at: Date }[]>(); for (const r of rows) (by.get(r.topicId) ?? by.set(r.topicId, []).get(r.topicId)!).push({ c: !!r.correct, at: r.at });
     if (!by.size) return [];
     const meta = await this.db.select({ id: topics.id, tn: topics.names, sn: subjects.names }).from(topics).innerJoin(subjects, eq(subjects.id, topics.subjectId)).where(inArray(topics.id, [...by.keys()]));
+    const completed = new Set((await this.db.select({ topicId: topicProgress.topicId }).from(topicProgress).where(and(eq(topicProgress.studentId, studentId), eq(topicProgress.noteCompleted, true)))).map((x) => x.topicId));
     return meta.map((m) => { const l = by.get(m.id)!, recent = l.slice(0, 20);
-      return { topicId: m.id, topicName: m.tn.en ?? "Topic", subjectName: m.sn.en ?? "Subject", attempted: l.length, correct: l.filter((x) => x.c).length, recentAttempted: recent.length, recentCorrect: recent.filter((x) => x.c).length, noteCompleted: false, daysSincePracticed: Math.floor((Date.now() - l[0]!.at.getTime()) / 864e5) }; });
+      return { topicId: m.id, topicName: m.tn.en ?? "Topic", subjectName: m.sn.en ?? "Subject", attempted: l.length, correct: l.filter((x) => x.c).length, recentAttempted: recent.length, recentCorrect: recent.filter((x) => x.c).length, noteCompleted: completed.has(m.id), daysSincePracticed: Math.floor((Date.now() - l[0]!.at.getTime()) / 864e5) }; });
   }
 
   async summary(studentId: string) {

@@ -1,17 +1,127 @@
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
-import { adminAuditLogs, contactMessages, questions, questionOptions, studentProfiles, subscriptionPlans, users, type Db } from "@dibora/database";
-import { questionUpsertSchema } from "@dibora/validation";
+import { and, asc, desc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { adminAuditLogs, contactMessages, examQuestions, exams, questions, questionOptions, studentProfiles, subjects, subscriptionPlans, topics, users, type Db } from "@dibora/database";
+import { diagnosticUpsertSchema, questionUpsertSchema } from "@dibora/validation";
+import { MIN_RECOMMENDATION_SAMPLE } from "@dibora/core/recommendation";
 import type { z } from "zod";
 import { rowsOf } from "../utils/rows";
 import { Errors, AppError } from "../utils/errors";
 
 type Actor = { userId: string; ip?: string; requestId?: string };
 type QuestionInput = z.infer<typeof questionUpsertSchema>;
+type DiagnosticInput = z.infer<typeof diagnosticUpsertSchema>;
 
 export class AdminService {
   constructor(private db: Db) {}
   private audit(a: Actor, action: string, targetType: string, targetId: string, metadata?: Record<string, unknown>) {
     return this.db.insert(adminAuditLogs).values({ actorId: a.userId, action, targetType, targetId, metadata, ip: a.ip, requestId: a.requestId });
+  }
+
+  private async validateDiagnosticQuestions(questionIds: string[]) {
+    const rows = questionIds.length ? await this.db.select({ id: questions.id, subjectId: questions.subjectId, topicId: questions.topicId, questionStatus: questions.status,
+      topicSubjectId: topics.subjectId, topicStatus: topics.status, subjectStatus: subjects.status })
+      .from(questions).innerJoin(topics, eq(topics.id, questions.topicId)).innerJoin(subjects, eq(subjects.id, questions.subjectId))
+      .where(and(inArray(questions.id, questionIds), isNull(questions.deletedAt), isNull(topics.deletedAt), isNull(subjects.deletedAt))) : [];
+    if (rows.length !== questionIds.length || rows.some((q) => q.topicSubjectId !== q.subjectId || q.questionStatus !== "PUBLISHED" || q.topicStatus !== "PUBLISHED" || q.subjectStatus !== "PUBLISHED")) {
+      throw new AppError(422, "INVALID_DIAGNOSTIC_QUESTIONS", "Select only published questions whose subject and topic are published and correctly linked");
+    }
+    return rows;
+  }
+
+  private async validateQuestionScope(subjectId: string, topicId: string) {
+    const [scope] = await this.db.select({ id: topics.id }).from(topics).innerJoin(subjects, eq(subjects.id, topics.subjectId))
+      .where(and(eq(topics.id, topicId), eq(topics.subjectId, subjectId), eq(topics.status, "PUBLISHED"), isNull(topics.deletedAt), eq(subjects.status, "PUBLISHED"), isNull(subjects.deletedAt))).limit(1);
+    if (!scope) throw new AppError(422, "INVALID_QUESTION_SCOPE", "Choose a published topic that belongs to the selected subject");
+  }
+
+  async diagnosticBuilderData() {
+    const [subjectRows, topicRows, questionRows, diagnosticRows] = await Promise.all([
+      this.db.select({ id: subjects.id, grade: subjects.grade, stream: subjects.stream, slug: subjects.slug, names: subjects.names })
+        .from(subjects).where(and(eq(subjects.status, "PUBLISHED"), isNull(subjects.deletedAt))).orderBy(asc(subjects.sortOrder)),
+      this.db.select({ id: topics.id, subjectId: topics.subjectId, slug: topics.slug, names: topics.names })
+        .from(topics).innerJoin(subjects, eq(subjects.id, topics.subjectId)).where(and(eq(topics.status, "PUBLISHED"), isNull(topics.deletedAt), eq(subjects.status, "PUBLISHED"), isNull(subjects.deletedAt))).orderBy(asc(topics.sortOrder)),
+      this.db.select({ id: questions.id, subjectId: questions.subjectId, topicId: questions.topicId, difficulty: questions.difficulty, type: questions.type, text: questions.text, status: questions.status, source: questions.source, createdAt: questions.createdAt,
+        subjectNames: subjects.names, subjectSlug: subjects.slug, topicNames: topics.names, topicSlug: topics.slug })
+        .from(questions).innerJoin(topics, eq(topics.id, questions.topicId)).innerJoin(subjects, eq(subjects.id, questions.subjectId))
+        .where(and(isNull(questions.deletedAt), isNull(topics.deletedAt), isNull(subjects.deletedAt), eq(topics.status, "PUBLISHED"), eq(subjects.status, "PUBLISHED"), or(eq(questions.status, "DRAFT"), eq(questions.status, "PUBLISHED"), eq(questions.status, "ARCHIVED"))))
+        .orderBy(asc(subjects.sortOrder), asc(topics.sortOrder), desc(questions.createdAt)),
+      this.db.select({ id: exams.id, title: exams.title, description: exams.description, instructions: exams.instructions, durationMinutes: exams.durationMinutes, questionCount: exams.questionCount, randomize: exams.randomize, status: exams.status, createdAt: exams.createdAt })
+        .from(exams).where(and(eq(exams.type, "DIAGNOSTIC"), isNull(exams.deletedAt))).orderBy(desc(exams.createdAt)),
+    ]);
+    const ids = diagnosticRows.map((e) => e.id);
+    const links = ids.length ? await this.db.select({ examId: examQuestions.examId, questionId: questions.id, topicId: questions.topicId, questionStatus: questions.status, topicNames: topics.names, subjectNames: subjects.names })
+      .from(examQuestions).innerJoin(questions, eq(questions.id, examQuestions.questionId)).innerJoin(topics, eq(topics.id, questions.topicId)).innerJoin(subjects, eq(subjects.id, questions.subjectId))
+      .where(inArray(examQuestions.examId, ids)).orderBy(asc(examQuestions.sortOrder)) : [];
+    return {
+      minimumQuestionsPerTopic: MIN_RECOMMENDATION_SAMPLE,
+      subjects: subjectRows,
+      topics: topicRows,
+      questions: questionRows.map((q) => ({ id: q.id, subjectId: q.subjectId, subjectName: q.subjectNames.en ?? q.subjectSlug, topicId: q.topicId, topicName: q.topicNames.en ?? q.topicSlug, difficulty: q.difficulty, type: q.type, text: q.text, status: q.status, source: q.source, createdAt: q.createdAt })),
+      diagnostics: diagnosticRows.map((exam) => {
+        const examLinks = links.filter((x) => x.examId === exam.id);
+        const coverage = new Map<string, { topicId: string; topicName: string; subjectName: string; count: number }>();
+        for (const link of examLinks) if (link.questionStatus === "PUBLISHED") { const value = coverage.get(link.topicId) ?? { topicId: link.topicId, topicName: link.topicNames.en ?? "Topic", subjectName: link.subjectNames.en ?? "Subject", count: 0 }; value.count++; coverage.set(link.topicId, value); }
+        return { ...exam, questionIds: examLinks.map((x) => x.questionId), inactiveQuestionCount: examLinks.filter((x) => x.questionStatus !== "PUBLISHED").length, coverage: [...coverage.values()] };
+      }),
+    };
+  }
+
+  async createDiagnostic(a: Actor, input: DiagnosticInput) {
+    const selected = await this.validateDiagnosticQuestions(input.questionIds);
+    const subjectIds = [...new Set(selected.map((q) => q.subjectId))];
+    const [created] = await this.db.transaction(async (tx) => {
+      const [exam] = await tx.insert(exams).values({ type: "DIAGNOSTIC", subjectId: subjectIds.length === 1 ? subjectIds[0]! : null, title: input.title,
+        description: input.description?.trim() || null, instructions: input.instructions?.trim() || null, durationMinutes: input.durationMinutes,
+        questionCount: input.questionIds.length, passingScore: 0, attemptLimit: null, randomize: input.randomize, requiresPremium: false, status: "DRAFT" }).returning({ id: exams.id });
+      await tx.insert(examQuestions).values(input.questionIds.map((questionId, sortOrder) => ({ examId: exam!.id, questionId, sortOrder, marks: 1 })));
+      return [exam];
+    });
+    await this.audit(a, "DIAGNOSTIC_CREATED", "exam", created!.id, { questionCount: input.questionIds.length });
+    return { id: created!.id, status: "DRAFT", questionCount: input.questionIds.length };
+  }
+
+  async updateDiagnostic(a: Actor, id: string, input: DiagnosticInput) {
+    const [existing] = await this.db.select({ id: exams.id, status: exams.status }).from(exams).where(and(eq(exams.id, id), eq(exams.type, "DIAGNOSTIC"), isNull(exams.deletedAt))).limit(1);
+    if (!existing) throw Errors.notFound("Diagnostic");
+    if (existing.status !== "DRAFT") throw Errors.conflict("Only draft diagnostics can be edited");
+    const selected = await this.validateDiagnosticQuestions(input.questionIds);
+    const subjectIds = [...new Set(selected.map((q) => q.subjectId))];
+    await this.db.transaction(async (tx) => {
+      await tx.update(exams).set({ subjectId: subjectIds.length === 1 ? subjectIds[0]! : null, title: input.title, description: input.description?.trim() || null,
+        instructions: input.instructions?.trim() || null, durationMinutes: input.durationMinutes, questionCount: input.questionIds.length, randomize: input.randomize, updatedAt: new Date() }).where(eq(exams.id, id));
+      await tx.delete(examQuestions).where(eq(examQuestions.examId, id));
+      await tx.insert(examQuestions).values(input.questionIds.map((questionId, sortOrder) => ({ examId: id, questionId, sortOrder, marks: 1 })));
+    });
+    await this.audit(a, "DIAGNOSTIC_UPDATED", "exam", id, { questionCount: input.questionIds.length });
+    return { id, status: "DRAFT", questionCount: input.questionIds.length };
+  }
+
+  async publishDiagnostic(a: Actor, id: string) {
+    const [exam] = await this.db.select({ id: exams.id, questionCount: exams.questionCount, status: exams.status }).from(exams)
+      .where(and(eq(exams.id, id), eq(exams.type, "DIAGNOSTIC"), isNull(exams.deletedAt))).limit(1);
+    if (!exam) throw Errors.notFound("Diagnostic");
+    const rows = await this.db.select({ questionId: questions.id, topicId: questions.topicId, questionStatus: questions.status, topicStatus: topics.status, subjectStatus: subjects.status,
+      topicName: topics.names, subjectName: subjects.names, topicSubjectId: topics.subjectId, questionSubjectId: questions.subjectId })
+      .from(examQuestions).innerJoin(questions, eq(questions.id, examQuestions.questionId)).innerJoin(topics, eq(topics.id, questions.topicId)).innerJoin(subjects, eq(subjects.id, questions.subjectId))
+      .where(and(eq(examQuestions.examId, id), isNull(questions.deletedAt), isNull(topics.deletedAt), isNull(subjects.deletedAt)));
+    if (!rows.length || rows.length !== exam.questionCount || rows.some((q) => q.questionStatus !== "PUBLISHED" || q.topicStatus !== "PUBLISHED" || q.subjectStatus !== "PUBLISHED" || q.topicSubjectId !== q.questionSubjectId)) {
+      throw new AppError(422, "DIAGNOSTIC_QUESTIONS_INVALID", "All diagnostic questions must still be published and correctly linked");
+    }
+    const byTopic = new Map<string, { topicId: string; topicName: string; subjectName: string; count: number }>();
+    for (const row of rows) { const value = byTopic.get(row.topicId) ?? { topicId: row.topicId, topicName: row.topicName.en ?? "Topic", subjectName: row.subjectName.en ?? "Subject", count: 0 }; value.count++; byTopic.set(row.topicId, value); }
+    const gaps = [...byTopic.values()].filter((topic) => topic.count < MIN_RECOMMENDATION_SAMPLE);
+    if (gaps.length) throw new AppError(422, "DIAGNOSTIC_COVERAGE", `Add at least ${MIN_RECOMMENDATION_SAMPLE} questions for every included topic before publishing`, { minimumQuestionsPerTopic: MIN_RECOMMENDATION_SAMPLE, topics: gaps.map((topic) => ({ ...topic, moreNeeded: MIN_RECOMMENDATION_SAMPLE - topic.count })) });
+    const [otherPublished] = await this.db.select({ id: exams.id }).from(exams).where(and(eq(exams.type, "DIAGNOSTIC"), eq(exams.status, "PUBLISHED"), isNull(exams.deletedAt), ne(exams.id, id))).limit(1);
+    if (otherPublished) throw new AppError(409, "DIAGNOSTIC_ALREADY_PUBLISHED", "Unpublish the current diagnostic before publishing another one");
+    await this.db.update(exams).set({ status: "PUBLISHED", updatedAt: new Date() }).where(eq(exams.id, id));
+    await this.audit(a, "DIAGNOSTIC_PUBLISHED", "exam", id, { questionCount: rows.length, topicCount: byTopic.size });
+    return { id, status: "PUBLISHED", questionCount: rows.length, topicCount: byTopic.size };
+  }
+
+  async unpublishDiagnostic(a: Actor, id: string) {
+    const [exam] = await this.db.select({ id: exams.id, status: exams.status }).from(exams).where(and(eq(exams.id, id), eq(exams.type, "DIAGNOSTIC"), isNull(exams.deletedAt))).limit(1);
+    if (!exam) throw Errors.notFound("Diagnostic");
+    if (exam.status === "PUBLISHED") { await this.db.update(exams).set({ status: "DRAFT", updatedAt: new Date() }).where(eq(exams.id, id)); await this.audit(a, "DIAGNOSTIC_UNPUBLISHED", "exam", id); }
+    return { id, status: exam.status === "PUBLISHED" ? "DRAFT" : exam.status };
   }
 
   /** Student list deliberately omits email, phone, school and any AI conversation content. */
@@ -33,6 +143,7 @@ export class AdminService {
   }
 
   async createQuestion(a: Actor, input: QuestionInput) {
+    await this.validateQuestionScope(input.subjectId, input.topicId);
     const id = await this.db.transaction(async (tx) => {
       const [q] = await tx.insert(questions).values({ subjectId: input.subjectId, topicId: input.topicId, subtopicId: input.subtopicId ?? null, difficulty: input.difficulty, type: input.type, text: input.text, explanation: input.explanation, numericAnswer: input.numericAnswer == null ? null : String(input.numericAnswer), numericTolerance: String(input.numericTolerance), tags: input.tags, source: input.source ?? null, status: "DRAFT" }).returning({ id: questions.id });
       if (input.options.length) await tx.insert(questionOptions).values(input.options.map((o, i) => ({ questionId: q!.id, text: o.text, isCorrect: o.isCorrect, sortOrder: i })));
@@ -44,6 +155,7 @@ export class AdminService {
   async setQuestionStatus(a: Actor, id: string, status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
     const [q] = await this.db.select().from(questions).where(and(eq(questions.id, id), isNull(questions.deletedAt))); if (!q) throw Errors.notFound("Question");
     if (status === "PUBLISHED") {
+      await this.validateQuestionScope(q.subjectId, q.topicId);
       const opts = await this.db.select().from(questionOptions).where(eq(questionOptions.questionId, id));
       const check = questionUpsertSchema.safeParse({ subjectId: q.subjectId, topicId: q.topicId, difficulty: q.difficulty, type: q.type, text: q.text, explanation: q.explanation, options: opts.map((o) => ({ text: o.text, isCorrect: o.isCorrect })), numericAnswer: q.numericAnswer == null ? null : Number(q.numericAnswer), numericTolerance: Number(q.numericTolerance) });
       if (!check.success) throw new AppError(422, "INVALID_QUESTION", "Question is incomplete and cannot be published", check.error.flatten());

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { v as zValidator } from "../utils/validate";
 import { z } from "zod";
-import { questionUpsertSchema } from "@dibora/validation";
+import { diagnosticUpsertSchema, questionUpsertSchema } from "@dibora/validation";
 import type { AdminService } from "../services/admin.service";
 import { requireSuperAdmin, type AuthContext } from "../middleware/auth";
 import { ok } from "../utils/response";
@@ -15,6 +15,11 @@ export const adminRoutes = (admin: AdminService) => {
   r.get("/students", zValidator("query", z.object({ q: z.string().max(60).optional(), status: z.enum(["ACTIVE", "SUSPENDED"]).optional(), limit: z.coerce.number().int().min(1).max(100).default(25), offset: z.coerce.number().int().min(0).default(0) })), async (c) => ok(c, await admin.students(c.req.valid("query"))));
   r.patch("/students/:userId/status", zValidator("param", z.object({ userId: z.string().uuid() })), zValidator("json", z.object({ active: z.boolean() })), async (c) => { await admin.setActive(actor(c as never), c.req.valid("param").userId, c.req.valid("json").active); return ok(c, { done: true }); });
   r.delete("/students/:userId", requireSuperAdmin, zValidator("param", z.object({ userId: z.string().uuid() })), async (c) => { await admin.deleteStudent(actor(c as never), c.req.valid("param").userId); return ok(c, { done: true }); });
+  r.get("/diagnostics/builder", async (c) => ok(c, await admin.diagnosticBuilderData()));
+  r.post("/diagnostics", zValidator("json", diagnosticUpsertSchema), async (c) => ok(c, await admin.createDiagnostic(actor(c as never), c.req.valid("json")), 201));
+  r.patch("/diagnostics/:id", zValidator("param", id), zValidator("json", diagnosticUpsertSchema), async (c) => ok(c, await admin.updateDiagnostic(actor(c as never), c.req.valid("param").id, c.req.valid("json"))));
+  r.post("/diagnostics/:id/publish", zValidator("param", id), async (c) => ok(c, await admin.publishDiagnostic(actor(c as never), c.req.valid("param").id)));
+  r.post("/diagnostics/:id/unpublish", zValidator("param", id), async (c) => ok(c, await admin.unpublishDiagnostic(actor(c as never), c.req.valid("param").id)));
   r.post("/questions", zValidator("json", questionUpsertSchema), async (c) => ok(c, await admin.createQuestion(actor(c as never), c.req.valid("json")), 201));
   r.post("/questions/:id/publish", zValidator("param", id), async (c) => { await admin.setQuestionStatus(actor(c as never), c.req.valid("param").id, "PUBLISHED"); return ok(c, { done: true }); });
   r.post("/questions/:id/unpublish", zValidator("param", id), async (c) => { await admin.setQuestionStatus(actor(c as never), c.req.valid("param").id, "DRAFT"); return ok(c, { done: true }); });
