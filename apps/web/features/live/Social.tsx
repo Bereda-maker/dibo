@@ -10,6 +10,7 @@ import { useSession } from "../../lib/session";
 import { REGIONS } from "../../lib/config";
 import { Async, diffTone } from "./shared";
 import { MarketingPageHeader } from "../../components/MarketingPageHeader";
+import { ChatMessageContent } from "../../components/ChatMessageContent";
 
 type Bm = { type: "NOTE" | "QUESTION" | "TOPIC"; id: string; title: string; topicId?: string };
 export function LiveBookmarks() {
@@ -39,7 +40,7 @@ export function LiveAssistant() {
       {(convs.data ?? []).map((c) => <div key={c.id} className={cx("flex items-center gap-1 rounded-xl border p-1", c.id === cid ? "border-primary" : "border-border")}><button className="min-h-[40px] flex-1 truncate px-2 text-left text-sm" onClick={() => open(c.id)}>{c.title}</button>
         <button aria-label="Rename" className="p-2" onClick={async () => { const t = prompt("Rename conversation", c.title); if (t?.trim()) { await api(`/ai/conversations/${c.id}`, { method: "PATCH", body: { title: t.trim() } }); convs.reload(); } }}><Pencil size={14} /></button>
         <button aria-label="Delete" className="p-2" onClick={async () => { await api(`/ai/conversations/${c.id}`, { method: "DELETE" }); if (cid === c.id) open(null); convs.reload(); toast("Conversation deleted", "info"); }}><Trash2 size={14} /></button></div>)}</aside>
-    <Card className="flex min-h-[60vh] flex-col !p-0"><div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">{!msgs.length && <p className="py-8 text-center text-sm text-muted">Ask about any topic in your notes.</p>}{msgs.map((m, i) => <div key={i} className={m.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-primary px-4 py-2 text-sm text-white" : "max-w-[90%] whitespace-pre-line rounded-2xl bg-border/40 px-4 py-2 text-sm"}>{m.content}</div>)}{busy && <p className="text-sm text-muted">Thinking…</p>}<div ref={end} /></div>
+    <Card className="flex min-h-[60vh] flex-col !p-0"><div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">{!msgs.length && <p className="py-8 text-center text-sm text-muted">Ask about any topic in your notes.</p>}{msgs.map((m, i) => <div key={i} className={m.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-primary px-4 py-2 text-sm text-white" : "max-w-[90%] rounded-2xl bg-border/40 px-4 py-2 text-sm"}>{m.role === "assistant" ? <ChatMessageContent content={m.content} /> : m.content}</div>)}{busy && <p className="text-sm text-muted">Thinking…</p>}<div ref={end} /></div>
       {limit ? <p className="border-t border-border p-3 text-sm">You have used today&apos;s free messages. <Link href="/pricing" className="underline">Upgrade for more</Link>.</p> : <form className="flex gap-2 border-t border-border p-3" onSubmit={(e) => { e.preventDefault(); void send(text); }}><input aria-label="Message" maxLength={2000} className={inputCls} placeholder="Ask a question…" value={text} onChange={(e) => setText(e.target.value)} /><Button type="submit" aria-label="Send" disabled={busy}><Send size={16} /></Button></form>}</Card></div></>;
 }
 

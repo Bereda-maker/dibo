@@ -1,4 +1,5 @@
 import "../styles/globals.css";
+import "katex/dist/katex.min.css";
 import type { Metadata, Viewport } from "next";
 import { Providers } from "../components/Providers";
 import { NavigationProgress } from "../components/NavigationProgress";

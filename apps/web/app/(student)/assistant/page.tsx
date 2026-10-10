@@ -8,6 +8,7 @@ import { useStore, today, type ChatMsg } from "../../../lib/store";
 import { NOTES, QUESTIONS, TOPICS, topicName } from "../../../lib/mock";
 import { topicStats } from "../../../lib/analytics";
 import { uid } from "../../../lib/exam";
+import { ChatMessageContent } from "../../../components/ChatMessageContent";
 
 const FREE_LIMIT = 5;
 const MODES = [["Explain", "Explain: "], ["Simplify", "Simplify: "], ["Give an example", "Give me an example of "], ["Quiz me", "Quiz me on "], ["Study plan", "What should I study next?"]];
@@ -37,7 +38,7 @@ function DemoP() {
         <button aria-label="Rename" className="p-2" onClick={() => { const t = prompt("Rename conversation", c.title); if (t?.trim()) update((s) => ({ ...s, conversations: s.conversations.map((x) => x.id === c.id ? { ...x, title: t.trim().slice(0, 60) } : x) })); }}><Pencil size={14} /></button>
         <button aria-label="Delete" className="p-2" onClick={() => { update((s) => ({ ...s, conversations: s.conversations.filter((x) => x.id !== c.id) })); if (cid === c.id) setCid(null); toast("Conversation deleted", "info"); }}><Trash2 size={14} /></button></div>)}</aside>
       <Card className="flex min-h-[60vh] flex-col !p-0"><div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">{!conv?.messages.length && <div className="py-8 text-center text-sm text-muted"><p>Ask about any topic in your notes.</p><div className="mt-3 flex flex-wrap justify-center gap-2">{MODES.map(([l, p]) => <button key={l} className="min-h-[40px] rounded-full border border-border px-3 text-xs" onClick={() => p!.endsWith("?") ? send(p!) : setText(p!)}>{l}</button>)}</div></div>}
-        {conv?.messages.map((m, i) => <div key={i} className={m.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-primary px-4 py-2 text-sm text-white" : "max-w-[90%] whitespace-pre-line rounded-2xl bg-border/40 px-4 py-2 text-sm"}>{m.content}</div>)}{busy && <p className="text-sm text-muted">Thinking…</p>}<div ref={end} /></div>
+        {conv?.messages.map((m, i) => <div key={i} className={m.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-primary px-4 py-2 text-sm text-white" : "max-w-[90%] rounded-2xl bg-border/40 px-4 py-2 text-sm"}>{m.role === "assistant" ? <ChatMessageContent content={m.content} /> : m.content}</div>)}{busy && <p className="text-sm text-muted">Thinking…</p>}<div ref={end} /></div>
         <form className="flex gap-2 border-t border-border p-3" onSubmit={(e) => { e.preventDefault(); send(text); }}><input aria-label="Message" maxLength={2000} className={inputCls} placeholder={limited ? "Daily free limit reached" : "Ask a question…"} value={text} onChange={(e) => setText(e.target.value)} disabled={limited} /><Button type="submit" aria-label="Send" disabled={limited || busy}><Send size={16} /></Button></form>
         <p className="px-4 pb-3 text-xs text-muted">{u.plan === "PREMIUM" ? "Premium: advanced assistant" : `${Math.max(0, FREE_LIMIT - used)} free messages left today`}{limited && <> · <a href="/pricing" className="underline">Upgrade</a></>}</p></Card></div></>); }
 
