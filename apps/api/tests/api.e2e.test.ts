@@ -96,6 +96,26 @@ describe("AI conversations", () => {
 });
 
 describe("admin API", () => {
+  test("overview returns live range metrics and daily activity trends", async () => {
+    const adm = await adminCookie("ADMIN", "overview-admin@x.et");
+    await signup("overview-student@x.et");
+    const [user] = await raw.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, "overview-student@x.et"));
+    const [profile] = await raw.select({ id: s.studentProfiles.id }).from(s.studentProfiles).where(eq(s.studentProfiles.userId, user!.id));
+    await raw.insert(s.studySessions).values({ studentId: profile!.id, activity: "PRACTICE", day: new Date().toISOString().slice(0, 10), durationSeconds: 600 });
+
+    const response = await get("/api/admin/overview?range=7", adm);
+    expect(response.status).toBe(200);
+    const { data } = await response.json();
+    expect(data.rangeDays).toBe(7);
+    expect(data.summary.students).toBeGreaterThan(0);
+    expect(data.summary.newStudents).toBeGreaterThan(0);
+    expect(data.summary.activeLearners).toBeGreaterThan(0);
+    expect(data.trend).toHaveLength(7);
+    expect(data.trend.at(-1).activeLearners).toBeGreaterThan(0);
+    expect(data.learningStages.some((stage: { status: string }) => stage.status === "REGISTERED")).toBe(true);
+    expect((await get("/api/admin/overview?range=14", adm)).status).toBe(400);
+  });
+
   test("lists students without private contact details and audits suspension", async () => {
     const adm = await adminCookie("ADMIN", "admin1@x.et"); await signup("victim@x.et");
     const list = await (await get("/api/admin/students?q=Test", adm)).json(); const text = JSON.stringify(list.data);

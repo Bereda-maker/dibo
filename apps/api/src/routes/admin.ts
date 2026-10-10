@@ -11,7 +11,7 @@ export const adminRoutes = (admin: AdminService) => {
   const r = new Hono();
   const actor = (c: { get: (k: string) => unknown; req: { header: (n: string) => string | undefined } }) => ({ userId: (c.get("auth") as AuthContext).userId, ip: c.req.header("x-forwarded-for")?.split(",")[0]?.trim(), requestId: c.get("requestId") as string | undefined });
   const id = z.object({ id: z.string().uuid() });
-  r.get("/overview", async (c) => ok(c, await admin.overview()));
+  r.get("/overview", zValidator("query", z.object({ range: z.enum(["7", "30", "90"]).default("30") })), async (c) => ok(c, await admin.overview(Number(c.req.valid("query").range))));
   r.get("/students", zValidator("query", z.object({ q: z.string().max(60).optional(), status: z.enum(["ACTIVE", "SUSPENDED"]).optional(), limit: z.coerce.number().int().min(1).max(100).default(25), offset: z.coerce.number().int().min(0).default(0) })), async (c) => ok(c, await admin.students(c.req.valid("query"))));
   r.patch("/students/:userId/status", zValidator("param", z.object({ userId: z.string().uuid() })), zValidator("json", z.object({ active: z.boolean() })), async (c) => { await admin.setActive(actor(c as never), c.req.valid("param").userId, c.req.valid("json").active); return ok(c, { done: true }); });
   r.delete("/students/:userId", requireSuperAdmin, zValidator("param", z.object({ userId: z.string().uuid() })), async (c) => { await admin.deleteStudent(actor(c as never), c.req.valid("param").userId); return ok(c, { done: true }); });

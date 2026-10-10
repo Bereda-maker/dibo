@@ -9,6 +9,7 @@ import { api, ApiError } from "../../lib/api";
 import { useApi } from "../../lib/useApi";
 import { useSession } from "../../lib/session";
 import { Async } from "./shared";
+import { AdminDashboard } from "./AdminDashboard";
 
 export const LiveNoteRoute = () => <LiveNote id={useParams<{ id: string }>().id} />;
 export const LiveExamRoute = () => <LiveExamPage examId={useParams<{ id: string }>().id} />;
@@ -22,8 +23,7 @@ export function LiveDiagnostic() {
 
 /* ---------- live admin (overview, students, audit) ---------- */
 export function LiveAdminOverview() {
-  const q = useApi(() => api<Record<string, number>>("/admin/overview"));
-  return <><PageHeader title="Admin dashboard" /><Async q={q}>{(o) => <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{[["Students", o.students], ["Premium", o.premium], ["Exam attempts", o.attempts], ["AI messages", o.ai_messages]].map(([l, v]) => <Card key={String(l)} className="!p-4"><p className="text-2xl font-bold text-primary">{v}</p><p className="text-xs text-muted">{l}</p></Card>)}</div>}</Async></>;
+  return <AdminDashboard />;
 }
 type St = { id: string; userId: string; name: string; region: string | null; grade: number; learningStatus: string; subscriptionStatus: string; active: boolean };
 export function LiveAdminStudents() {
@@ -42,5 +42,5 @@ const LIVE_ADMIN = ["/admin", "/admin/students", "/admin/contact", "/admin/audit
 export function AdminGate({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   if (LIVE_ADMIN.includes(path)) return <>{children}</>;
-  return <EmptyState title="This admin screen is not available in live mode yet" body="Content, question, exam, analytics and settings management are available through the Admin API for now (see the README). The student list, overview and audit log are live." action={<Button href="/admin">Back to dashboard</Button>} />;
+  return <EmptyState title="This admin screen is not available in live mode yet" body="Content, question, exam, analytics and settings management are available through the Admin API for now (see the README). The student list, contact inbox, overview and audit log are live." action={<Button href="/admin">Back to dashboard</Button>} />;
 }
