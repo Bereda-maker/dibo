@@ -221,7 +221,7 @@ export function DiboraHero() {
             style={{ pointerEvents: actionsVisible ? "auto" : "none" }}
           >
             <Link
-              href="/register"
+              href="/login"
               tabIndex={actionsVisible ? undefined : -1}
               className="group inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-lg transition-[transform,background-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:bg-primary-light hover:shadow-xl active:translate-y-0 active:scale-[0.98] focus-visible:outline-white motion-reduce:transform-none motion-reduce:transition-none"
             >

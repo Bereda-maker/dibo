@@ -1,316 +1,88 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Mail, Send, ShieldCheck } from "lucide-react";
-
-import { registerSchema, loginSchema } from "@dibora/validation";
-import { Button, Card, Field, ErrorState, inputCls } from "../../components/ui";
-import { api, ApiError, fieldErrors } from "../../lib/api";
-import { useApi } from "../../lib/useApi";
+import { useEffect, useRef, useState } from "react";
+import { Send, ShieldCheck } from "lucide-react";
+import { api, ApiError } from "../../lib/api";
 import { useSession } from "../../lib/session";
-import { REGIONS, STREAMS } from "../../lib/config";
+import { useRouter } from "next/navigation";
+import { DEMO } from "../../lib/config";
 
-type AuthMethod = "email" | "telegram" | "google";
-type SocialProvider = Exclude<AuthMethod, "email">;
+type Provider = "telegram" | "google";
 type Providers = { google: { clientId: string } | null; telegram: { botUsername: string } | null };
 type GoogleApi = { accounts: { id: { initialize: (options: { client_id: string; callback: (result: { credential: string }) => void }) => void; renderButton: (element: HTMLElement, options: Record<string, unknown>) => void } } };
-type Subj = { id: string; names: Record<string, string> };
-
 let gsiLoading: Promise<void> | null = null;
 const loadGsi = () => (gsiLoading ??= new Promise<void>((resolve, reject) => {
-  const script = document.createElement("script");
-  script.src = "https://accounts.google.com/gsi/client";
-  script.async = true;
-  script.onload = () => resolve();
-  script.onerror = () => { gsiLoading = null; reject(new Error("gsi")); };
-  document.head.appendChild(script);
+  const script = document.createElement("script"); script.src = "https://accounts.google.com/gsi/client"; script.async = true;
+  script.onload = () => resolve(); script.onerror = () => { gsiLoading = null; reject(new Error("gsi")); }; document.head.appendChild(script);
 }));
 
-function MethodTabs({ value, onChange, label }: { value: AuthMethod; onChange: (method: AuthMethod) => void; label: string }) {
-  const buttonClass = (active: boolean) => `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition ${active ? "bg-surface text-primary shadow-sm" : "text-muted hover:text-text"}`;
-  return (
-    <div role="group" aria-label={label} className="mb-6 grid grid-cols-3 rounded-2xl border border-border bg-background/80 p-1.5">
-      <button type="button" aria-pressed={value === "email"} onClick={() => onChange("email")} className={buttonClass(value === "email")}>
-        <Mail className="h-4 w-4" aria-hidden /> Email
-      </button>
-      <button type="button" aria-pressed={value === "telegram"} onClick={() => onChange("telegram")} className={buttonClass(value === "telegram")}>
-        <Send className="h-4 w-4" aria-hidden /> Telegram
-      </button>
-      <button type="button" aria-pressed={value === "google"} onClick={() => onChange("google")} className={buttonClass(value === "google")}>
-        <span aria-hidden className="font-extrabold text-[#4285F4]">G</span> Google
-      </button>
-    </div>
-  );
+function ProviderTabs({ value, onChange }: { value: Provider; onChange: (provider: Provider) => void }) {
+  const base = "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold transition sm:px-5";
+  return <div role="group" aria-label="Choose a sign-in provider" className="mb-5 grid grid-cols-2 rounded-2xl border border-border bg-background/80 p-1.5">
+    <button type="button" aria-pressed={value === "google"} onClick={() => onChange("google")} className={`${base} ${value === "google" ? "bg-surface text-text shadow-sm" : "text-muted hover:text-text"}`}><span aria-hidden="true" className="font-extrabold text-[#4285F4]">G</span> Google</button>
+    <button type="button" aria-pressed={value === "telegram"} onClick={() => onChange("telegram")} className={`${base} ${value === "telegram" ? "bg-surface text-text shadow-sm" : "text-muted hover:text-text"}`}><Send className="h-4 w-4 text-[#168ac0]" aria-hidden="true" /> Telegram</button>
+  </div>;
 }
 
-export function DemoAuthMethodChoice({ children, label }: { children: ReactNode; label: string }) {
-  const [method, setMethod] = useState<AuthMethod>("email");
-  return (
-    <div className="mx-auto w-full max-w-2xl">
-      <MethodTabs value={method} onChange={setMethod} label={label} />
-      {method === "email" ? children : method === "telegram" ? (
-        <div role="status" className="rounded-3xl border border-border bg-background/70 p-5 text-sm leading-6 text-muted sm:p-6">
-          <h2 className="font-bold text-text">Telegram sign-in needs Live mode</h2>
-          <p className="mt-2">This browser-only demo has no authentication API. To sign in with @DiboraStudentBot, use Live mode and configure the Dibora API; email demo access remains available here.</p>
-        </div>
-      ) : (
-        <div role="status" className="rounded-3xl border border-border bg-background/70 p-5 text-sm leading-6 text-muted sm:p-6">
-          <h2 className="font-bold text-text">Google sign-in needs Live mode</h2>
-          <p className="mt-2">This browser-only demo has no authentication API. Use Live mode with Google sign-in configured on the Dibora API; email demo access remains available here.</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Uses the repository's existing Google Identity Services and Telegram Login Widget endpoints. */
-function SocialLogin({ provider }: { provider: SocialProvider }) {
-  const { refresh } = useSession();
-  const router = useRouter();
-  const [providers, setProviders] = useState<Providers | null>(null);
-  const [error, setError] = useState("");
-  const [providerLoadError, setProviderLoadError] = useState(false);
-  const googleHost = useRef<HTMLDivElement>(null);
-  const telegramHost = useRef<HTMLDivElement>(null);
-
-  const submit = async (path: SocialProvider, body: unknown) => {
+function SocialLogin({ provider }: { provider: Provider }) {
+  const { refresh } = useSession(); const router = useRouter(); const [providers, setProviders] = useState<Providers | null>(null);
+  const [error, setError] = useState(""); const [providerLoadError, setProviderLoadError] = useState(false);
+  const googleHost = useRef<HTMLDivElement>(null); const telegramHost = useRef<HTMLDivElement>(null);
+  const submit = async (path: Provider, body: unknown) => {
     setError("");
-    try {
-      const result = await api<{ role: string; isNew: boolean }>(`/auth/${path}`, { method: "POST", body });
-      await refresh();
-      router.push(result.isNew ? "/profile?welcome=1" : result.role === "STUDENT" ? "/dashboard" : "/admin");
-    } catch (cause) {
-      setError(cause instanceof ApiError && cause.status === 429 ? "Too many attempts. Please wait a minute." : cause instanceof ApiError ? cause.message : "Sign-in failed. Please try again.");
-    }
+    try { const result = await api<{ role: string; isNew: boolean }>(`/auth/${path}`, { method: "POST", body }); await refresh(); router.push(result.isNew ? "/profile?welcome=1" : result.role === "STUDENT" ? "/dashboard" : "/admin"); }
+    catch (cause) { setError(cause instanceof ApiError && cause.status === 429 ? "Too many attempts. Please wait a minute." : cause instanceof ApiError ? cause.message : "Sign-in failed. Please try again."); }
   };
-
   useEffect(() => {
-    let active = true;
-    api<Providers>("/auth/providers").then((value) => { if (active) { setProviders(value); setProviderLoadError(false); } }).catch(() => { if (active) { setProviders({ google: null, telegram: null }); setProviderLoadError(true); } });
+    let active = true; api<Providers>("/auth/providers").then((value) => { if (active) { setProviders(value); setProviderLoadError(false); } }).catch(() => { if (active) { setProviders({ google: null, telegram: null }); setProviderLoadError(true); } });
     return () => { active = false; };
   }, []);
-
   useEffect(() => {
-    const clientId = provider === "google" ? providers?.google?.clientId : undefined;
-    if (!clientId || !googleHost.current) return;
-    let cancelled = false;
-    const element = googleHost.current;
-    loadGsi().then(() => {
-      if (cancelled) return;
-      const google = (window as unknown as { google?: GoogleApi }).google;
-      if (!google) return;
+    const clientId = provider === "google" ? providers?.google?.clientId : undefined; if (!clientId || !googleHost.current) return;
+    let cancelled = false; const element = googleHost.current;
+    loadGsi().then(() => { if (cancelled) return; const google = (window as unknown as { google?: GoogleApi }).google; if (!google) return;
       google.accounts.id.initialize({ client_id: clientId, callback: (result) => void submit("google", { credential: result.credential }) });
       google.accounts.id.renderButton(element, { theme: "outline", size: "large", text: "continue_with", shape: "pill", width: Math.min(320, element.clientWidth || 320) });
     }).catch(() => setError("Google sign-in could not load. Check your connection."));
     return () => { cancelled = true; element.replaceChildren(); };
-  }, [provider, providers?.google?.clientId]); // submit intentionally uses the current component state.
-
+  }, [provider, providers?.google?.clientId]);
   useEffect(() => {
-    const bot = provider === "telegram" ? providers?.telegram?.botUsername : undefined;
-    if (!bot || !telegramHost.current) return;
-    const element = telegramHost.current;
-    const widgetWindow = window as unknown as { onDiboraTelegramAuth?: (user: unknown) => void };
-    const callback = (user: unknown) => void submit("telegram", user);
-    widgetWindow.onDiboraTelegramAuth = callback;
-    const script = document.createElement("script");
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.async = true;
-    script.setAttribute("data-telegram-login", bot);
-    script.setAttribute("data-size", "large");
-    script.setAttribute("data-radius", "20");
-    script.setAttribute("data-onauth", "onDiboraTelegramAuth(user)");
-    element.appendChild(script);
-    return () => {
-      element.replaceChildren();
-      if (widgetWindow.onDiboraTelegramAuth === callback) delete widgetWindow.onDiboraTelegramAuth;
-    };
-  }, [provider, providers?.telegram?.botUsername]); // submit intentionally uses the current component state.
+    const bot = provider === "telegram" ? providers?.telegram?.botUsername : undefined; if (!bot || !telegramHost.current) return;
+    const element = telegramHost.current; const widgetWindow = window as unknown as { onDiboraTelegramAuth?: (user: unknown) => void };
+    const callback = (user: unknown) => void submit("telegram", user); widgetWindow.onDiboraTelegramAuth = callback;
+    const script = document.createElement("script"); script.src = "https://telegram.org/js/telegram-widget.js?22"; script.async = true;
+    script.setAttribute("data-telegram-login", bot); script.setAttribute("data-size", "large"); script.setAttribute("data-radius", "20"); script.setAttribute("data-onauth", "onDiboraTelegramAuth(user)"); element.appendChild(script);
+    return () => { element.replaceChildren(); if (widgetWindow.onDiboraTelegramAuth === callback) delete widgetWindow.onDiboraTelegramAuth; };
+  }, [provider, providers?.telegram?.botUsername]);
 
-  if (provider === "telegram") {
-    if (!providers) return <p role="status" className="rounded-2xl border border-border bg-background/70 p-4 text-sm text-muted">Connecting to Telegram…</p>;
-    if (providerLoadError) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Dibora couldn’t reach Telegram sign-in right now. Please try again later or continue with email.</div>;
-    if (!providers.telegram) return <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Telegram sign-in is not configured yet. You can continue with email for now.</div>;
-    return (
-      <div className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
-        <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#229ED9]/10 text-[#168ac0]"><Send className="h-5 w-5" aria-hidden /></div>
-        <h2 className="font-bold text-text">Continue with Telegram</h2>
-        <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Sign in securely with @{providers.telegram.botUsername}. New students can create an account here, then complete their Dibora profile.</p>
-        <div ref={telegramHost} className="mt-5 flex min-h-12 items-center justify-center" />
-        {error && <p role="alert" className="mt-3 text-sm text-error">{error}</p>}
-        <p className="mt-3 flex items-center justify-center gap-2 text-xs text-muted"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden />Telegram verification is checked by Dibora’s API.</p>
-      </div>
-    );
-  }
-
-  if (!providers) return <p role="status" className="rounded-2xl border border-border bg-background/70 p-4 text-center text-sm text-muted">Connecting to Google…</p>;
-  if (providerLoadError) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Dibora couldn’t reach Google sign-in right now. Please try again later or choose Email.</div>;
-  if (!providers.google) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Google sign-in is not configured on the Dibora API yet. You can choose Email instead.</div>;
-  return (
-    <div className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
-      <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#4285F4]/10 text-xl font-extrabold text-[#4285F4]">G</div>
-      <h2 className="font-bold text-text">Continue with Google</h2>
-      <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Use your Google account to sign in or create your Dibora student account.</p>
-      <div ref={googleHost} className="mt-5 flex min-h-[44px] w-full justify-center" />
-      {error && <p role="alert" className="mt-3 text-center text-sm text-error">{error}</p>}
-    </div>
-  );
+  const providerName = provider === "google" ? "Google" : "Telegram";
+  if (!providers) return <p role="status" className="rounded-2xl border border-border bg-background/70 p-4 text-sm text-muted">Connecting to {providerName}…</p>;
+  if (providerLoadError) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Dibora could not reach {providerName} sign-in. Please try the other sign-in option or come back later.</div>;
+  if (provider === "telegram" && !providers.telegram) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Telegram sign-in is not configured yet. Please choose Google or try again later.</div>;
+  if (provider === "google" && !providers.google) return <div role="status" className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm leading-6 text-text">Google sign-in is not configured yet. Please choose Telegram or try again later.</div>;
+  return provider === "telegram" ? <div className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
+    <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#229ED9]/10 text-[#168ac0]"><Send className="h-5 w-5" aria-hidden="true" /></div><h2 className="font-bold text-text">Continue with Telegram</h2>
+    <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Sign in securely with @{providers.telegram!.botUsername}. New students can create an account here, then complete their Dibora profile.</p>
+    <div ref={telegramHost} className="mt-5 flex min-h-12 items-center justify-center" />{error && <p role="alert" className="mt-3 text-sm text-error">{error}</p>}
+    <p className="mt-3 flex items-center justify-center gap-2 text-xs text-muted"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />Telegram verification is checked by Dibora’s API.</p>
+  </div> : <div className="rounded-3xl border border-border bg-background/70 p-5 text-center sm:p-6">
+    <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#4285F4]/10 text-xl font-extrabold text-[#4285F4]">G</div><h2 className="font-bold text-text">Continue with Google</h2>
+    <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Use your Google account to sign in or create your Dibora student account.</p>
+    <div ref={googleHost} className="mt-5 flex min-h-[44px] w-full justify-center" />{error && <p role="alert" className="mt-3 text-center text-sm text-error">{error}</p>}
+  </div>;
 }
 
-export function LiveLogin() {
-  const { refresh } = useSession();
-  const router = useRouter();
-  const [method, setMethod] = useState<AuthMethod>("email");
-  const [error, setError] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("method");
-    if (requested === "telegram" || requested === "google") setMethod(requested);
-  }, []);
-
-  return (
-    <div className="mx-auto w-full max-w-xl">
-      <div className="mb-7">
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Your learning space</p>
-        <h1 className="text-3xl font-extrabold tracking-tight text-text sm:text-4xl">Welcome back.</h1>
-        <p className="mt-2 text-sm leading-6 text-muted">Choose Email, Telegram, or Google and pick up where you left off.</p>
-      </div>
-      <MethodTabs value={method} onChange={(value) => { setMethod(value); setError({}); }} label="Choose how to sign in" />
-
-      {method === "email" ? (
-        <>
-          <Card>
-            <form noValidate className="space-y-4" onSubmit={async (event) => {
-              event.preventDefault();
-              const form = new FormData(event.currentTarget);
-              const result = loginSchema.safeParse({ email: form.get("email"), password: form.get("password") });
-              if (!result.success) {
-                const fields = result.error.flatten().fieldErrors;
-                setError({ email: fields.email?.[0] ? "Enter a valid email address" : "", password: fields.password?.[0] ? "Enter your password" : "" });
-                return;
-              }
-              setError({});
-              setBusy(true);
-              try {
-                const response = await api<{ role: string }>("/auth/login", { method: "POST", body: result.data });
-                await refresh();
-                router.push(response.role === "STUDENT" ? "/dashboard" : "/admin");
-              } catch (cause) {
-                setError({ form: cause instanceof ApiError && cause.status === 429 ? "Too many attempts. Please wait a minute." : cause instanceof ApiError ? cause.message : "Login failed" });
-              } finally {
-                setBusy(false);
-              }
-            }}>
-              <Field label="Email" error={error.email}>{(id, attributes) => <input id={id} name="email" type="email" autoComplete="email" placeholder="you@example.com" className={inputCls} {...attributes} />}</Field>
-              <Field label="Password" error={error.password}>{(id, attributes) => <input id={id} name="password" type="password" autoComplete="current-password" placeholder="Your password" className={inputCls} {...attributes} />}</Field>
-              {error.form && <p role="alert" className="rounded-xl bg-error/10 px-3 py-2.5 text-sm text-error">{error.form}</p>}
-              <div className="flex justify-end"><Link href="/forgot-password" className="text-sm font-semibold text-primary underline-offset-4 hover:underline">Forgot password?</Link></div>
-              <Button type="submit" loading={busy} className="group w-full rounded-xl py-3">Log in <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></Button>
-            </form>
-          </Card>
-          <p className="mt-5 text-center text-sm text-muted">New to Dibora? <Link href="/register" className="font-semibold text-primary underline-offset-4 hover:underline">Create an account</Link></p>
-        </>
-      ) : (
-        <div className="space-y-5">
-          <SocialLogin provider={method} />
-          <p className="text-center text-sm text-muted">New to Dibora? {method === "google" ? "Google" : "Telegram"} can create your account; you’ll complete your student profile next.</p>
-        </div>
-      )}
+export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
+  const [provider, setProvider] = useState<Provider>("google");
+  useEffect(() => { const requested = new URLSearchParams(window.location.search).get("method"); if (requested === "telegram" || requested === "google") setProvider(requested); }, []);
+  const isRegister = mode === "register";
+  return <div className="mx-auto w-full max-w-xl">
+    <div className="mb-7"><p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">{isRegister ? "Your study space starts here" : "Your learning space"}</p>
+      <h1 className="text-3xl font-extrabold tracking-tight text-text sm:text-4xl">{isRegister ? "Create your Dibora account." : "Welcome back."}</h1>
+      <p className="mt-2 text-sm leading-6 text-muted">{isRegister ? "Choose Google or Telegram. Your student account is created on your first successful sign-in." : "Choose Google or Telegram to continue learning."}</p>
     </div>
-  );
-}
-
-export function LiveRegister() {
-  const { refresh } = useSession();
-  const router = useRouter();
-  const subjectsResult = useApi(() => api<Subj[]>("/public/subjects"));
-  const [method, setMethod] = useState<AuthMethod>("email");
-  const [error, setError] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  const [consent, setConsent] = useState(false);
-
-  useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("method");
-    if (requested === "telegram" || requested === "google") setMethod(requested);
-  }, []);
-
-  if (subjectsResult.error) return <div className="mx-auto max-w-md p-6"><ErrorState message={subjectsResult.error.message} onRetry={subjectsResult.reload} /></div>;
-
-  return (
-    <div className="mx-auto w-full max-w-2xl">
-      <div className="mb-7">
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Start with a clear plan</p>
-        <h1 className="text-3xl font-extrabold tracking-tight text-text sm:text-4xl">Create your account.</h1>
-        <p className="mt-2 text-sm leading-6 text-muted">Choose Email, Telegram, or Google, then complete your learning profile.</p>
-      </div>
-      <MethodTabs value={method} onChange={(value) => { setMethod(value); setError({}); }} label="Choose how to create your account" />
-
-      {method === "email" ? (
-        <>
-          <Card>
-            <p className="mb-5 text-sm leading-6 text-muted">We collect only what we need. Your details stay private while we build your study plan.</p>
-            <form noValidate className="grid gap-4 sm:grid-cols-2" onSubmit={async (event) => {
-              event.preventDefault();
-              const form = new FormData(event.currentTarget);
-              const body = { fullName: form.get("fullname"), email: form.get("email"), phone: form.get("phone"), password: form.get("password"), confirmPassword: form.get("confirm"), educationLevel: "SECONDARY", grade: Number(form.get("grade")), school: form.get("school"), region: form.get("region"), city: form.get("city"), stream: form.get("stream"), examYear: Number(form.get("year")), subjectIds: form.getAll("subjects") };
-              const result = registerSchema.safeParse(body);
-              if (!result.success) {
-                const fields: Record<string, string> = {};
-                for (const issue of result.error.issues) fields[String(issue.path[0])] = issue.message;
-                setError(fields);
-                document.getElementById("register-errors")?.focus();
-                return;
-              }
-              if (!consent) { setError({ consent: "Please accept the privacy terms to continue" }); return; }
-              setError({});
-              setBusy(true);
-              try {
-                await api("/auth/register", { method: "POST", body: result.data });
-                await api("/auth/login", { method: "POST", body: { email: result.data.email, password: result.data.password } });
-                await refresh();
-                router.push("/profile?welcome=1");
-              } catch (cause) {
-                const fieldErrorsByName = fieldErrors(cause);
-                setError(Object.keys(fieldErrorsByName).length ? fieldErrorsByName : { form: cause instanceof ApiError ? cause.message : "Registration failed" });
-              } finally {
-                setBusy(false);
-              }
-            }}>
-              {Object.keys(error).length > 0 && <p id="register-errors" tabIndex={-1} role="alert" className="sm:col-span-2 rounded-2xl border border-error/20 bg-error/10 p-3 text-sm text-error">{error.form ?? "Please fix the highlighted fields."}</p>}
-              <Field label="Full name" error={error.fullName}>{(id, attributes) => <input id={id} name="fullname" autoComplete="name" placeholder="Your full name" className={inputCls} {...attributes} />}</Field>
-              <Field label="Email" error={error.email}>{(id, attributes) => <input id={id} name="email" type="email" autoComplete="email" placeholder="you@example.com" className={inputCls} {...attributes} />}</Field>
-              <Field label="Phone number" error={error.phone} hint="e.g. 0911 223 344">{(id, attributes) => <input id={id} name="phone" type="tel" autoComplete="tel" className={inputCls} {...attributes} />}</Field>
-              <Field label="School" error={error.school}>{(id, attributes) => <input id={id} name="school" className={inputCls} {...attributes} />}</Field>
-              <Field label="Region" error={error.region}>{(id, attributes) => <select id={id} name="region" defaultValue="" className={inputCls} {...attributes}><option value="" disabled>Select region</option>{REGIONS.map((region) => <option key={region}>{region}</option>)}</select>}</Field>
-              <Field label="City" error={error.city}>{(id, attributes) => <input id={id} name="city" className={inputCls} {...attributes} />}</Field>
-              <Field label="Grade" error={error.grade}>{(id, attributes) => <select id={id} name="grade" defaultValue="12" className={inputCls} {...attributes}><option value="12">Grade 12</option></select>}</Field>
-              <Field label="Educational stream" error={error.stream}>{(id, attributes) => <select id={id} name="stream" defaultValue="" className={inputCls} {...attributes}><option value="" disabled>Select stream</option>{STREAMS.map((stream) => <option key={stream}>{stream}</option>)}</select>}</Field>
-              <Field label="Exam year" error={error.examYear}>{(id, attributes) => <input id={id} name="year" type="number" defaultValue={2027} className={inputCls} {...attributes} />}</Field>
-              <div className="hidden sm:block" />
-              <Field label="Password" error={error.password} hint="At least 10 characters with a letter and a number">{(id, attributes) => <input id={id} name="password" type="password" autoComplete="new-password" className={inputCls} {...attributes} />}</Field>
-              <Field label="Confirm password" error={error.confirmPassword}>{(id, attributes) => <input id={id} name="confirm" type="password" autoComplete="new-password" className={inputCls} {...attributes} />}</Field>
-              <fieldset className="sm:col-span-2">
-                <legend className="mb-1 text-sm font-medium">Subjects</legend>
-                <div className="flex flex-wrap gap-2">{(subjectsResult.data ?? []).map((subject) => <label key={subject.id} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-border px-3 text-sm"><input type="checkbox" name="subjects" value={subject.id} defaultChecked />{subject.names.en}</label>)}{subjectsResult.loading && <span className="text-sm text-muted">Loading subjects…</span>}</div>
-                {error.subjectIds && <p className="mt-1 text-xs text-error">{error.subjectIds}</p>}
-              </fieldset>
-              <div className="sm:col-span-2">
-                <label className="flex items-start gap-2 text-sm leading-6"><input type="checkbox" className="mt-1 shrink-0" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span className="min-w-0">I agree to the <Link href="/privacy" className="underline">privacy terms</Link>. If I am under 18, a parent or guardian is aware I am using Dibora.</span></label>
-                {error.consent && <p className="mt-1 text-xs text-error">{error.consent}</p>}
-              </div>
-              <Button type="submit" loading={busy} className="sm:col-span-2">Create account</Button>
-            </form>
-          </Card>
-          <p className="mt-5 text-center text-sm text-muted">Already registered? <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">Log in</Link></p>
-        </>
-      ) : (
-        <div className="space-y-5">
-          <SocialLogin provider={method} />
-          <p className="text-center text-sm text-muted">Already have an account? <Link href={`/login?method=${method}`} className="font-semibold text-primary underline-offset-4 hover:underline">Continue with {method === "google" ? "Google" : "Telegram"}</Link></p>
-        </div>
-      )}
-    </div>
-  );
+    <ProviderTabs value={provider} onChange={setProvider} />
+    {DEMO ? <div role="status" className="rounded-3xl border border-border bg-background/70 p-5 text-sm leading-6 text-muted sm:p-6"><h2 className="font-bold text-text">Provider sign-in is not active in demo mode</h2><p className="mt-2">Google and Telegram sign-in are available when the live Dibora API is configured. Email and password sign-in are not offered.</p></div> : <SocialLogin provider={provider} />}
+    <p className="mt-5 text-center text-xs leading-5 text-muted">New to Dibora? Your account is created automatically when you first continue with Google or Telegram. You can complete your student profile next.</p>
+  </div>;
 }

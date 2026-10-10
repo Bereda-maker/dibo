@@ -10,7 +10,7 @@ export function ThemeToggle() {
 }
 export function LocaleSwitch() {
   const { state, update } = useStore();
-  return <select aria-label="Language" value={state.settings.locale} onChange={(e) => update((s) => ({ ...s, settings: { ...s.settings, locale: e.target.value as "en" | "am" | "om" } }))} className="rounded-xl border border-border bg-surface px-2 py-2 text-sm min-h-[44px]">
+  return <select aria-label="Language" value={state.settings.locale} onChange={(e) => update((s) => ({ ...s, settings: { ...s.settings, locale: e.target.value as "en" | "am" | "om" } }))} className="min-h-[44px] w-[116px] shrink-0 rounded-xl border border-border bg-surface px-2 py-2 text-sm shadow-sm sm:w-auto">
     <option value="en">English</option><option value="am">አማርኛ</option><option value="om">Afaan Oromoo</option></select>;
 }
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Dibora";

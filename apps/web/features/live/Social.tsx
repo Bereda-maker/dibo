@@ -9,6 +9,7 @@ import { useApi } from "../../lib/useApi";
 import { useSession } from "../../lib/session";
 import { REGIONS } from "../../lib/config";
 import { Async, diffTone } from "./shared";
+import { MarketingPageHeader } from "../../components/MarketingPageHeader";
 
 type Bm = { type: "NOTE" | "QUESTION" | "TOPIC"; id: string; title: string; topicId?: string };
 export function LiveBookmarks() {
@@ -99,10 +100,10 @@ type Plan = { code: string; interval: string; names: Record<string, string>; pri
 const feat = (e: Record<string, number | boolean>) => [e.questionsPerDay && (Number(e.questionsPerDay) > 1000 ? "Unlimited practice questions" : `${e.questionsPerDay} practice questions a day`), e.fullQuestionBank && "Full question bank", e.mockExams && "Full mock exams", e.advancedAnalytics && "Advanced analytics", e.personalizedRecommendations && "Personalized recommendations", e.aiMessagesPerDay && `${e.aiMessagesPerDay} AI messages a day`].filter(Boolean) as string[];
 export function LivePricing() {
   const { role, profile } = useSession(); const router = useRouter(); const toast = useToast(); const q = useApi(() => api<Plan[]>("/subscriptions/plans")); const [busy, setBusy] = useState("");
-  const buy = async (code: string) => { if (role !== "STUDENT") return router.push("/register"); setBusy(code); try { const r = await api<{ reference: string }>("/subscriptions/checkout", { method: "POST", body: { planCode: code } }); router.push(`/payment/return?ref=${encodeURIComponent(r.reference)}`); } catch (e) { toast(e instanceof ApiError ? e.message : "Payment is unavailable right now", "error"); setBusy(""); } };
-  return <div className="mx-auto max-w-6xl px-4 py-12"><h1 className="text-3xl font-bold">Pricing</h1><p className="mt-2 text-muted">Start free. Upgrade when you are ready for the full question bank and mock exams.</p>
+  const buy = async (code: string) => { if (role !== "STUDENT") return router.push("/login"); setBusy(code); try { const r = await api<{ reference: string }>("/subscriptions/checkout", { method: "POST", body: { planCode: code } }); router.push(`/payment/return?ref=${encodeURIComponent(r.reference)}`); } catch (e) { toast(e instanceof ApiError ? e.message : "Payment is unavailable right now", "error"); setBusy(""); } };
+  return <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12"><MarketingPageHeader eyebrow="Plans that grow with you" title="Start free. Upgrade when you are ready." description="Build a steady study routine with the Free plan, then explore more practice and exam tools whenever you need them. Available plan details appear below." />
     <div className="mt-8"><Async q={q} rows={2}>{(plans) => <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{plans.map((p) => <Card key={p.code}><h2 className="font-bold">{p.names.en}</h2><p className="mt-3 text-3xl font-extrabold text-primary">{p.priceMinor === 0 ? "Free" : `${p.currency} ${(p.priceMinor / 100).toLocaleString("en-US")}`}</p><ul className="mt-4 space-y-2 text-sm">{feat(p.entitlements).map((x) => <li key={x} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-success" aria-hidden />{x}</li>)}</ul>
-      <Button className="mt-5 w-full" variant={p.priceMinor ? "primary" : "secondary"} loading={busy === p.code} disabled={profile?.subscriptionStatus === "PREMIUM" && p.priceMinor > 0} onClick={() => p.priceMinor ? buy(p.code) : router.push(role === "STUDENT" ? "/dashboard" : "/register")}>{p.priceMinor ? (profile?.subscriptionStatus === "PREMIUM" ? "Current plan" : "Upgrade") : "Start free"}</Button></Card>)}</div>}</Async></div></div>;
+      <Button className="mt-5 w-full" variant={p.priceMinor ? "primary" : "secondary"} loading={busy === p.code} disabled={profile?.subscriptionStatus === "PREMIUM" && p.priceMinor > 0} onClick={() => p.priceMinor ? buy(p.code) : router.push(role === "STUDENT" ? "/dashboard" : "/login")}>{p.priceMinor ? (profile?.subscriptionStatus === "PREMIUM" ? "Current plan" : "Upgrade") : "Start free"}</Button></Card>)}</div>}</Async></div></div>;
 }
 type PayStatus = { reference: string; status: string; amountMinor: number; currency: string; paymentMethod: string | null };
 type PayInfo = { methods: string[]; accounts: { method: string; accountName: string; accountNumber: string }[] };
