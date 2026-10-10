@@ -72,21 +72,22 @@ export class AdminService {
     periodStart.setUTCHours(0, 0, 0, 0);
     periodStart.setUTCDate(periodStart.getUTCDate() - daysBack);
     const periodStartDate = periodStart.toISOString().slice(0, 10);
+    const periodStartTimestamp = periodStart.toISOString();
     const [rawSummary] = rowsOf<Record<string, number>>(await this.db.execute(sql`
       SELECT
         (SELECT COUNT(*) FROM users u WHERE u.role = 'STUDENT' AND u.deleted_at IS NULL)::int AS students,
         (SELECT COUNT(DISTINCT ss.student_id) FROM study_sessions ss
           JOIN student_profiles sp ON sp.id = ss.student_id JOIN users u ON u.id = sp.user_id
           WHERE ss.day >= (${periodStartDate}::date) AND sp.deleted_at IS NULL AND u.deleted_at IS NULL AND u.is_active)::int AS active_learners,
-        (SELECT COUNT(*) FROM users u WHERE u.role = 'STUDENT' AND u.deleted_at IS NULL AND u.created_at >= ${periodStart})::int AS new_students,
+        (SELECT COUNT(*) FROM users u WHERE u.role = 'STUDENT' AND u.deleted_at IS NULL AND u.created_at >= (${periodStartTimestamp}::timestamptz))::int AS new_students,
         (SELECT COUNT(*) FROM student_profiles sp JOIN users u ON u.id = sp.user_id
           WHERE sp.subscription_status = 'PREMIUM' AND sp.deleted_at IS NULL AND u.deleted_at IS NULL AND u.role = 'STUDENT')::int AS premium,
         (SELECT COUNT(*) FROM exam_attempts ea JOIN student_profiles sp ON sp.id = ea.student_id JOIN users u ON u.id = sp.user_id
-          WHERE ea.started_at >= ${periodStart} AND sp.deleted_at IS NULL AND u.deleted_at IS NULL)::int AS exam_attempts,
+          WHERE ea.started_at >= (${periodStartTimestamp}::timestamptz) AND sp.deleted_at IS NULL AND u.deleted_at IS NULL)::int AS exam_attempts,
         (SELECT COUNT(*) FROM student_answers sa JOIN student_profiles sp ON sp.id = sa.student_id JOIN users u ON u.id = sp.user_id
-          WHERE sa.answered_at >= ${periodStart} AND sp.deleted_at IS NULL AND u.deleted_at IS NULL)::int AS answers,
+          WHERE sa.answered_at >= (${periodStartTimestamp}::timestamptz) AND sp.deleted_at IS NULL AND u.deleted_at IS NULL)::int AS answers,
         (SELECT COUNT(*) FROM ai_messages m JOIN ai_conversations c ON c.id = m.conversation_id JOIN users u ON u.id = c.user_id
-          WHERE m.role = 'user' AND m.created_at >= ${periodStart} AND u.role = 'STUDENT' AND u.deleted_at IS NULL AND c.deleted_at IS NULL)::int AS ai_requests,
+          WHERE m.role = 'user' AND m.created_at >= (${periodStartTimestamp}::timestamptz) AND u.role = 'STUDENT' AND u.deleted_at IS NULL AND c.deleted_at IS NULL)::int AS ai_requests,
         (SELECT COUNT(*) FROM contact_messages WHERE status <> 'RESOLVED')::int AS unresolved_contacts,
         (SELECT COUNT(*) FROM contact_messages WHERE status = 'NEW')::int AS new_contacts,
         (SELECT COUNT(*) FROM users u WHERE u.role = 'STUDENT' AND u.deleted_at IS NULL AND NOT u.is_active)::int AS suspended_students,
@@ -100,7 +101,7 @@ export class AdminService {
       ),
       signups AS (
         SELECT u.created_at::date AS day, COUNT(*)::int AS value FROM users u
-        WHERE u.role = 'STUDENT' AND u.deleted_at IS NULL AND u.created_at >= ${periodStart} GROUP BY 1
+        WHERE u.role = 'STUDENT' AND u.deleted_at IS NULL AND u.created_at >= (${periodStartTimestamp}::timestamptz) GROUP BY 1
       ),
       learners AS (
         SELECT ss.day, COUNT(DISTINCT ss.student_id)::int AS value FROM study_sessions ss
@@ -110,12 +111,12 @@ export class AdminService {
       attempts AS (
         SELECT ea.started_at::date AS day, COUNT(*)::int AS value FROM exam_attempts ea
         JOIN student_profiles sp ON sp.id = ea.student_id JOIN users u ON u.id = sp.user_id
-        WHERE ea.started_at >= ${periodStart} AND sp.deleted_at IS NULL AND u.deleted_at IS NULL GROUP BY 1
+        WHERE ea.started_at >= (${periodStartTimestamp}::timestamptz) AND sp.deleted_at IS NULL AND u.deleted_at IS NULL GROUP BY 1
       ),
       answers AS (
         SELECT sa.answered_at::date AS day, COUNT(*)::int AS value FROM student_answers sa
         JOIN student_profiles sp ON sp.id = sa.student_id JOIN users u ON u.id = sp.user_id
-        WHERE sa.answered_at >= ${periodStart} AND sp.deleted_at IS NULL AND u.deleted_at IS NULL GROUP BY 1
+        WHERE sa.answered_at >= (${periodStartTimestamp}::timestamptz) AND sp.deleted_at IS NULL AND u.deleted_at IS NULL GROUP BY 1
       )
       SELECT TO_CHAR(d.day, 'YYYY-MM-DD') AS date, TO_CHAR(d.day, 'Mon DD') AS label,
         COALESCE(s.value, 0)::int AS new_students, COALESCE(l.value, 0)::int AS active_learners,
@@ -136,7 +137,7 @@ export class AdminService {
       SELECT COALESCE(s.names ->> 'en', s.slug) AS subject, COUNT(*)::int AS answers
       FROM student_answers sa JOIN questions q ON q.id = sa.question_id JOIN subjects s ON s.id = q.subject_id
       JOIN student_profiles sp ON sp.id = sa.student_id JOIN users u ON u.id = sp.user_id
-      WHERE sa.answered_at >= ${periodStart} AND sp.deleted_at IS NULL AND u.deleted_at IS NULL
+      WHERE sa.answered_at >= (${periodStartTimestamp}::timestamptz) AND sp.deleted_at IS NULL AND u.deleted_at IS NULL
       GROUP BY s.id, s.names, s.slug ORDER BY COUNT(*) DESC, subject LIMIT 5
     `)).map((row) => ({ subject: String(row.subject), answers: Number(row.answers) }));
 
