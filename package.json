@@ -6,7 +6,13 @@
     "dev:api": "bun --cwd apps/api run dev",
     "dev:web": "bun --cwd apps/web run dev",
     "test": "bun test",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report",
     "db:generate": "bun --cwd packages/database run generate",
     "db:migrate": "bun --cwd packages/database run migrate"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^22"
   }
 }

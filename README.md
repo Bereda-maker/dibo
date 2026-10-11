@@ -3,7 +3,7 @@
 The product name is configurable via `APP_NAME` / `NEXT_PUBLIC_APP_NAME`.
 
 ## Status
-The web UI is complete in demo mode; the backend is a foundation. See "Demo mode vs real mode".
+The web app supports both a browser-local demo mode and a live API-backed mode. Student workflows and the core admin console use the backend in live mode; see "Demo mode vs real mode" and the current verification limitations below.
 
 ## Architecture
 - `apps/api` — Bun + Hono REST API. Layers: routes → services → `@dibora/database`. Business logic lives in services; route files only validate and delegate.
@@ -39,10 +39,10 @@ See `.env.example`. API: `DATABASE_URL`, `SESSION_SECRET`, `WEB_ORIGIN`, `AI_PRO
 ## What exists
 - **API foundation**: full Drizzle schema, Hono app (request IDs, security headers, CORS/CSRF origin check, central errors, rate limiting), auth (register/login/logout, argon2id, hashed sessions), AI service (guard, retrieval-first prompt, redaction), payment abstraction with Verify.et and verified webhooks.
 - **`packages/core`**: pure business logic shared by API and web: exam scoring + timer rule, recommendations, readiness score, entitlements. 30 passing tests (`bun test`).
-- **Web app (complete UI, demo mode)**: every page in the spec.
+- **Web app**: routes support live mode or browser-local demo mode as documented below.
   - Public: home, features, how-it-works, pricing (prices come from admin settings), FAQ, about, contact, privacy, and provider-based student sign-in. Live contact submissions are stored in the admin contact inbox; replies use the sender's email. Legacy `/register`, forgot-password and reset-password URLs redirect to `/login`.
   - Student: dashboard, profile (edit, data export, delete), diagnostic, notes (read, search, bookmark, complete, review later), practice (topic, weak area, previously wrong, random), exams with autosave/recovery/timer/auto-submit/confirm, results, review, AI assistant (conversations), progress charts, bookmarks, "Questions I got wrong", global search, notifications, achievements, optional leaderboard.
-  - Admin: dashboard, live Diagnostic Builder with question-bank selection, topic coverage checks, recommendation scenarios and draft/publish controls; students (search, suspend, delete, audit), contact inbox (read/resolved status), plus demo-only subject/topic/note management, general question/exam management, AI, subscriptions/payments, notifications, analytics, audit log and pricing settings.
+  - Admin: live dashboard, Diagnostic Builder, student management, contact inbox, audit log, curriculum subject/topic/material creation and status, question bank creation and publishing, exam builder and results, learning analytics, plan pricing, in-app notification broadcasts/history, subscription/payment review, and AI configuration/privacy guidance. Verify the relevant route and role before relying on a particular action; not every module provides full edit/version-history workflows.
   - Responsive (bottom nav on phones, tables become cards), light/dark, English/Amharic/Afaan Oromo for navigation and key strings, accessible forms/modals.
 
 ## Live mode vs demo mode
@@ -53,14 +53,14 @@ The web app has two modes, chosen at build time by `NEXT_PUBLIC_DEMO_MODE`:
 Live mode proxies browser API requests through the web origin in production. Set `NEXT_PUBLIC_API_URL` on the web deployment to the API origin without `/api`; Next forwards `/api/*` server-side, making the HttpOnly session cookie first-party for Safari, Telegram’s in-app browser, and desktop browsers. Set `WEB_ORIGIN` on the API to the exact public web origin, including scheme and no trailing slash. Direct API access remains protected by CORS and credentials checks.
 
 ### Verification so far
-- 140 automated tests (unit, PostgreSQL integration, and HTTP end-to-end through the real Hono app), plus type checks for API and web, and a production web build.
+- 151 Bun unit/integration/API tests passed in the latest local run; 15 Chromium Playwright smoke tests passed against the web app in demo mode, including 11 emulated viewport widths; API/web and Playwright TypeScript checks passed; production web build passed.
 - The real API entry point (`config` validation, postgres-js driver, `migrate`, `seed`) was run against a PostgreSQL wire-protocol server and exercised over HTTP: register, login, practice, progress, admin, and student-blocked-from-admin, with no server errors.
-- **Not yet verified**: a real managed PostgreSQL server, the Docker images (no Docker daemon was available), the live web UI in a browser against the live API, real Verify.et calls and webhook delivery, and a live OpenAI call (the Render API key has not been configured yet).
+- **Not yet verified**: physical iOS/Android/Windows/macOS devices, Firefox/WebKit in this QA run, the live web UI in a browser against a staging API, managed PostgreSQL, Docker images, real Verify.et calls and webhook delivery, and a live OpenAI call. The Playwright suite uses demo mode and does not prove live sign-in, database persistence, or external provider behavior.
 
 ### Launch checklist (not done yet)
 1. **Browser test the live web app against a staging API** (the screens were type-checked and built, but not clicked through). Fix whatever that finds.
-2. Admin screens still demo-only (not available in live mode): subjects/topics/notes management, general question editor, exam builder, analytics, settings and pricing editor. The live Diagnostic Builder composes an assessment from published questions, can author simple question drafts, previews shared recommendation scenarios, and requires at least five published questions per included topic before publishing. Broader curriculum and exam administration remain API-only or demo-only.
-3. Missing API: admin CRUD for subjects/topics/notes/exams, analytics queries, global notification broadcast.
+2. Complete an authorized staging browser pass for live student/admin workflows. Current admin authoring supports core create/status operations, but comprehensive content editing/revision history and question-file import are not provided by the current console.
+3. Telegram bot commands, deep-link account linking/unlinking, Telegram Mini App authentication, email delivery/password reset, and detailed AI operational metrics are not implemented by this repository snapshot; do not treat them as tested features.
 4. Email delivery for verification and password reset is not connected (tokens table exists, sender does not); the old public password-reset URLs now return students to provider sign-in. Contact form messages are saved to the live admin inbox, where admins can reply using their email client.
 5. Real content: reviewed Grade 12 questions, notes and explanations (note `content` JSON shape: `explanation`, `definitions`, `concepts`, `formulas`, `examples`, `keyPoints`, `commonMistakes`, `examTips`). Amharic/Afaan Oromo text needs native review.
 6. Staging on managed PostgreSQL, load test of exam submit, backups, monitoring and alerting.

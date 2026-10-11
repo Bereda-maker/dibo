@@ -18,6 +18,7 @@ beforeAll(async () => {
   const [u] = await raw.insert(s.users).values({ email: "x@y.et", passwordHash: "h" }).returning(); user = u!.id;
   const [p] = await raw.insert(s.studentProfiles).values({ userId: user, fullName: "X", grade: 12 }).returning(); st = p!.id;
   const [sub] = await raw.insert(s.subjects).values({ grade: 12, slug: "phy", names: { en: "Physics" }, status: "PUBLISHED" }).returning();
+  await raw.update(s.studentProfiles).set({ selectedSubjectIds: [sub!.id] }).where(eq(s.studentProfiles.id, st));
   const [t] = await raw.insert(s.topics).values({ subjectId: sub!.id, slug: "mech", names: { en: "Mechanics" }, status: "PUBLISHED" }).returning(); topic = t!.id;
   await raw.insert(s.achievements).values([{ code: "FIRST_EXAM", names: { en: "First Exam" }, criteria: {}, points: 20 }]);
   for (let i = 0; i < 25; i++) {
