@@ -6,13 +6,14 @@ import { ProviderError, type PaymentProvider, type SubmitInput, type SubmitResul
 type Cfg = { apiKey: string; webhookSecret: string; baseUrl?: string; waitMs?: number; timeoutMs?: number; toleranceSec?: number; fetchImpl?: typeof fetch };
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 
-/** Tolerant parser: Verify.et may nest the result under `verification`. `verified` must be exactly `true`. */
+/** Tolerant parser: Verify.et may return a transaction in `data[0]` and status in `verification`. `verified` must be exactly `true`. */
 export function parseOutcome(body: unknown): VerificationOutcome {
-  const b = obj(body); const v = obj(b.verification); const src = Object.keys(v).length ? v : b;
-  const verified = (b.verified ?? src.verified) === true;
-  const amt = Number(src.amount ?? b.amount); const amountMinor = Number.isFinite(amt) && amt > 0 ? Math.round(amt * 100) : undefined;
-  const cur = src.currency ?? b.currency;
-  return { verified, amountMinor, currency: typeof cur === "string" ? cur.toUpperCase() : amountMinor !== undefined ? "ETB" : undefined, reason: typeof (src.reason ?? b.reason ?? b.error) === "string" ? String(src.reason ?? b.reason ?? b.error).slice(0, 200) : undefined, raw: b };
+  const b = obj(body); const rawData = b.data; const transaction = Array.isArray(rawData) ? obj(rawData[0]) : obj(rawData);
+  const v = obj(transaction.verification ?? b.verification); const src = Object.keys(transaction).length ? transaction : Object.keys(v).length ? v : b;
+  const verified = [b.verified, transaction.verified, v.verified, src.status === "success"].some((x) => x === true);
+  const amt = Number(src.amount ?? v.amount ?? b.amount); const amountMinor = Number.isFinite(amt) && amt > 0 ? Math.round(amt * 100) : undefined;
+  const cur = src.currency ?? v.currency ?? b.currency;
+  return { verified, amountMinor, currency: typeof cur === "string" ? cur.toUpperCase() : amountMinor !== undefined ? "ETB" : undefined, reason: typeof (src.reason ?? v.reason ?? b.reason ?? b.error) === "string" ? String(src.reason ?? v.reason ?? b.reason ?? b.error).slice(0, 200) : undefined, raw: b };
 }
 
 export class VerifyEtPaymentProvider implements PaymentProvider {

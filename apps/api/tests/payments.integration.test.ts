@@ -99,6 +99,10 @@ describe("Verify.et submission", () => {
     const [sub] = await raw.select().from(s.subscriptions).where(eq(s.subscriptions.id, p.subscriptionId!)); expect(sub!.status).toBe("ACTIVE"); expect(sub!.endsAt!.getTime()).toBeGreaterThan(Date.now() + 29 * 864e5);
     expect(await premium()).toBe("PREMIUM");
   });
+  test("200 documented data-array response verifies from transaction amount and status", async () => {
+    const ref = await newPayment(); respond = json(200, { requestId: "req_data", data: [{ status: "success", amount: 150, currency: "ETB" }], verification: { verified: true } });
+    expect((await submit(ref, { transactionReference: "A3A3A3A3" })).status).toBe("VERIFIED");
+  });
   test("200 with verified:false, or screenshot-only, never grants access", async () => {
     const ref = await newPayment(); respond = json(200, { verified: false, verification: { amount: 150 } });
     expect((await submit(ref, { transactionReference: "B3B3B3B3" })).status).toBe("FAILED"); expect((await row(ref)).status).toBe("FAILED");

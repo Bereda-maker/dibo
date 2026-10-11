@@ -73,7 +73,11 @@ export class PaymentService {
       log("error", "verify.et submission failed", { paymentId: p.id, kind: e.kind, status: e.status });
       if (e.kind === "INVALID_RECEIPT" || e.kind === "NOT_FOUND") { await this.repo.finalize(p.id, { status: "FAILED", result: { failure: e.kind } }); return { reference, status: "FAILED" as const }; }
       if (e.kind === "CONFLICT") return { reference, status: "VERIFYING" as const }; // same key already in flight: the webhook will finish it
-      if (isRecoverable(e.kind)) { await this.repo.release(p.id); throw new AppError(503, "VERIFICATION_UNAVAILABLE", "Verification is temporarily unavailable. Please try again in a few minutes."); }
+      if (isRecoverable(e.kind)) {
+        await this.repo.release(p.id);
+        const message = e.kind === "AUTH" ? "Payment verification is not configured correctly. Please contact Dibora support." : e.kind === "CREDITS" ? "Payment verification credits are unavailable. Please contact Dibora support." : e.kind === "RATE_LIMITED" ? "The verification service is busy. Please try again in a few minutes." : "Verification is temporarily unavailable. Please try again in a few minutes.";
+        throw new AppError(503, "VERIFICATION_UNAVAILABLE", message);
+      }
       await this.repo.release(p.id); throw new AppError(502, "VERIFICATION_UNAVAILABLE", "Verification is temporarily unavailable. Please try again.");
     }
   }
