@@ -47,7 +47,7 @@ export const studentRoutes = (d: Deps) => {
   r.get("/notes/completed", async (c) => ok(c, await d.learning.completedNotes((await who(c)).studentId)));
   r.post("/notes/:id/complete", zValidator("param", uuid), async (c) => { const w = await who(c); return ok(c, await d.learning.completeNote(w.studentId, w.userId, c.req.valid("param").id)); });
   r.get("/leaderboard", zValidator("query", z.object({ period: z.enum(["weekly", "monthly", "overall"]).default("weekly") })), async (c) => ok(c, await d.learning.leaderboard(c.req.valid("query").period)));
-  r.get("/search", zValidator("query", z.object({ q: z.string().trim().min(2).max(60), kinds: z.string().optional() })), async (c) => { const q = c.req.valid("query"); return ok(c, await d.learning.search(q.q, q.kinds?.split(","))); });
+  r.get("/search", zValidator("query", z.object({ q: z.string().trim().min(2).max(60), kinds: z.string().optional() })), async (c) => { const q = c.req.valid("query"); return ok(c, await d.learning.search((await who(c)).studentId, q.q, q.kinds?.split(","))); });
   r.get("/practice/wrong", async (c) => ok(c, await d.practice.wrong((await who(c)).studentId)));
   r.get("/students/me/export", async (c) => { const w = await who(c); return ok(c, await d.students.exportData(w.userId, w.studentId)); });
   r.delete("/students/me", async (c) => { const w = await who(c); await d.students.deleteAccount(w.userId); (c as unknown as { header: (k: string, v: string) => void }).header("Set-Cookie", "session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"); return ok(c, { deleted: true }); });

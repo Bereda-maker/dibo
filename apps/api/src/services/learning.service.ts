@@ -69,13 +69,15 @@ export class LearningService {
     return rows.map((r, i) => ({ rank: i + 1, name: r.name, points: Number(r.points) }));
   }
 
-  async search(q: string, kinds: string[] | undefined, limit = 20) {
+  async search(studentId: string, q: string, kinds: string[] | undefined, limit = 20) {
+    const [profile] = await this.db.select({ ids: studentProfiles.selectedSubjectIds }).from(studentProfiles).where(eq(studentProfiles.id, studentId)).limit(1);
+    const selected = profile?.ids ?? [];
     const want = (k: string) => !kinds?.length || kinds.includes(k); const out: { kind: string; id: string; title: string; sub?: string | null }[] = [];
-    if (want("subject")) out.push(...(await this.db.select({ id: subjects.id, n: subjects.names }).from(subjects).where(and(eq(subjects.status, "PUBLISHED"), sql`${subjects.names}::text ilike ${like(q)}`)).limit(limit)).map((r) => ({ kind: "subject", id: r.id, title: r.n.en ?? "Subject" })));
-    if (want("topic")) out.push(...(await this.db.select({ id: topics.id, n: topics.names }).from(topics).where(and(eq(topics.status, "PUBLISHED"), sql`${topics.names}::text ilike ${like(q)}`)).limit(limit)).map((r) => ({ kind: "topic", id: r.id, title: r.n.en ?? "Topic" })));
-    if (want("note")) out.push(...(await this.db.select({ id: notes.id, t: notes.title, s: notes.summary }).from(notes).innerJoin(learningMaterials, eq(learningMaterials.id, notes.materialId)).where(and(eq(learningMaterials.status, "PUBLISHED"), ilike(notes.title, like(q)))).limit(limit)).map((r) => ({ kind: "note", id: r.id, title: r.t, sub: r.s })));
-    if (want("question")) out.push(...(await this.db.select({ id: questions.id, t: questions.text }).from(questions).where(and(eq(questions.status, "PUBLISHED"), ilike(questions.text, like(q)))).limit(limit)).map((r) => ({ kind: "question", id: r.id, title: r.t })));
-    if (want("exam")) out.push(...(await this.db.select({ id: exams.id, t: exams.title, d: exams.description }).from(exams).where(and(eq(exams.status, "PUBLISHED"), ilike(exams.title, like(q)))).limit(limit)).map((r) => ({ kind: "exam", id: r.id, title: r.t, sub: r.d })));
+    if (want("subject")) out.push(...(await this.db.select({ id: subjects.id, n: subjects.names }).from(subjects).where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.id, selected), sql`cast(${subjects.names} as text) ilike ${like(q)}`)).limit(limit)).map((r) => ({ kind: "subject", id: r.id, title: r.n.en ?? "Subject" })));
+    if (want("topic")) out.push(...(await this.db.select({ id: topics.id, n: topics.names }).from(topics).innerJoin(subjects, eq(subjects.id, topics.subjectId)).where(and(eq(topics.status, "PUBLISHED"), inArray(topics.subjectId, selected), sql`cast(${topics.names} as text) ilike ${like(q)}`)).limit(limit)).map((r) => ({ kind: "topic", id: r.id, title: r.n.en ?? "Topic" })));
+    if (want("note")) out.push(...(await this.db.select({ id: notes.id, t: notes.title, s: notes.summary }).from(notes).innerJoin(learningMaterials, eq(learningMaterials.id, notes.materialId)).innerJoin(topics, eq(topics.id, learningMaterials.topicId)).where(and(eq(learningMaterials.status, "PUBLISHED"), inArray(topics.subjectId, selected), ilike(notes.title, like(q)))).limit(limit)).map((r) => ({ kind: "note", id: r.id, title: r.t, sub: r.s })));
+    if (want("question")) out.push(...(await this.db.select({ id: questions.id, t: questions.text }).from(questions).where(and(eq(questions.status, "PUBLISHED"), inArray(questions.subjectId, selected), ilike(questions.text, like(q)))).limit(limit)).map((r) => ({ kind: "question", id: r.id, title: r.t })));
+    if (want("exam")) out.push(...(await this.db.select({ id: exams.id, t: exams.title, d: exams.description }).from(exams).where(and(eq(exams.status, "PUBLISHED"), inArray(exams.subjectId, selected), ilike(exams.title, like(q)))).limit(limit)).map((r) => ({ kind: "exam", id: r.id, title: r.t, sub: r.d })));
     return out.slice(0, limit * 2);
   }
 }
