@@ -20,6 +20,7 @@ function ProgressBar() {
   const route = `${pathname}?${searchParams.toString()}`;
   const previousRoute = useRef<string | null>(null);
   const active = useRef(false);
+  const pending = useRef(0);
   const interval = useRef<ReturnType<typeof setInterval> | null>(null);
   const hideTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [visible, setVisible] = useState(false);
@@ -54,6 +55,9 @@ function ProgressBar() {
     }, 240);
   }, [clearTimers]);
 
+  const requestStart = useCallback(() => { pending.current += 1; start(); }, [start]);
+  const requestFinish = useCallback(() => { pending.current = Math.max(0, pending.current - 1); if (pending.current === 0) finish(); }, [finish]);
+
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -75,20 +79,20 @@ function ProgressBar() {
     return () => {
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", onPopState);
-      window.removeEventListener(START_EVENT, start);
-      window.removeEventListener(FINISH_EVENT, finish);
+      window.removeEventListener(START_EVENT, requestStart);
+      window.removeEventListener(FINISH_EVENT, requestFinish);
       clearTimers();
     };
-  }, [clearTimers, finish, start]);
+  }, [clearTimers, requestFinish, requestStart]);
 
   useEffect(() => {
     if (previousRoute.current === null) {
       previousRoute.current = route;
       return;
     }
-    if (previousRoute.current !== route) finish();
+    if (previousRoute.current !== route) requestFinish();
     previousRoute.current = route;
-  }, [finish, route]);
+  }, [requestFinish, route]);
 
   return (
     <div
