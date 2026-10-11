@@ -3,7 +3,7 @@ import { payments, paymentWebhookEvents, subscriptions, subscriptionPlans, stude
 import type { ManualReview, PaymentRepo, PaymentRow } from "../services/payments/payment.service";
 
 const DAYS: Record<string, number> = { MONTHLY: 30, QUARTERLY: 90, ANNUAL: 365 };
-type PaymentMeta = { attempt?: number; manualReviewStatus?: string; manualReviewReason?: string; manualReviewSubmittedAt?: string };
+type PaymentMeta = { attempt?: number; manualReviewStatus?: string; manualReviewReason?: string; manualReviewSubmittedAt?: string; receiptData?: { base64: string; mime: string } };
 const meta = (v: unknown): PaymentMeta => (v && typeof v === "object" && !Array.isArray(v) ? v as PaymentMeta : {});
 const toRow = (p: typeof payments.$inferSelect): PaymentRow => ({ id: p.id, userId: p.userId, subscriptionId: p.subscriptionId, amountMinor: p.amountMinor, currency: p.currency, status: p.status, attempt: Number(meta(p.metadata).attempt ?? 1), verifyRequestId: p.verifyRequestId, manualReviewStatus: meta(p.metadata).manualReviewStatus ?? null });
 const reviewWhere = sql`${payments.metadata}->>'manualReviewStatus' = 'PENDING'`;
@@ -26,6 +26,14 @@ export class DrizzlePaymentRepo implements PaymentRepo {
   }
   async setReceipt(id: string, path: string) { await this.db.update(payments).set({ receiptPath: path, updatedAt: new Date() }).where(eq(payments.id, id)); }
   async receiptPath(id: string) { const [p] = await this.db.select({ path: payments.receiptPath }).from(payments).where(eq(payments.id, id)).limit(1); return p?.path ?? null; }
+  async setReceiptData(id: string, data: { base64: string; mime: string }) {
+    const [p] = await this.db.select({ metadata: payments.metadata }).from(payments).where(eq(payments.id, id)).limit(1);
+    if (p) await this.db.update(payments).set({ metadata: { ...meta(p.metadata), receiptData: data }, updatedAt: new Date() }).where(eq(payments.id, id));
+  }
+  async receiptData(id: string) {
+    const [p] = await this.db.select({ metadata: payments.metadata }).from(payments).where(eq(payments.id, id)).limit(1);
+    const data = meta(p?.metadata).receiptData; return data?.base64 && data.mime ? data : null;
+  }
   async attachRequestId(id: string, rid: string) { await this.db.update(payments).set({ verifyRequestId: rid, updatedAt: new Date() }).where(eq(payments.id, id)); }
   async release(id: string) { await this.db.update(payments).set({ status: "PENDING", updatedAt: new Date() }).where(and(eq(payments.id, id), eq(payments.status, "VERIFYING"))); }
 

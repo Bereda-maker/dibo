@@ -24,6 +24,8 @@ export interface PaymentRepo {
   finalize(paymentId: string, r: { status: FinalStatus; result: Record<string, unknown>; eventId?: string; eventType?: string }): Promise<{ duplicate: boolean; applied: boolean; status: string }>;
   markManualReview(paymentId: string, reason: string): Promise<void>;
   receiptPath(paymentId: string): Promise<string | null>;
+  setReceiptData(paymentId: string, data: { base64: string; mime: string }): Promise<void>;
+  receiptData(paymentId: string): Promise<{ base64: string; mime: string } | null>;
   findManualReview(paymentId: string): Promise<ManualReview | null>;
   listManualReviews(): Promise<ManualReview[]>;
   resolveManualReview(paymentId: string, status: "APPROVED" | "REJECTED"): Promise<void>;
@@ -62,8 +64,14 @@ export class PaymentService {
         await this.repo.setReceipt(p.id, receiptPath);
         return true;
       } catch (e) {
-        log("error", "receipt storage failed", { paymentId: p.id, kind: e instanceof Error ? e.name : "UNKNOWN" });
-        return false;
+        try {
+          await this.repo.setReceiptData(p.id, { base64: Buffer.from(input.bytes).toString("base64"), mime: file.mime });
+          log("warn", "receipt stored in private database fallback", { paymentId: p.id, kind: e instanceof Error ? e.name : "UNKNOWN" });
+          return true;
+        } catch (fallbackError) {
+          log("error", "receipt storage failed", { paymentId: p.id, kind: fallbackError instanceof Error ? fallbackError.name : "UNKNOWN" });
+          return false;
+        }
       }
     };
     try {
@@ -109,6 +117,8 @@ export class PaymentService {
   async manualReviews() { return this.repo.listManualReviews(); }
   async manualReceipt(paymentId: string) {
     const review = await this.repo.findManualReview(paymentId); if (!review) throw Errors.notFound("Payment review");
+    const data = await this.repo.receiptData(paymentId);
+    if (data) return { bytes: new Uint8Array(Buffer.from(data.base64, "base64")), mime: data.mime };
     const path = await this.repo.receiptPath(paymentId); if (!path) throw Errors.notFound("Receipt");
     const bytes = await this.storage.get(path); if (!bytes) throw Errors.notFound("Receipt");
     const ext = path.split(".").pop(); return { bytes, mime: ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg" };
