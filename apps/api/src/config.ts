@@ -10,6 +10,8 @@ const schema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional().transform((v) => v?.trim() || undefined),
   TELEGRAM_BOT_TOKEN: z.string().optional().transform((v) => v?.trim() || undefined),
   TELEGRAM_BOT_USERNAME: z.string().optional().transform((v) => v?.trim().replace(/^@/, "") || undefined),
+  /** Comma-separated Telegram chat IDs that receive manual payment-review alerts. */
+  TELEGRAM_ADMIN_CHAT_IDS: z.string().optional().transform((v) => v?.split(",").map((id) => id.trim()).filter(Boolean) ?? []),
   COOKIE_SAMESITE: z.enum(["Lax", "None", "Strict"]).optional().or(z.literal("").transform(() => undefined)),
   RECEIPT_STORAGE_DIR: z.string().default("./data/receipts"),
   /** Public receiving accounts shown to students, e.g. [{"method":"telebirr","accountName":"Dibora","accountNumber":"09..."}] */

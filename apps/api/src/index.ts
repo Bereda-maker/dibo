@@ -8,6 +8,7 @@ import { CheckoutService } from "./services/payments/checkout.service";
 import { DrizzlePaymentRepo } from "./db/payment.repo";
 import { VerifyEtPaymentProvider } from "./services/payments/verify-et.provider";
 import { LocalReceiptStorage } from "./services/payments/receipt";
+import { ManualReviewNotifier } from "./services/manual-review-notifier";
 
 import { StudentService } from "./services/student.service";
 import { PracticeService } from "./services/practice.service";
@@ -27,7 +28,7 @@ const db = createDb(env("DATABASE_URL"));
 const verifyEt = new VerifyEtPaymentProvider({ apiKey: cfg.VERIFY_ET_API_KEY, webhookSecret: cfg.VERIFY_ET_WEBHOOK_SECRET, baseUrl: cfg.VERIFY_ET_BASE_URL });
 
 const repo = new DrizzlePaymentRepo(db);
-const payments = new PaymentService(verifyEt, repo, new LocalReceiptStorage(cfg.RECEIPT_STORAGE_DIR));
+const payments = new PaymentService(verifyEt, repo, new LocalReceiptStorage(cfg.RECEIPT_STORAGE_DIR), new ManualReviewNotifier(db, { telegramBotToken: cfg.TELEGRAM_BOT_TOKEN, telegramAdminChatIds: cfg.TELEGRAM_ADMIN_CHAT_IDS }));
 const checkout = new CheckoutService(db, verifyEt.name, cfg.PAYMENT_ACCOUNTS);
 
 const auth = new AuthService(db);

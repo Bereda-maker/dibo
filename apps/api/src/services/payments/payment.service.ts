@@ -7,6 +7,7 @@ import { AppError, Errors } from "../../utils/errors";
 export type PaymentRow = { id: string; userId: string; subscriptionId: string | null; amountMinor: number; currency: string; status: string; attempt: number; verifyRequestId: string | null; manualReviewStatus?: string | null };
 export type ManualReview = { id: string; userId: string; reference: string; amountMinor: number; currency: string; paymentMethod: string | null; transactionReference: string | null; status: string; reviewReason: string | null; submittedAt: string; studentName: string; email: string; phone: string | null };
 export type FinalStatus = "VERIFIED" | "FAILED";
+export type ManualReviewNotifier = { notify(review: ManualReview): Promise<void> };
 
 /** Persistence port: implemented with Drizzle in production, faked in tests. */
 export interface PaymentRepo {
@@ -44,7 +45,7 @@ export function decide(p: Pick<PaymentRow, "amountMinor" | "currency">, o: Verif
 const log = (level: string, msg: string, extra: Record<string, unknown>) => console.error(JSON.stringify({ level, msg, ...extra })); // never includes keys, headers or receipt bytes
 
 export class PaymentService {
-  constructor(private provider: PaymentProvider, private repo: PaymentRepo, private storage: ReceiptStorage) {}
+  constructor(private provider: PaymentProvider, private repo: PaymentRepo, private storage: ReceiptStorage, private notifier?: ManualReviewNotifier) {}
 
   /** Student submits method + reference + receipt. The browser never talks to Verify.et and never sets the price. */
   async submit(userId: string, reference: string, input: { method: string; transactionReference?: string; bytes: Uint8Array }) {
@@ -92,6 +93,10 @@ export class PaymentService {
         await this.repo.release(p.id);
         if (!saved) throw new AppError(503, "MANUAL_REVIEW_UNAVAILABLE", "We could not securely save your receipt for admin review. Please try again later.");
         await this.repo.markManualReview(p.id, e.kind);
+        if (this.notifier) {
+          const review = await this.repo.findManualReview(p.id);
+          if (review) await this.notifier.notify(review).catch((notifyError) => log("error", "manual review alert failed", { paymentId: p.id, kind: notifyError instanceof Error ? notifyError.name : "UNKNOWN" }));
+        }
         return { reference, status: "MANUAL_REVIEW" as const };
       }
       await this.repo.release(p.id); throw new AppError(502, "VERIFICATION_UNAVAILABLE", "Verification is temporarily unavailable. Please try again.");
