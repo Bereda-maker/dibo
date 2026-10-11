@@ -8,6 +8,7 @@ import { api, ApiError, fieldErrors } from "../../lib/api";
 import { useApi } from "../../lib/useApi";
 import { useSession } from "../../lib/session";
 import { REGIONS } from "../../lib/config";
+import { useLocalizedName } from "../../lib/i18n";
 import { Async, diffTone } from "./shared";
 import { MarketingPageHeader } from "../../components/MarketingPageHeader";
 import { ChatMessageContent } from "../../components/ChatMessageContent";
@@ -52,8 +53,8 @@ export function LiveNotifications() {
 }
 type Ach = { code: string; names: Record<string, string>; points: number; unlockedAt: string | null };
 export function LiveAchievements() {
-  const q = useApi(() => api<Ach[]>("/achievements"));
-  return <Async q={q}>{(rows) => <><PageHeader title="Achievements" sub={`${rows.filter((r) => r.unlockedAt).length} of ${rows.length} unlocked`} /><div className="grid gap-3 sm:grid-cols-2">{rows.map((a) => <Card key={a.code} className={cx("flex items-center gap-4 !p-4", !a.unlockedAt && "opacity-60")}>{a.unlockedAt ? <Award className="text-accent" size={28} aria-hidden /> : <Lock size={28} className="text-muted" aria-hidden />}<div><p className="font-bold">{a.names.en}</p><p className="text-sm text-muted">{a.points} points</p><p className="sr-only">{a.unlockedAt ? "Unlocked" : "Locked"}</p></div></Card>)}</div></>}</Async>;
+  const q = useApi(() => api<Ach[]>("/achievements")); const name = useLocalizedName();
+  return <Async q={q}>{(rows) => <><PageHeader title="Achievements" sub={`${rows.filter((r) => r.unlockedAt).length} of ${rows.length} unlocked`} /><div className="grid gap-3 sm:grid-cols-2">{rows.map((a) => <Card key={a.code} className={cx("flex items-center gap-4 !p-4", !a.unlockedAt && "opacity-60")}>{a.unlockedAt ? <Award className="text-accent" size={28} aria-hidden /> : <Lock size={28} className="text-muted" aria-hidden />}<div><p className="font-bold">{name(a.names)}</p><p className="text-sm text-muted">{a.points} points</p><p className="sr-only">{a.unlockedAt ? "Unlocked" : "Locked"}</p></div></Card>)}</div></>}</Async>;
 }
 type Lb = { rank: number; name: string; points: number };
 export function LiveLeaderboard() {
@@ -79,7 +80,7 @@ export function LiveSearch() {
 
 type Subj = { id: string; names: Record<string, string> };
 function ProfileInner() {
-  const { profile, refresh, logout } = useSession(); const toast = useToast(); const router = useRouter(); const welcome = useSearchParams().get("welcome"); const subjects = useApi(() => api<Subj[]>("/content/subjects"));
+  const { profile, refresh, logout } = useSession(); const toast = useToast(); const router = useRouter(); const welcome = useSearchParams().get("welcome"); const subjects = useApi(() => api<Subj[]>("/content/subjects")); const name = useLocalizedName();
   const p = profile!; const [f, setF] = useState({ fullName: p.fullName, phone: p.phone ?? "", school: p.school ?? "", city: p.city ?? "", region: p.region ?? "", examYear: p.examYear ?? 2027, subjectIds: p.subjectIds }); const [err, setErr] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false); const [del, setDel] = useState(false);
   const save = async () => { setBusy(true); setErr({}); try { await api("/students/me", { method: "PATCH", body: { ...f, phone: f.phone || undefined, school: f.school || undefined, city: f.city || undefined, region: f.region || undefined } }); await refresh(); toast("Profile saved"); if (welcome) router.push("/dashboard"); } catch (e) { const fe = fieldErrors(e); setErr(Object.keys(fe).length ? fe : { form: e instanceof ApiError ? e.message : "Could not save" }); } finally { setBusy(false); } };
   return <><PageHeader title="Profile" sub="Only you can see this information." />{welcome && <Card className="mb-4 border-accent bg-accent/10"><p className="font-semibold">Welcome to Dibora! Review your details, then take your diagnostic assessment from the dashboard.</p></Card>}
@@ -91,7 +92,7 @@ function ProfileInner() {
         <Field label="City" error={err.city}>{(id, a) => <input id={id} className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} {...a} />}</Field>
         <Field label="Region">{(id) => <select id={id} className={inputCls} value={f.region} onChange={(e) => setF({ ...f, region: e.target.value })}>{REGIONS.map((r) => <option key={r}>{r}</option>)}</select>}</Field>
         <Field label="Exam year" error={err.examYear}>{(id, a) => <input id={id} type="number" className={inputCls} value={f.examYear} onChange={(e) => setF({ ...f, examYear: Number(e.target.value) })} {...a} />}</Field>
-        <fieldset className="sm:col-span-2"><legend className="mb-1 text-sm font-medium">Subjects</legend><div className="flex flex-wrap gap-2">{(subjects.data ?? []).map((s) => <label key={s.id} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-border px-3 text-sm"><input type="checkbox" checked={f.subjectIds.includes(s.id)} onChange={(e) => setF({ ...f, subjectIds: e.target.checked ? [...f.subjectIds, s.id] : f.subjectIds.filter((x) => x !== s.id) })} />{s.names.en}</label>)}</div>{err.subjectIds && <p className="mt-1 text-xs text-error">{err.subjectIds}</p>}</fieldset>
+        <fieldset className="sm:col-span-2"><legend className="mb-1 text-sm font-medium">Subjects</legend><div className="flex flex-wrap gap-2">{(subjects.data ?? []).map((s) => <label key={s.id} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-border px-3 text-sm"><input type="checkbox" checked={f.subjectIds.includes(s.id)} onChange={(e) => setF({ ...f, subjectIds: e.target.checked ? [...f.subjectIds, s.id] : f.subjectIds.filter((x) => x !== s.id) })} />{name(s.names)}</label>)}</div>{err.subjectIds && <p className="mt-1 text-xs text-error">{err.subjectIds}</p>}</fieldset>
         <Button type="submit" loading={busy} className="sm:col-span-2">Save changes</Button></form></Card>
     <Card className="mt-4"><h2 className="font-bold">Privacy</h2><div className="mt-3 flex flex-wrap gap-2"><Button variant="secondary" onClick={async () => { const d = await api<unknown>("/students/me/export"); const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: "application/json" })); a.download = "dibora-my-data.json"; a.click(); }}><Download size={16} />Export my data</Button><Button variant="danger" onClick={() => setDel(true)}><Trash2 size={16} />Delete account</Button></div></Card>
     <Modal open={del} title="Delete your account?" onClose={() => setDel(false)}><p className="text-sm">This removes your profile details and AI conversations and signs you out. This cannot be undone.</p><div className="mt-4 flex gap-2"><Button variant="danger" onClick={async () => { await api("/students/me", { method: "DELETE" }); await logout(); location.href = "/"; }}>Delete everything</Button><Button variant="secondary" onClick={() => setDel(false)}>Cancel</Button></div></Modal></>;
@@ -101,11 +102,31 @@ export function LiveProfile() { const { profile } = useSession(); return profile
 type Plan = { code: string; interval: string; names: Record<string, string>; priceMinor: number; currency: string; entitlements: Record<string, number | boolean> };
 const feat = (e: Record<string, number | boolean>) => [e.questionsPerDay && (Number(e.questionsPerDay) > 1000 ? "Unlimited practice questions" : `${e.questionsPerDay} practice questions a day`), e.fullQuestionBank && "Full question bank", e.mockExams && "Full mock exams", e.advancedAnalytics && "Advanced analytics", e.personalizedRecommendations && "Personalized recommendations", e.aiMessagesPerDay && `${e.aiMessagesPerDay} AI messages a day`].filter(Boolean) as string[];
 export function LivePricing() {
-  const { role, profile } = useSession(); const router = useRouter(); const toast = useToast(); const q = useApi(() => api<Plan[]>("/subscriptions/plans")); const [busy, setBusy] = useState("");
+  const { role, profile } = useSession(); const router = useRouter(); const toast = useToast(); const q = useApi(() => api<Plan[]>("/subscriptions/plans")); const name = useLocalizedName(); const [busy, setBusy] = useState("");
   const buy = async (code: string) => { if (role !== "STUDENT") return router.push("/login"); setBusy(code); try { const r = await api<{ reference: string }>("/subscriptions/checkout", { method: "POST", body: { planCode: code } }); router.push(`/payment/return?ref=${encodeURIComponent(r.reference)}`); } catch (e) { toast(e instanceof ApiError ? e.message : "Payment is unavailable right now", "error"); setBusy(""); } };
-  return <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12"><MarketingPageHeader eyebrow="Plans that grow with you" title="Start free. Upgrade when you are ready." description="Build a steady study routine with the Free plan, then explore more practice and exam tools whenever you need them. Available plan details appear below." />
-    <div className="mt-8"><Async q={q} rows={2}>{(plans) => <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{plans.map((p) => <Card key={p.code}><h2 className="font-bold">{p.names.en}</h2><p className="mt-3 text-3xl font-extrabold text-primary">{p.priceMinor === 0 ? "Free" : `${p.currency} ${(p.priceMinor / 100).toLocaleString("en-US")}`}</p><ul className="mt-4 space-y-2 text-sm">{feat(p.entitlements).map((x) => <li key={x} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-success" aria-hidden />{x}</li>)}</ul>
-      <Button className="mt-5 w-full" variant={p.priceMinor ? "primary" : "secondary"} loading={busy === p.code} disabled={profile?.subscriptionStatus === "PREMIUM" && p.priceMinor > 0} onClick={() => p.priceMinor ? buy(p.code) : router.push(role === "STUDENT" ? "/dashboard" : "/login")}>{p.priceMinor ? (profile?.subscriptionStatus === "PREMIUM" ? "Current plan" : "Upgrade") : "Start free"}</Button></Card>)}</div>}</Async></div></div>;
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12">
+      <MarketingPageHeader eyebrow="Plans that grow with you" title="Start free. Upgrade when you are ready." description="Build a steady study routine with the Free plan, then explore more practice and exam tools whenever you need them. Available plan details appear below." />
+      <div className="mt-8">
+        <Async q={q} rows={2}>
+          {(plans) => (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {plans.map((p) => (
+                <Card key={p.code}>
+                  <h2 className="font-bold">{name(p.names)}</h2>
+                  <p className="mt-3 text-3xl font-extrabold text-primary">{p.priceMinor === 0 ? "Free" : `${p.currency} ${(p.priceMinor / 100).toLocaleString("en-US")}`}</p>
+                  <ul className="mt-4 space-y-2 text-sm">
+                    {feat(p.entitlements).map((x) => <li key={x} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-success" aria-hidden />{x}</li>)}
+                  </ul>
+                  <Button className="mt-5 w-full" variant={p.priceMinor ? "primary" : "secondary"} loading={busy === p.code} disabled={profile?.subscriptionStatus === "PREMIUM" && p.priceMinor > 0} onClick={() => p.priceMinor ? buy(p.code) : router.push(role === "STUDENT" ? "/dashboard" : "/login")}>{p.priceMinor ? (profile?.subscriptionStatus === "PREMIUM" ? "Current plan" : "Upgrade") : "Start free"}</Button>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Async>
+      </div>
+    </div>
+  );
 }
 type PayStatus = { reference: string; status: string; amountMinor: number; currency: string; paymentMethod: string | null };
 type PayInfo = { methods: string[]; accounts: { method: string; accountName: string; accountNumber: string }[] };

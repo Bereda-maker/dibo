@@ -9,6 +9,7 @@ import { BarChart } from "../../components/Charts";
 import { api, ApiError } from "../../lib/api";
 import { useApi } from "../../lib/useApi";
 import { useSession } from "../../lib/session";
+import { useLocalizedName } from "../../lib/i18n";
 import { Async, pct, diffTone, type ProgressData, type Rec } from "./shared";
 
 type ExamRow = { id: string; type: string; title: string; locked: boolean; bestPercentage: number | null };
@@ -46,7 +47,7 @@ type Q = { id: string; text: string; type: string; difficulty: string; topicId: 
 type Fb = { correct: boolean; correctAnswer: string | null; explanation: string; topicId: string; recommendedNoteId: string | null; unlocked: string[] };
 type Subj = { id: string; names: Record<string, string> }; type Top = { id: string; names: Record<string, string> };
 function PracticeInner() {
-  const sp = useSearchParams(); const toast = useToast();
+  const sp = useSearchParams(); const toast = useToast(); const name = useLocalizedName();
   const [mode, setMode] = useState(sp.get("mode") ?? "random"); const [subject, setSubject] = useState(""); const [topic, setTopic] = useState(sp.get("topic") ?? ""); const [diff, setDiff] = useState(sp.get("difficulty") ?? "");
   const subjects = useApi(() => api<Subj[]>("/content/subjects")); const topics = useApi(() => (subject ? api<Top[]>(`/content/topics?subjectId=${subject}`) : Promise.resolve([] as Top[])), [subject]);
   const [list, setList] = useState<Q[] | null>(null); const [i, setI] = useState(0); const [sel, setSel] = useState<string>(""); const [fb, setFb] = useState<Fb | null>(null); const [score, setScore] = useState(0); const [busy, setBusy] = useState(false); const [limit, setLimit] = useState(false); const [err, setErr] = useState("");
@@ -54,7 +55,7 @@ function PracticeInner() {
   const check = async (q: Q) => { setBusy(true); try { const body = q.type === "NUMERICAL" ? { questionId: q.id, numericAnswer: Number(sel) } : { questionId: q.id, selectedOptionId: sel }; const r = await api<Fb>("/practice/answer", { method: "POST", body }); setFb(r); if (r.correct) setScore((s) => s + 1); r.unlocked?.forEach((u) => toast(`Achievement unlocked: ${u}`)); } catch (e) { if (e instanceof ApiError && e.code === "DAILY_LIMIT") setLimit(true); else toast(e instanceof ApiError ? e.message : "Could not check answer", "error"); } finally { setBusy(false); } };
   if (limit) return <Card className="text-center"><h1 className="text-xl font-bold">Daily practice limit reached</h1><p className="mt-1 text-sm text-muted">Free accounts can answer 20 questions a day. Come back tomorrow or upgrade.</p><Button href="/pricing" className="mt-4">See Premium</Button></Card>;
   if (!list) return <><PageHeader title="Practice" /><Card className="space-y-4"><div role="radiogroup" aria-label="Practice mode" className="flex flex-wrap gap-2">{[["random", "Random"], ["topic", "By topic"], ["wrong", "Previously incorrect"]].map(([k, l]) => <button key={k} role="radio" aria-checked={mode === k} onClick={() => setMode(k!)} className={cx("min-h-[44px] rounded-xl border px-4 text-sm font-medium", mode === k ? "border-primary bg-primary text-white" : "border-border")}>{l}</button>)}</div>
-    {mode === "topic" && <div className="grid gap-3 sm:grid-cols-2"><select aria-label="Subject" className={inputCls} value={subject} onChange={(e) => { setSubject(e.target.value); setTopic(""); }}><option value="">Select subject</option>{(subjects.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.names.en}</option>)}</select><select aria-label="Topic" className={inputCls} value={topic} onChange={(e) => setTopic(e.target.value)}><option value="">Select topic</option>{(topics.data ?? []).map((t) => <option key={t.id} value={t.id}>{t.names.en}</option>)}</select></div>}
+    {mode === "topic" && <div className="grid gap-3 sm:grid-cols-2"><select aria-label="Subject" className={inputCls} value={subject} onChange={(e) => { setSubject(e.target.value); setTopic(""); }}><option value="">Select subject</option>{(subjects.data ?? []).map((s) => <option key={s.id} value={s.id}>{name(s.names)}</option>)}</select><select aria-label="Topic" className={inputCls} value={topic} onChange={(e) => setTopic(e.target.value)}><option value="">Select topic</option>{(topics.data ?? []).map((t) => <option key={t.id} value={t.id}>{name(t.names)}</option>)}</select></div>}
     <select aria-label="Difficulty" className={inputCls + " max-w-[200px]"} value={diff} onChange={(e) => setDiff(e.target.value)}><option value="">Any difficulty</option><option value="EASY">Easy</option><option value="MEDIUM">Medium</option><option value="HARD">Hard</option></select>
     {err && <p role="alert" className="text-sm text-error">{err}</p>}<Button onClick={start} loading={busy} disabled={mode === "topic" && !topic}>Start practice</Button></Card></>;
   if (!list.length) return <EmptyState title="No questions match" body="Try other filters, or check back as new questions are added." action={<Button onClick={() => setList(null)}>Change filters</Button>} />;

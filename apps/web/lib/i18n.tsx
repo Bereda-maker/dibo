@@ -12,3 +12,7 @@ export function useT() {
   const { state } = useStore(); const l = state.settings.locale;
   return (key: string) => dict[l]?.[key] ?? nav[l]?.[key] ?? (dict.en as Record<string, string>)[key] ?? nav.en![key] ?? key;
 }
+export function useLocalizedName() {
+  const { state } = useStore(); const l = state.settings.locale;
+  return (names: Record<string, string> | null | undefined) => names?.[l] ?? names?.en ?? (names ? Object.values(names)[0] : undefined) ?? "";
+}
