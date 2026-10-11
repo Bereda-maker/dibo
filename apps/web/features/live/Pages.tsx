@@ -10,6 +10,7 @@ import { useApi } from "../../lib/useApi";
 import { useSession } from "../../lib/session";
 import { Async } from "./shared";
 import { AdminDashboard } from "./AdminDashboard";
+import { API_PREFIX } from "../../lib/config";
 
 export const LiveNoteRoute = () => <LiveNote id={useParams<{ id: string }>().id} />;
 export const LiveExamRoute = () => <LiveExamPage examId={useParams<{ id: string }>().id} />;
@@ -38,7 +39,13 @@ export function LiveAdminAudit() {
   const q = useApi(() => api<Audit[]>("/admin/audit-logs"));
   return <><PageHeader title="Audit logs" /><Async q={q}>{(rows) => <Card><DataTable rows={rows} empty="No admin actions recorded yet." cols={[{ key: "t", label: "When", render: (r) => new Date(r.createdAt).toLocaleString() }, { key: "a", label: "Action", render: (r) => r.action }, { key: "o", label: "Target", render: (r) => `${r.targetType ?? ""} ${r.targetId?.slice(0, 8) ?? ""}` }]} /></Card>}</Async></>;
 }
-const LIVE_ADMIN = ["/admin", "/admin/students", "/admin/contact", "/admin/audit", "/admin/diagnostics"];
+type PaymentReview = { id: string; reference: string; amountMinor: number; currency: string; paymentMethod: string | null; transactionReference: string | null; status: string; reviewReason: string | null; submittedAt: string; studentName: string; email: string; phone: string | null };
+export function LiveAdminPayments() {
+  const q = useApi(() => api<PaymentReview[]>("/admin/payment-reviews")); const toast = useToast();
+  const act = async (id: string, action: "approve" | "reject") => { try { await api(`/admin/payment-reviews/${id}/${action}`, { method: "POST", body: {} }); toast(action === "approve" ? "Payment approved and Premium activated" : "Payment rejected"); q.reload(); } catch (e) { toast(e instanceof ApiError ? e.message : "Could not update payment review", "error"); } };
+  return <><PageHeader title="Payment reviews" sub="Receipts that Verify.et could not process are reviewed here. Approve only after confirming the amount, account and receipt details." /><Async q={q}>{(rows) => rows.length ? <div className="space-y-4">{rows.map((r) => <Card key={r.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-bold">{r.studentName}</h2><p className="text-sm text-muted">{r.email}{r.phone ? ` · ${r.phone}` : ""}</p><p className="mt-2 text-sm">{r.currency} {(r.amountMinor / 100).toLocaleString("en-US")} · {r.paymentMethod ?? "Unknown method"}{r.transactionReference ? ` · ${r.transactionReference}` : ""}</p><p className="text-xs text-muted">Submitted {new Date(r.submittedAt).toLocaleString()} · Provider fallback: {r.reviewReason ?? "Unavailable"}</p></div><Badge tone="warning">Pending review</Badge></div><div className="mt-4 grid gap-4 sm:grid-cols-[180px_1fr]"><img src={`${API_PREFIX}/admin/payment-reviews/${r.id}/receipt`} alt={`Receipt from ${r.studentName}`} className="max-h-56 w-full rounded-xl border border-border object-contain" /><div className="flex items-end gap-2"><Button onClick={() => void act(r.id, "approve")}>Approve payment</Button><Button variant="danger" onClick={() => void act(r.id, "reject")}>Reject</Button></div></div></Card>)}</div> : <EmptyState title="No payment reviews pending" body="Payments that Verify.et cannot process will appear here for manual confirmation." />}</Async></>;
+}
+const LIVE_ADMIN = ["/admin", "/admin/students", "/admin/contact", "/admin/audit", "/admin/diagnostics", "/admin/subscriptions"];
 export function AdminGate({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   if (LIVE_ADMIN.includes(path)) return <>{children}</>;

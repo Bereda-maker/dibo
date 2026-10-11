@@ -1,9 +1,12 @@
-import { and, eq, inArray, ne } from "drizzle-orm";
-import { payments, paymentWebhookEvents, subscriptions, subscriptionPlans, studentProfiles, notifications, type Db } from "@dibora/database";
-import type { PaymentRepo, PaymentRow } from "../services/payments/payment.service";
+import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
+import { payments, paymentWebhookEvents, subscriptions, subscriptionPlans, studentProfiles, notifications, users, type Db } from "@dibora/database";
+import type { ManualReview, PaymentRepo, PaymentRow } from "../services/payments/payment.service";
 
 const DAYS: Record<string, number> = { MONTHLY: 30, QUARTERLY: 90, ANNUAL: 365 };
-const toRow = (p: typeof payments.$inferSelect): PaymentRow => ({ id: p.id, userId: p.userId, subscriptionId: p.subscriptionId, amountMinor: p.amountMinor, currency: p.currency, status: p.status, attempt: Number((p.metadata as { attempt?: number } | null)?.attempt ?? 1), verifyRequestId: p.verifyRequestId });
+type PaymentMeta = { attempt?: number; manualReviewStatus?: string; manualReviewReason?: string; manualReviewSubmittedAt?: string };
+const meta = (v: unknown): PaymentMeta => (v && typeof v === "object" && !Array.isArray(v) ? v as PaymentMeta : {});
+const toRow = (p: typeof payments.$inferSelect): PaymentRow => ({ id: p.id, userId: p.userId, subscriptionId: p.subscriptionId, amountMinor: p.amountMinor, currency: p.currency, status: p.status, attempt: Number(meta(p.metadata).attempt ?? 1), verifyRequestId: p.verifyRequestId, manualReviewStatus: meta(p.metadata).manualReviewStatus ?? null });
+const reviewWhere = sql`${payments.metadata}->>'manualReviewStatus' = 'PENDING'`;
 
 export class DrizzlePaymentRepo implements PaymentRepo {
   constructor(private db: Db) {}
@@ -15,13 +18,14 @@ export class DrizzlePaymentRepo implements PaymentRepo {
   }
   async claimSubmission(id: string, userId: string, f: { method: string; transactionReference: string | null }) {
     const [cur] = await this.db.select().from(payments).where(and(eq(payments.id, id), eq(payments.userId, userId))).limit(1);
-    if (!cur || (cur.status !== "PENDING" && cur.status !== "FAILED")) return null;
-    const attempt = Number((cur.metadata as { attempt?: number } | null)?.attempt ?? 1) + (cur.status === "FAILED" ? 1 : 0);
+    if (!cur || (cur.status !== "PENDING" && cur.status !== "FAILED") || meta(cur.metadata).manualReviewStatus === "PENDING") return null;
+    const attempt = Number(meta(cur.metadata).attempt ?? 1) + (cur.status === "FAILED" ? 1 : 0);
     // Compare-and-set on the status we read: two concurrent submits cannot both win.
     const [won] = await this.db.update(payments).set({ status: "VERIFYING", paymentMethod: f.method, transactionReference: f.transactionReference, verifyRequestId: null, verificationResult: null, metadata: { ...(cur.metadata ?? {}), attempt }, updatedAt: new Date() }).where(and(eq(payments.id, id), eq(payments.status, cur.status))).returning();
     return won ? toRow(won) : null;
   }
   async setReceipt(id: string, path: string) { await this.db.update(payments).set({ receiptPath: path, updatedAt: new Date() }).where(eq(payments.id, id)); }
+  async receiptPath(id: string) { const [p] = await this.db.select({ path: payments.receiptPath }).from(payments).where(eq(payments.id, id)).limit(1); return p?.path ?? null; }
   async attachRequestId(id: string, rid: string) { await this.db.update(payments).set({ verifyRequestId: rid, updatedAt: new Date() }).where(eq(payments.id, id)); }
   async release(id: string) { await this.db.update(payments).set({ status: "PENDING", updatedAt: new Date() }).where(and(eq(payments.id, id), eq(payments.status, "VERIFYING"))); }
 
@@ -54,6 +58,25 @@ export class DrizzlePaymentRepo implements PaymentRepo {
   }
   async statusFor(userId: string, reference: string) {
     const [p] = await this.db.select().from(payments).where(and(eq(payments.reference, reference), eq(payments.userId, userId))).limit(1);
-    return p ? { reference: p.reference, status: p.status, amountMinor: p.amountMinor, currency: p.currency, paymentMethod: p.paymentMethod, verifiedAt: p.verifiedAt } : null;
+    return p ? { reference: p.reference, status: p.status, amountMinor: p.amountMinor, currency: p.currency, paymentMethod: p.paymentMethod, verifiedAt: p.verifiedAt, manualReviewStatus: meta(p.metadata).manualReviewStatus ?? null } : null;
+  }
+  async markManualReview(id: string, reason: string) {
+    const [p] = await this.db.select({ metadata: payments.metadata }).from(payments).where(eq(payments.id, id)).limit(1);
+    if (p) await this.db.update(payments).set({ metadata: { ...meta(p.metadata), manualReviewStatus: "PENDING", manualReviewReason: reason, manualReviewSubmittedAt: new Date().toISOString() }, verificationResult: { failure: "MANUAL_REVIEW", providerFailure: reason }, updatedAt: new Date() }).where(eq(payments.id, id));
+  }
+  private reviewRow(p: { id: string; userId: string; reference: string; amountMinor: number; currency: string; paymentMethod: string | null; transactionReference: string | null; status: string; metadata: unknown; createdAt: Date; fullName: string | null; email: string; phone: string | null }): ManualReview {
+    const m = meta(p.metadata); return { id: p.id, userId: p.userId, reference: p.reference, amountMinor: p.amountMinor, currency: p.currency, paymentMethod: p.paymentMethod, transactionReference: p.transactionReference, status: p.status, reviewReason: m.manualReviewReason ?? null, submittedAt: m.manualReviewSubmittedAt ?? p.createdAt.toISOString(), studentName: p.fullName ?? "Student", email: p.email, phone: p.phone };
+  }
+  async findManualReview(id: string) {
+    const [p] = await this.db.select({ id: payments.id, userId: payments.userId, reference: payments.reference, amountMinor: payments.amountMinor, currency: payments.currency, paymentMethod: payments.paymentMethod, transactionReference: payments.transactionReference, status: payments.status, metadata: payments.metadata, createdAt: payments.createdAt, fullName: studentProfiles.fullName, email: users.email, phone: studentProfiles.phone }).from(payments).innerJoin(users, eq(users.id, payments.userId)).leftJoin(studentProfiles, eq(studentProfiles.userId, payments.userId)).where(and(eq(payments.id, id), reviewWhere)).limit(1);
+    return p ? this.reviewRow(p) : null;
+  }
+  async listManualReviews() {
+    const rows = await this.db.select({ id: payments.id, userId: payments.userId, reference: payments.reference, amountMinor: payments.amountMinor, currency: payments.currency, paymentMethod: payments.paymentMethod, transactionReference: payments.transactionReference, status: payments.status, metadata: payments.metadata, createdAt: payments.createdAt, fullName: studentProfiles.fullName, email: users.email, phone: studentProfiles.phone }).from(payments).innerJoin(users, eq(users.id, payments.userId)).leftJoin(studentProfiles, eq(studentProfiles.userId, payments.userId)).where(reviewWhere).orderBy(asc(payments.createdAt));
+    return rows.map((p) => this.reviewRow(p));
+  }
+  async resolveManualReview(id: string, status: "APPROVED" | "REJECTED") {
+    const [p] = await this.db.select({ metadata: payments.metadata }).from(payments).where(eq(payments.id, id)).limit(1);
+    if (p) await this.db.update(payments).set({ metadata: { ...meta(p.metadata), manualReviewStatus: status }, updatedAt: new Date() }).where(eq(payments.id, id));
   }
 }

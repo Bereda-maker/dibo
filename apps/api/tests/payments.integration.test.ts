@@ -90,7 +90,7 @@ describe("Verify.et submission", () => {
   });
   test("202 without requestId is an integration error: back to PENDING, safe message", async () => {
     const ref = await newPayment(); respond = json(202, {});
-    await expect(submit(ref, { transactionReference: "N0N0N0N0" })).rejects.toThrow("temporarily unavailable"); expect((await row(ref)).status).toBe("PENDING");
+    expect((await submit(ref, { transactionReference: "N0N0N0N0" })).status).toBe("MANUAL_REVIEW"); expect((await row(ref)).status).toBe("PENDING");
   });
   test("200 completed + matching amount verifies immediately and activates via existing subscription logic", async () => {
     const ref = await newPayment(); respond = json(200, { requestId: "req_200", verified: true, verification: { amount: 150, currency: "ETB" } });
@@ -121,15 +121,15 @@ describe("Verify.et submission", () => {
   });
   for (const code of [401, 402, 429, 500, 503]) test(`${code} is recoverable: payment returns to PENDING, retry reuses the same idempotency key, no secrets leak`, async () => {
     const ref = await newPayment(); calls = []; respond = json(code, { error: "internal detail KEY" });
-    const err = await submit(ref, { transactionReference: `E${code}E${code}E` }).catch((e) => e); expect(err.status).toBe(503); expect(err.message).not.toContain("KEY"); expect(err.message).not.toContain("internal");
-    expect((await row(ref)).status).toBe("PENDING"); respond = json(202, { requestId: `req_r${code}` }); await submit(ref, { transactionReference: `E${code}E${code}E` });
-    expect(calls[0]!.headers["Idempotency-Key"]).toBe(calls[1]!.headers["Idempotency-Key"]);
+    expect((await submit(ref, { transactionReference: `E${code}E${code}E` })).status).toBe("MANUAL_REVIEW");
+    const p = await row(ref); expect(p.status).toBe("PENDING"); expect((p.metadata as Record<string, unknown>).manualReviewStatus).toBe("PENDING");
+    await expect(submit(ref, { transactionReference: `E${code}E${code}E` })).rejects.toThrow("already being verified or is complete");
   });
   test("404 -> FAILED; 409 -> stays VERIFYING (awaits webhook); network timeout is recoverable", async () => {
     const a = await newPayment(); respond = json(404, {}); expect((await submit(a, { transactionReference: "F1F1F1F1" })).status).toBe("FAILED");
     const b = await newPayment(); respond = json(409, {}); expect((await submit(b, { transactionReference: "F2F2F2F2" })).status).toBe("VERIFYING");
     const c = await newPayment(); const slow = new PaymentService(new VerifyEtPaymentProvider({ apiKey: "K", webhookSecret: SECRET, fetchImpl: (async () => { throw Object.assign(new Error("t"), { name: "TimeoutError" }); }) as unknown as typeof fetch }), new DrizzlePaymentRepo(db), storage);
-    await expect(slow.submit(userId, c, { method: "cbe", bytes: jpeg })).rejects.toThrow("temporarily unavailable"); expect((await row(c)).status).toBe("PENDING");
+    expect((await slow.submit(userId, c, { method: "cbe", bytes: jpeg })).status).toBe("MANUAL_REVIEW"); expect((await row(c)).status).toBe("PENDING");
   });
   test("a user cannot submit for someone else's payment, resubmit while verifying, or reuse a verified transaction reference", async () => {
     const ref = await newPayment(); respond = json(202, { requestId: "req_own" });

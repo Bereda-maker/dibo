@@ -52,7 +52,7 @@ export function createApp(deps: { auth: AuthService; payments: PaymentService; c
   for (const p of ["practice", "progress", "recommendations", "achievements", "notifications", "ai", "exams", "bookmarks", "leaderboard", "search", "notes", "attempts"]) app.use(`/api/${p}/*`, requireAuth(deps.auth), requireStudent);
   app.route("/api", studentRoutes({ students: deps.students, practice: deps.practice, progress: deps.progress, chat: deps.chat, learning: deps.learning, resolve: deps.resolveStudent }));
   app.use("/api/admin/*", requireAuth(deps.auth), requireAdmin);
-  app.route("/api/admin", adminRoutes(deps.admin));
+  app.route("/api/admin", adminRoutes(deps.admin, deps.payments));
   app.use("/api/attempts/*", requireAuth(deps.auth), requireStudent);
   app.route("/api/attempts", attemptRoutes(deps.attempts, deps.resolveStudent));
   app.route("/api/webhooks", webhookRoutes(deps.payments)); // public: HMAC-authenticated, outside requireAuth

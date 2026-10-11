@@ -4,7 +4,8 @@ import { ProviderError, isRecoverable } from "./provider";
 import { validateReceipt, type ReceiptStorage } from "./receipt";
 import { AppError, Errors } from "../../utils/errors";
 
-export type PaymentRow = { id: string; userId: string; subscriptionId: string | null; amountMinor: number; currency: string; status: string; attempt: number; verifyRequestId: string | null };
+export type PaymentRow = { id: string; userId: string; subscriptionId: string | null; amountMinor: number; currency: string; status: string; attempt: number; verifyRequestId: string | null; manualReviewStatus?: string | null };
+export type ManualReview = { id: string; userId: string; reference: string; amountMinor: number; currency: string; paymentMethod: string | null; transactionReference: string | null; status: string; reviewReason: string | null; submittedAt: string; studentName: string; email: string; phone: string | null };
 export type FinalStatus = "VERIFIED" | "FAILED";
 
 /** Persistence port: implemented with Drizzle in production, faked in tests. */
@@ -21,7 +22,12 @@ export interface PaymentRepo {
   release(paymentId: string): Promise<void>;
   /** One transaction. Records the webhook event (if any) first: a repeated event is a no-op. Only VERIFIED activates access, and only from PENDING/VERIFYING. */
   finalize(paymentId: string, r: { status: FinalStatus; result: Record<string, unknown>; eventId?: string; eventType?: string }): Promise<{ duplicate: boolean; applied: boolean; status: string }>;
-  statusFor(userId: string, reference: string): Promise<{ reference: string; status: string; amountMinor: number; currency: string; paymentMethod: string | null; verifiedAt: Date | null } | null>;
+  markManualReview(paymentId: string, reason: string): Promise<void>;
+  receiptPath(paymentId: string): Promise<string | null>;
+  findManualReview(paymentId: string): Promise<ManualReview | null>;
+  listManualReviews(): Promise<ManualReview[]>;
+  resolveManualReview(paymentId: string, status: "APPROVED" | "REJECTED"): Promise<void>;
+  statusFor(userId: string, reference: string): Promise<{ reference: string; status: string; amountMinor: number; currency: string; paymentMethod: string | null; verifiedAt: Date | null; manualReviewStatus: string | null } | null>;
 }
 
 /** Access is only granted when Verify.et says verified === true AND amount/currency match what the DB charged. */
@@ -50,17 +56,15 @@ export class PaymentService {
     const p = await this.repo.claimSubmission(existing.id, userId, { method: input.method, transactionReference: txRef });
     if (!p) throw Errors.conflict("This payment is already being verified or is complete");
     const idempotencyKey = `dibora-payment-${p.id}-${p.attempt}`;
+    const saveReceipt = async () => {
+      try {
+        const receiptPath = await this.storage.put(`receipts/${p.id}/${p.attempt}.${file.ext}`, input.bytes);
+        await this.repo.setReceipt(p.id, receiptPath);
+      } catch (e) {
+        log("error", "receipt storage failed", { paymentId: p.id, kind: e instanceof Error ? e.name : "UNKNOWN" });
+      }
+    };
     try {
-      const saveReceipt = async () => {
-        try {
-          const receiptPath = await this.storage.put(`receipts/${p.id}/${p.attempt}.${file.ext}`, input.bytes);
-          await this.repo.setReceipt(p.id, receiptPath);
-        } catch (e) {
-          // Verification has already received the bytes or may be in flight. Local receipt storage
-          // is an audit copy and must not turn a valid payment submission into a 503.
-          log("error", "receipt storage failed", { paymentId: p.id, kind: e instanceof Error ? e.name : "UNKNOWN" });
-        }
-      };
       const res = await this.provider.submitVerification({ idempotencyKey, method: input.method, transactionReference: txRef ?? undefined, receipt: { bytes: input.bytes, mime: file.mime, filename: `receipt.${file.ext}` } });
       await saveReceipt();
       if (res.httpStatus === 202) { await this.repo.attachRequestId(p.id, res.requestId); return { reference, status: "VERIFYING" as const }; }
@@ -74,9 +78,10 @@ export class PaymentService {
       if (e.kind === "INVALID_RECEIPT" || e.kind === "NOT_FOUND") { await this.repo.finalize(p.id, { status: "FAILED", result: { failure: e.kind } }); return { reference, status: "FAILED" as const }; }
       if (e.kind === "CONFLICT") return { reference, status: "VERIFYING" as const }; // same key already in flight: the webhook will finish it
       if (isRecoverable(e.kind)) {
+        await saveReceipt();
         await this.repo.release(p.id);
-        const message = e.kind === "AUTH" ? "Payment verification is not configured correctly. Please contact Dibora support." : e.kind === "CREDITS" ? "Payment verification credits are unavailable. Please contact Dibora support." : e.kind === "RATE_LIMITED" ? "The verification service is busy. Please try again in a few minutes." : "Verification is temporarily unavailable. Please try again in a few minutes.";
-        throw new AppError(503, "VERIFICATION_UNAVAILABLE", message);
+        await this.repo.markManualReview(p.id, e.kind);
+        return { reference, status: "MANUAL_REVIEW" as const };
       }
       await this.repo.release(p.id); throw new AppError(502, "VERIFICATION_UNAVAILABLE", "Verification is temporarily unavailable. Please try again.");
     }
@@ -96,5 +101,24 @@ export class PaymentService {
 
   async status(userId: string, reference: string) {
     const s = await this.repo.statusFor(userId, reference); if (!s) throw Errors.notFound("Payment"); return s;
+  }
+
+  async manualReviews() { return this.repo.listManualReviews(); }
+  async manualReceipt(paymentId: string) {
+    const review = await this.repo.findManualReview(paymentId); if (!review) throw Errors.notFound("Payment review");
+    const path = await this.repo.receiptPath(paymentId); if (!path) throw Errors.notFound("Receipt");
+    const bytes = await this.storage.get(path); if (!bytes) throw Errors.notFound("Receipt");
+    const ext = path.split(".").pop(); return { bytes, mime: ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg" };
+  }
+  async approveManual(paymentId: string) {
+    const review = await this.repo.findManualReview(paymentId); if (!review || review.status !== "PENDING") throw Errors.notFound("Payment review");
+    const result = await this.repo.finalize(paymentId, { status: "VERIFIED", result: { verified: true, manualReview: true, reviewReason: review.reviewReason } });
+    if (!result.applied || result.status !== "VERIFIED") throw Errors.conflict("This payment review is no longer pending");
+    await this.repo.resolveManualReview(paymentId, "APPROVED"); return { done: true };
+  }
+  async rejectManual(paymentId: string) {
+    const review = await this.repo.findManualReview(paymentId); if (!review || review.status !== "PENDING") throw Errors.notFound("Payment review");
+    await this.repo.finalize(paymentId, { status: "FAILED", result: { verified: false, manualReview: true, failure: "REJECTED_BY_ADMIN" } });
+    await this.repo.resolveManualReview(paymentId, "REJECTED"); return { done: true };
   }
 }

@@ -3,11 +3,12 @@ import { v as zValidator } from "../utils/validate";
 import { z } from "zod";
 import { diagnosticUpsertSchema, questionUpsertSchema } from "@dibora/validation";
 import type { AdminService } from "../services/admin.service";
+import type { PaymentService } from "../services/payments/payment.service";
 import { requireSuperAdmin, type AuthContext } from "../middleware/auth";
 import { ok } from "../utils/response";
 
 /** Mounted behind requireAuth + requireAdmin. Every mutating action writes an audit log entry. */
-export const adminRoutes = (admin: AdminService) => {
+export const adminRoutes = (admin: AdminService, payments?: PaymentService) => {
   const r = new Hono();
   const actor = (c: { get: (k: string) => unknown; req: { header: (n: string) => string | undefined } }) => ({ userId: (c.get("auth") as AuthContext).userId, ip: c.req.header("x-forwarded-for")?.split(",")[0]?.trim(), requestId: c.get("requestId") as string | undefined });
   const id = z.object({ id: z.string().uuid() });
@@ -28,5 +29,9 @@ export const adminRoutes = (admin: AdminService) => {
   r.get("/audit-logs", async (c) => ok(c, await admin.auditLog()));
   r.get("/contact-messages", zValidator("query", z.object({ limit: z.coerce.number().int().min(1).max(100).default(50) })), async (c) => ok(c, await admin.listContactMessages(c.req.valid("query").limit)));
   r.patch("/contact-messages/:id", zValidator("param", id), zValidator("json", z.object({ status: z.enum(["NEW", "READ", "RESOLVED"]) })), async (c) => { await admin.setContactMessageStatus(actor(c as never), c.req.valid("param").id, c.req.valid("json").status); return ok(c, { done: true }); });
+  r.get("/payment-reviews", async (c) => { if (!payments) throw new Error("Payment reviews are not configured"); return ok(c, await payments.manualReviews()); });
+  r.get("/payment-reviews/:id/receipt", zValidator("param", id), async (c) => { if (!payments) throw new Error("Payment reviews are not configured"); const file = await payments.manualReceipt(c.req.valid("param").id); return new Response(file.bytes as unknown as BodyInit, { headers: { "Content-Type": file.mime, "Cache-Control": "private, no-store" } }); });
+  r.post("/payment-reviews/:id/approve", zValidator("param", id), async (c) => { if (!payments) throw new Error("Payment reviews are not configured"); await payments.approveManual(c.req.valid("param").id); return ok(c, { done: true }); });
+  r.post("/payment-reviews/:id/reject", zValidator("param", id), async (c) => { if (!payments) throw new Error("Payment reviews are not configured"); await payments.rejectManual(c.req.valid("param").id); return ok(c, { done: true }); });
   return r;
 };

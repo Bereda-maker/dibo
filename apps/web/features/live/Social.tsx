@@ -128,7 +128,7 @@ export function LivePricing() {
     </div>
   );
 }
-type PayStatus = { reference: string; status: string; amountMinor: number; currency: string; paymentMethod: string | null };
+type PayStatus = { reference: string; status: string; amountMinor: number; currency: string; paymentMethod: string | null; manualReviewStatus: string | null };
 type PayInfo = { methods: string[]; accounts: { method: string; accountName: string; accountNumber: string }[] };
 const METHOD_LABEL: Record<string, string> = { cbe: "CBE", boa: "Bank of Abyssinia", telebirr: "Telebirr", mpesa: "M-Pesa", cbebirr: "CBE Birr", dashen: "Dashen Bank", awash: "Awash Bank", siinqee: "Siinqee Bank", kaafiebirr: "Kaafi Birr", coopayebirr: "Coop Pay Birr" };
 /** Manual payment + receipt verification. The browser only talks to the Dibora API; the webhook (not this page) is the source of truth. */
@@ -145,15 +145,17 @@ function ReturnInner() {
   if (err) return <div className="mx-auto max-w-md px-4 py-16"><Card className="text-center"><h1 className="text-xl font-bold text-error">We could not find this payment</h1><Button href="/pricing" className="mt-4" variant="secondary">Back to plans</Button></Card></div>;
   if (!p) return <div className="mx-auto max-w-md px-4 py-16"><Skeleton className="h-40" /></div>;
   const acct = info?.accounts.find((a) => a.method === method); const amount = `${p.currency} ${(p.amountMinor / 100).toLocaleString("en-US")}`;
+  const copy = async (value: string) => { try { await navigator.clipboard.writeText(value); toast("Copied to clipboard", "info"); } catch { toast("Copy is unavailable in this browser", "error"); } };
   return <div className="mx-auto max-w-lg px-4 py-12"><Card>
     {p.status === "VERIFIED" || p.status === "SUCCESS" ? <div className="text-center"><h1 className="text-2xl font-bold text-success">Payment verified</h1><p className="mt-2 text-sm text-muted">Premium is active. Your new features are ready.</p><Button href="/dashboard" className="mt-4">Go to dashboard</Button></div>
+    : p.manualReviewStatus === "PENDING" ? <div className="text-center"><h1 className="text-2xl font-bold">Receipt sent for review</h1><p className="mt-2 text-sm text-muted">Verify.et could not process the image, so your receipt was securely sent to the Dibora admin team. They will review it within 24 hours.</p><p className="mt-3 rounded-xl bg-warning/10 p-3 text-sm">Your Premium access will activate only after an admin confirms the payment.</p><Button href="/dashboard" className="mt-4" variant="secondary">Back to dashboard</Button></div>
     : p.status === "VERIFYING" ? <div className="text-center"><h1 className="text-xl font-bold">Verification in progress</h1><p className="mt-2 text-sm text-muted">Verification in progress. You can leave this page; we'll update your payment when verification completes.</p><Button href="/dashboard" className="mt-4" variant="secondary">Back to dashboard</Button></div>
     : <div className="space-y-4">
       <div><h1 className="text-xl font-bold">Pay and submit your receipt</h1><p className="mt-1 text-sm text-muted">Amount to pay: <b>{amount}</b></p></div>
       {p.status === "FAILED" && <p className="rounded-xl bg-error/10 p-3 text-sm text-error">Payment could not be verified. Check the details and submit a clear receipt screenshot again.</p>}
       <ol className="list-decimal space-y-1 pl-5 text-sm"><li>Send exactly <b>{amount}</b> using the payment method you choose below.</li><li>Take a screenshot of the receipt.</li><li>Submit it here. Access is granted only after the payment is verified.</li></ol>
       <Field label="Payment method">{(id, a) => <select id={id} className={inputCls} value={method} onChange={(e) => setMethod(e.target.value)} {...a}>{(info?.methods ?? ["telebirr"]).map((m) => <option key={m} value={m}>{METHOD_LABEL[m] ?? m}</option>)}</select>}</Field>
-      {acct && <p className="rounded-xl bg-surface p-3 text-sm">Pay to <b>{acct.accountName}</b>: <b>{acct.accountNumber}</b></p>}
+      {acct && <div className="rounded-xl bg-surface p-3 text-sm"><p>Pay to <b>{acct.accountName}</b></p><div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2"><span className="min-w-0 break-all font-semibold">{acct.accountNumber}</span><button type="button" className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-2 font-medium text-primary hover:bg-primary/10" onClick={() => void copy(acct.accountNumber)} aria-label="Copy account or phone number" title="Copy account or phone number"><Copy size={16} aria-hidden />Copy</button></div><p className="mt-1 text-xs text-muted">Account number / phone number</p></div>}
       <Field label="Transaction number (if shown on your receipt)">{(id, a) => <input id={id} className={inputCls} value={txRef} maxLength={64} onChange={(e) => setTxRef(e.target.value)} {...a} />}</Field>
       <Field label="Receipt screenshot (JPEG, PNG or WebP, up to 8 MB)" error={fileErr}>{(id, a) => <input id={id} type="file" accept="image/jpeg,image/png,image/webp" className={inputCls} onChange={(e) => pick(e.target.files?.[0] ?? null)} {...a} />}</Field>
       <Button className="w-full" loading={busy} onClick={submit}>Submit for verification</Button>
