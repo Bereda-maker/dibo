@@ -3,7 +3,7 @@
 export type OfflineMutation = { id: string; path: string; method: string; body: unknown; createdAt: number };
 
 type CacheRecord = { key: string; data: unknown; updatedAt: number };
-const DB_NAME = "dibora-offline-v2";
+const DB_NAME = "dibora-offline-v3";
 const DB_VERSION = 1;
 const CACHE_STORE = "responses";
 const QUEUE_STORE = "mutations";
