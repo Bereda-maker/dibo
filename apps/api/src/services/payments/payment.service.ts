@@ -51,15 +51,18 @@ export class PaymentService {
     if (!p) throw Errors.conflict("This payment is already being verified or is complete");
     const idempotencyKey = `dibora-payment-${p.id}-${p.attempt}`;
     try {
-      try {
-        const receiptPath = await this.storage.put(`receipts/${p.id}/${p.attempt}.${file.ext}`, input.bytes);
-        await this.repo.setReceipt(p.id, receiptPath);
-      } catch (e) {
-        await this.repo.release(p.id).catch(() => {});
-        log("error", "receipt storage failed", { paymentId: p.id, kind: e instanceof Error ? e.name : "UNKNOWN" });
-        throw new AppError(503, "RECEIPT_STORAGE_UNAVAILABLE", "Receipt upload is temporarily unavailable. Please try again.");
-      }
+      const saveReceipt = async () => {
+        try {
+          const receiptPath = await this.storage.put(`receipts/${p.id}/${p.attempt}.${file.ext}`, input.bytes);
+          await this.repo.setReceipt(p.id, receiptPath);
+        } catch (e) {
+          // Verification has already received the bytes or may be in flight. Local receipt storage
+          // is an audit copy and must not turn a valid payment submission into a 503.
+          log("error", "receipt storage failed", { paymentId: p.id, kind: e instanceof Error ? e.name : "UNKNOWN" });
+        }
+      };
       const res = await this.provider.submitVerification({ idempotencyKey, method: input.method, transactionReference: txRef ?? undefined, receipt: { bytes: input.bytes, mime: file.mime, filename: `receipt.${file.ext}` } });
+      await saveReceipt();
       if (res.httpStatus === 202) { await this.repo.attachRequestId(p.id, res.requestId); return { reference, status: "VERIFYING" as const }; }
       if (res.requestId) await this.repo.attachRequestId(p.id, res.requestId);
       const d = decide(p, res.outcome);

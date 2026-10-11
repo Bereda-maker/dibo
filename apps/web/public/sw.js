@@ -1,4 +1,4 @@
-const CACHE_VERSION = "dibora-shell-v2";
+const CACHE_VERSION = "dibora-shell-v3";
 const APP_SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/icon.png", "/favicon.ico", "/images/dibora-logo.png"];
 
 self.addEventListener("install", (event) => {
@@ -26,7 +26,11 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/_next/static/") || ["script", "style", "image", "font"].includes(request.destination)) {
     event.respondWith(caches.match(request).then((cached) => {
       const fresh = fetch(request).then((response) => {
-        if (response.ok) caches.open(CACHE_VERSION).then((cache) => cache.put(request, response.clone()));
+        if (response.ok) {
+          // Clone before returning the response; after return the browser may consume its body.
+          const copy = response.clone();
+          void caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy)).catch(() => undefined);
+        }
         return response;
       }).catch(() => cached);
       return cached || fresh;
