@@ -72,9 +72,9 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
               {signedIn ? <AccountMenu name={name} initials={initials} dashboardHref={dashboardHref} isStudent={isStudent} onLogout={logout} /> : ready ? <Link href="/login" className={ctaClass}>{t("Start learning")} <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">↗</span></Link> : <span aria-hidden="true" className="h-11 w-32 animate-pulse rounded-full bg-border/60" />}
             </div>
           </div>
-          <nav aria-label="Main" className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 rounded-full border border-border/70 bg-surface/70 p-1 shadow-sm lg:flex">
+          <nav aria-label="Main" className="hidden min-w-0 flex-1 items-center justify-start gap-0.5 overflow-x-auto rounded-full border border-border/70 bg-surface/70 p-1 shadow-sm [scrollbar-width:none] lg:flex [&::-webkit-scrollbar]:hidden">
             {links.map(({ href, label }) => (
-              <Link key={href} href={href} className="whitespace-nowrap rounded-full px-2.5 py-2 text-[0.82rem] font-semibold text-muted transition-all duration-200 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 xl:px-3 xl:text-sm">
+              <Link key={href} href={href} className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-2 text-[0.82rem] font-semibold text-muted transition-all duration-200 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 xl:px-3 xl:text-sm">
                 {t(label)}
               </Link>
             ))}
