@@ -1658,5 +1658,13 @@
   "Start free. Upgrade when you are ready.": {
     "am": "በነጻ ጀምር። ዝግጁ ስትሆን አሻሽል።",
     "om": "Bilisaa jalqabi. Yeroo qophooftetti fooyyessi."
+  },
+  "You are offline": {
+    "am": "ከኢንተርኔት ውጭ ነዎት",
+    "om": "Interneetii irraa ala jirta"
+  },
+  "Back online": {
+    "am": "እንደገና ኢንተርኔት ተገናኝቷል",
+    "om": "Ammas interneetii waliin wal qunnamte"
   }
 }

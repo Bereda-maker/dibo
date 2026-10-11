@@ -1,0 +1,15 @@
+{
+  "name": "Dibora — Learning and Exam Preparation",
+  "short_name": "Dibora",
+  "description": "Learning, practice and exam preparation for Ethiopian students.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbf7ee",
+  "theme_color": "#0b5d3b",
+  "lang": "en",
+  "icons": [
+    { "src": "/icon.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/favicon.ico", "sizes": "32x32 48x48 64x64", "type": "image/x-icon" }
+  ]
+}
