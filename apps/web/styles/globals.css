@@ -111,6 +111,21 @@ select {
   }
 }
 
+@keyframes dibora-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-shimmer {
+  background-image: linear-gradient(90deg, #dedede 0%, #eeeeee 45%, #dedede 100%);
+  background-size: 200% 100%;
+  animation: dibora-skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer { animation: none; }
+}
+
 @keyframes dibora-page-enter {
   from {
     opacity: 0.82;
