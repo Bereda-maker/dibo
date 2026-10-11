@@ -1,5 +1,5 @@
-import { and, eq, gte, sql } from "drizzle-orm";
-import { questions, questionOptions, studentAnswers, notes, learningMaterials, type Db } from "@dibora/database";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { questions, questionOptions, studentAnswers, notes, learningMaterials, studentProfiles, type Db } from "@dibora/database";
 import { isCorrect } from "@dibora/core/exam-scoring";
 import { DEFAULT_FREE, DEFAULT_PREMIUM, withinDailyLimit } from "@dibora/core/entitlement";
 import { rowsOf } from "../utils/rows";
@@ -8,12 +8,17 @@ import type { ProgressService } from "./progress.service";
 
 export class PracticeService {
   constructor(private db: Db, private progress: ProgressService) {}
+  private async selectedSubjects(studentId: string) {
+    const [profile] = await this.db.select({ ids: studentProfiles.selectedSubjectIds }).from(studentProfiles).where(eq(studentProfiles.id, studentId)).limit(1);
+    return profile?.ids ?? [];
+  }
 
   async answer(studentId: string, userId: string, isPremium: boolean, input: { questionId: string; selectedOptionId?: string | null; numericAnswer?: number | null; timeSpentSeconds?: number }) {
     const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0);
     const n = ((await this.db.select({ n: sql<number>`count(*)::int` }).from(studentAnswers).where(and(eq(studentAnswers.studentId, studentId), eq(studentAnswers.context, "PRACTICE"), gte(studentAnswers.answeredAt, midnight)))) as { n: number }[])[0]!.n;
     if (!withinDailyLimit(isPremium ? DEFAULT_PREMIUM : DEFAULT_FREE, "questionsPerDay", n)) throw new AppError(402, "DAILY_LIMIT", "You have reached today's free practice limit", { feature: "questionsPerDay" });
-    const [q] = await this.db.select().from(questions).where(and(eq(questions.id, input.questionId), eq(questions.status, "PUBLISHED"))).limit(1);
+    const selected = await this.selectedSubjects(studentId);
+    const [q] = await this.db.select().from(questions).where(and(eq(questions.id, input.questionId), eq(questions.status, "PUBLISHED"), inArray(questions.subjectId, selected))).limit(1);
     if (!q) throw Errors.notFound("Question");
     const opts = await this.db.select().from(questionOptions).where(eq(questionOptions.questionId, q.id));
     const correctOpt = opts.find((o) => o.isCorrect);
@@ -29,7 +34,8 @@ export class PracticeService {
 
   /** Question delivery never includes correctness flags. */
   async next(studentId: string, opts: { topicId?: string; difficulty?: "EASY" | "MEDIUM" | "HARD"; mode?: "random" | "wrong"; limit: number }) {
-    const conds = [eq(questions.status, "PUBLISHED"), opts.topicId ? eq(questions.topicId, opts.topicId) : undefined, opts.difficulty ? eq(questions.difficulty, opts.difficulty) : undefined,
+    const selected = await this.selectedSubjects(studentId);
+    const conds = [eq(questions.status, "PUBLISHED"), inArray(questions.subjectId, selected), opts.topicId ? eq(questions.topicId, opts.topicId) : undefined, opts.difficulty ? eq(questions.difficulty, opts.difficulty) : undefined,
       opts.mode === "wrong" ? sql`${questions.id} in (select question_id from (select distinct on (question_id) question_id, is_correct from student_answers where student_id = ${studentId} and is_correct is not null order by question_id, answered_at desc) t where is_correct = false)` : undefined].filter(Boolean) as never[];
     const qs = await this.db.select({ id: questions.id, text: questions.text, type: questions.type, difficulty: questions.difficulty, topicId: questions.topicId }).from(questions).where(and(...conds)).orderBy(sql`random()`).limit(opts.limit);
     const ids = qs.map((q) => q.id); if (!ids.length) return [];

@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Award, Bell, Check, Copy, Download, Lock, Pencil, Plus, Search as SearchIcon, Send, Trash2 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Field, Modal, PageHeader, Skeleton, cx, inputCls, useToast } from "../../components/ui";
-import { api, ApiError, fieldErrors } from "../../lib/api";
+import { api, publicApi, ApiError, fieldErrors } from "../../lib/api";
 import { useApi } from "../../lib/useApi";
 import { useSession } from "../../lib/session";
 import { REGIONS } from "../../lib/config";
@@ -80,7 +80,7 @@ export function LiveSearch() {
 
 type Subj = { id: string; names: Record<string, string> };
 function ProfileInner() {
-  const { profile, refresh, logout } = useSession(); const toast = useToast(); const router = useRouter(); const welcome = useSearchParams().get("welcome"); const subjects = useApi(() => api<Subj[]>("/content/subjects")); const name = useLocalizedName();
+  const { profile, refresh, logout } = useSession(); const toast = useToast(); const router = useRouter(); const welcome = useSearchParams().get("welcome"); const subjects = useApi(() => publicApi<Subj[]>("/subjects")); const name = useLocalizedName();
   const p = profile!; const [f, setF] = useState({ fullName: p.fullName, phone: p.phone ?? "", school: p.school ?? "", city: p.city ?? "", region: p.region ?? "", examYear: p.examYear ?? 2027, subjectIds: p.subjectIds }); const [err, setErr] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false); const [del, setDel] = useState(false);
   const save = async () => { setBusy(true); setErr({}); try { await api("/students/me", { method: "PATCH", body: { ...f, phone: f.phone || undefined, school: f.school || undefined, city: f.city || undefined, region: f.region || undefined } }); await refresh(); toast("Profile saved"); if (welcome) router.push("/dashboard"); } catch (e) { const fe = fieldErrors(e); setErr(Object.keys(fe).length ? fe : { form: e instanceof ApiError ? e.message : "Could not save" }); } finally { setBusy(false); } };
   return <><PageHeader title="Profile" sub="Only you can see this information." />{welcome && <Card className="mb-4 border-accent bg-accent/10"><p className="font-semibold">Welcome to Dibora! Review your details, then take your diagnostic assessment from the dashboard.</p></Card>}

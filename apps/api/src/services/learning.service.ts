@@ -10,9 +10,13 @@ export class LearningService {
   constructor(private db: Db, private progress: ProgressService) {}
 
   async exams(studentId: string, isPremium: boolean) {
+    const [profile] = await this.db.select({ ids: studentProfiles.selectedSubjectIds }).from(studentProfiles).where(eq(studentProfiles.id, studentId)).limit(1);
+    const selected = new Set(profile?.ids ?? []);
     const list = await this.db.select({ exam: exams, subjectName: subjects.names }).from(exams).leftJoin(subjects, eq(exams.subjectId, subjects.id)).where(and(eq(exams.status, "PUBLISHED"), isNull(exams.deletedAt))).orderBy(exams.type, exams.title);
+    const questionSubjects = await this.db.select({ examId: examQuestions.examId }).from(examQuestions).innerJoin(questions, eq(questions.id, examQuestions.questionId)).where(inArray(questions.subjectId, [...selected]));
+    const matching = new Set(questionSubjects.map((x) => x.examId));
     const mine = await this.db.select({ examId: examAttempts.examId, id: examAttempts.id, status: examAttempts.status, pct: examAttempts.percentage }).from(examAttempts).where(eq(examAttempts.studentId, studentId));
-    return list.map(({ exam: e, subjectName }) => { const a = mine.filter((m) => m.examId === e.id);
+    return list.filter(({ exam: e }) => e.subjectId ? selected.has(e.subjectId) : matching.has(e.id)).map(({ exam: e, subjectName }) => { const a = mine.filter((m) => m.examId === e.id);
       return { id: e.id, type: e.type, title: e.title, description: displayExamDescription(e.description), minutes: e.durationMinutes, questionCount: e.questionCount, passingScore: e.passingScore, subjectId: e.subjectId, subjectName: subjectName?.en ?? null, locked: e.requiresPremium && !isPremium,
         bestPercentage: a.filter((x) => x.status !== "IN_PROGRESS").reduce<number | null>((b, x) => Math.max(b ?? 0, Number(x.pct ?? 0)), null), inProgressAttemptId: a.find((x) => x.status === "IN_PROGRESS")?.id ?? null }; });
   }

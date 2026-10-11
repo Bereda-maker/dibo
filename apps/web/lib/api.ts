@@ -3,6 +3,13 @@ import { isOfflineCacheable, isOfflineQueueable, queueOfflineMutation, readOffli
 export class ApiError extends Error { constructor(public status: number, public code: string, message: string, public details?: unknown) { super(message); } }
 export const OFFLINE_QUEUED = "OFFLINE_QUEUED";
 export const isOfflineQueued = (value: unknown): value is { offlineQueued: true } => !!value && typeof value === "object" && (value as { offlineQueued?: boolean }).offlineQueued === true;
+export async function publicApi<T>(path: string): Promise<T> {
+  let res: Response;
+  try { res = await fetch(`${API_URL}/api/public${path}`); } catch { throw new ApiError(0, "NETWORK", "Cannot reach the server. Check your connection and try again."); }
+  const json = await res.json().catch(() => null) as { success: boolean; data?: T; error?: { code?: string; message?: string } } | null;
+  if (!res.ok || !json?.success) throw new ApiError(res.status, json?.error?.code ?? "ERROR", json?.error?.message ?? "Something went wrong");
+  return json.data as T;
+}
 /** Calls the API with the session cookie and unwraps the { success, data } envelope. */
 export async function api<T>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   const method = opts.method ?? "GET";
