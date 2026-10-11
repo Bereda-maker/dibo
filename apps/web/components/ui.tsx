@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, createContext, useContext, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
+import { useT } from "../lib/i18n";
 
 export const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) { return <div className={cx("min-w-0 rounded-card border border-border bg-surface p-4 shadow-card sm:p-5", className)}>{children}</div>; }
@@ -23,7 +24,8 @@ export function Progress({ value, label, tone = "primary" }: { value: number; la
 }
 export const toneFor = (v: number | null) => (v == null ? "primary" : v < 50 ? "error" : v < 70 ? "warning" : "primary") as "primary" | "warning" | "error";
 export function PageHeader({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
-  return <div className="mb-6 flex flex-wrap items-end justify-between gap-3"><div className="min-w-0"><h1 className="text-balance text-[clamp(1.4rem,3vw,1.9rem)] font-bold leading-tight tracking-tight">{title}</h1>{sub && <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted">{sub}</p>}</div>{action}</div>;
+  const t = useT();
+  return <div className="mb-6 flex flex-wrap items-end justify-between gap-3"><div className="min-w-0"><h1 className="text-balance text-[clamp(1.4rem,3vw,1.9rem)] font-bold leading-tight tracking-tight">{t(title)}</h1>{sub && <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted">{t(sub)}</p>}</div>{action}</div>;
 }
 export function Skeleton({ className }: { className?: string }) { return <div aria-hidden className={cx("skeleton-shimmer rounded-xl bg-[#dedede] dark:bg-border/70", className)} />; }
 function SkeletonMediaCard() {

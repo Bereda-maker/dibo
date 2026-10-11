@@ -23,7 +23,7 @@ export function AppShell({ children, admin = false, items }: { children: React.R
   useEffect(() => { if (ready && (!u || (admin && u.role !== "ADMIN") || (!admin && !DEMO && role !== "STUDENT"))) router.replace("/login"); }, [ready, u, admin, router]);
   if (!ready || !u || (admin && u.role !== "ADMIN") || (!admin && !DEMO && role !== "STUDENT")) return <div className="p-6 space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-40" /><Skeleton className="h-40" /></div>;
   const unread = DEMO ? 3 - state.readNotifs.length : 0;
-  const nav = admin ? (items ?? []).map(([h, l]) => ({ h, l, I: null as null })) : [...main.map(([h, k, I]) => ({ h, l: t(k), I })), ...extra.map(([h, l, I]) => ({ h, l, I }))];
+  const nav = admin ? (items ?? []).map(([h, l]) => ({ h, l: t(l), I: null as null })) : [...main.map(([h, k, I]) => ({ h, l: t(k), I })), ...extra.map(([h, l, I]) => ({ h, l: t(l), I }))];
   return (<div className="min-h-dvh min-w-0 overflow-x-clip md:flex">
     <aside aria-label="Sidebar" className="hidden w-60 shrink-0 border-r border-border bg-surface p-4 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto">
       <Logo />{admin && <p className="mt-1 text-xs font-semibold text-accent">ADMIN</p>}
