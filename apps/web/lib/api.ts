@@ -1,11 +1,11 @@
-import { API_URL } from "./config";
+import { API_PREFIX } from "./config";
 import { isOfflineCacheable, isOfflineQueueable, queueOfflineMutation, readOffline, writeOffline } from "./offlineDb";
 export class ApiError extends Error { constructor(public status: number, public code: string, message: string, public details?: unknown) { super(message); } }
 export const OFFLINE_QUEUED = "OFFLINE_QUEUED";
 export const isOfflineQueued = (value: unknown): value is { offlineQueued: true } => !!value && typeof value === "object" && (value as { offlineQueued?: boolean }).offlineQueued === true;
 export async function publicApi<T>(path: string): Promise<T> {
   let res: Response;
-  try { res = await fetch(`${API_URL}/api/public${path}`); } catch { throw new ApiError(0, "NETWORK", "Cannot reach the server. Check your connection and try again."); }
+  try { res = await fetch(`${API_PREFIX}/public${path}`, { credentials: "include" }); } catch { throw new ApiError(0, "NETWORK", "Cannot reach the server. Check your connection and try again."); }
   const json = await res.json().catch(() => null) as { success: boolean; data?: T; error?: { code?: string; message?: string } } | null;
   if (!res.ok || !json?.success) throw new ApiError(res.status, json?.error?.code ?? "ERROR", json?.error?.message ?? "Something went wrong");
   return json.data as T;
@@ -15,7 +15,7 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   const method = opts.method ?? "GET";
   let res: Response;
   const isForm = typeof FormData !== "undefined" && opts.body instanceof FormData; // multipart: let the browser set the boundary
-  try { res = await fetch(`${API_URL}/api${path}`, { method, credentials: "include", headers: opts.body !== undefined && !isForm ? { "Content-Type": "application/json" } : undefined, body: opts.body === undefined ? undefined : isForm ? (opts.body as FormData) : JSON.stringify(opts.body) }); }
+  try { res = await fetch(`${API_PREFIX}${path}`, { method, credentials: "include", headers: opts.body !== undefined && !isForm ? { "Content-Type": "application/json" } : undefined, body: opts.body === undefined ? undefined : isForm ? (opts.body as FormData) : JSON.stringify(opts.body) }); }
   catch {
     if (method === "GET" && isOfflineCacheable(path)) {
       const cached = await readOffline<T>(path);

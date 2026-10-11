@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { API_URL } from "../lib/config";
+import { API_PREFIX } from "../lib/config";
 import { drainOfflineMutations, type OfflineMutation } from "../lib/offlineDb";
 
 async function syncMutation(mutation: OfflineMutation) {
-  const response = await fetch(`${API_URL}/api${mutation.path}`, { method: mutation.method, credentials: "include", headers: { "Content-Type": "application/json" }, body: mutation.body === undefined ? undefined : JSON.stringify(mutation.body) });
+  const response = await fetch(`${API_PREFIX}${mutation.path}`, { method: mutation.method, credentials: "include", headers: { "Content-Type": "application/json" }, body: mutation.body === undefined ? undefined : JSON.stringify(mutation.body) });
   if (!response.ok) throw new Error("Offline sync is still unavailable");
 }
 

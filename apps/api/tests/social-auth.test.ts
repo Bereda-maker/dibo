@@ -110,6 +110,12 @@ describe("routes + cookie", () => {
     const r = await post(mk(true), "telegram", tg({ id: 555003 })); expect(r.status).toBe(200); const c = r.headers.get("set-cookie")!;
     expect(c).toContain("HttpOnly"); expect(c).toContain("Secure"); expect(c).toMatch(/SameSite=None/i);
   });
+  test("the issued social session restores the authenticated user after a redirect/refresh", async () => {
+    const app = mk(true); const login = await post(app, "telegram", tg({ id: 555006 })); expect(login.status).toBe(200);
+    const cookie = login.headers.get("set-cookie")!.split(";", 1)[0]!;
+    const me = await app.request("/api/auth/me", { headers: { cookie } });
+    expect(me.status).toBe(200); expect((await me.json() as { data: { role: string } }).data.role).toBe("STUDENT");
+  });
   test("dev default is Lax; COOKIE_SAMESITE=Lax override works in production", async () => {
     expect((await post(mk(false), "telegram", tg({ id: 555004 }))).headers.get("set-cookie")).toMatch(/SameSite=Lax/i);
     expect((await post(mk(true, "Lax"), "telegram", tg({ id: 555005 }))).headers.get("set-cookie")).toMatch(/SameSite=Lax/i);
