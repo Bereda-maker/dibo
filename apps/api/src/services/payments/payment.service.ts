@@ -60,8 +60,10 @@ export class PaymentService {
       try {
         const receiptPath = await this.storage.put(`receipts/${p.id}/${p.attempt}.${file.ext}`, input.bytes);
         await this.repo.setReceipt(p.id, receiptPath);
+        return true;
       } catch (e) {
         log("error", "receipt storage failed", { paymentId: p.id, kind: e instanceof Error ? e.name : "UNKNOWN" });
+        return false;
       }
     };
     try {
@@ -78,8 +80,9 @@ export class PaymentService {
       if (e.kind === "INVALID_RECEIPT" || e.kind === "NOT_FOUND") { await this.repo.finalize(p.id, { status: "FAILED", result: { failure: e.kind } }); return { reference, status: "FAILED" as const }; }
       if (e.kind === "CONFLICT") return { reference, status: "VERIFYING" as const }; // same key already in flight: the webhook will finish it
       if (isRecoverable(e.kind)) {
-        await saveReceipt();
+        const saved = await saveReceipt();
         await this.repo.release(p.id);
+        if (!saved) throw new AppError(503, "MANUAL_REVIEW_UNAVAILABLE", "We could not securely save your receipt for admin review. Please try again later.");
         await this.repo.markManualReview(p.id, e.kind);
         return { reference, status: "MANUAL_REVIEW" as const };
       }
