@@ -9,10 +9,10 @@ export class LearningService {
   constructor(private db: Db, private progress: ProgressService) {}
 
   async exams(studentId: string, isPremium: boolean) {
-    const list = await this.db.select().from(exams).where(and(eq(exams.status, "PUBLISHED"), isNull(exams.deletedAt))).orderBy(exams.type, exams.title);
+    const list = await this.db.select({ exam: exams, subjectName: subjects.names }).from(exams).leftJoin(subjects, eq(exams.subjectId, subjects.id)).where(and(eq(exams.status, "PUBLISHED"), isNull(exams.deletedAt))).orderBy(exams.type, exams.title);
     const mine = await this.db.select({ examId: examAttempts.examId, id: examAttempts.id, status: examAttempts.status, pct: examAttempts.percentage }).from(examAttempts).where(eq(examAttempts.studentId, studentId));
-    return list.map((e) => { const a = mine.filter((m) => m.examId === e.id);
-      return { id: e.id, type: e.type, title: e.title, description: e.description, minutes: e.durationMinutes, questionCount: e.questionCount, passingScore: e.passingScore, locked: e.requiresPremium && !isPremium,
+    return list.map(({ exam: e, subjectName }) => { const a = mine.filter((m) => m.examId === e.id);
+      return { id: e.id, type: e.type, title: e.title, description: e.description, minutes: e.durationMinutes, questionCount: e.questionCount, passingScore: e.passingScore, subjectId: e.subjectId, subjectName: subjectName?.en ?? null, locked: e.requiresPremium && !isPremium,
         bestPercentage: a.filter((x) => x.status !== "IN_PROGRESS").reduce<number | null>((b, x) => Math.max(b ?? 0, Number(x.pct ?? 0)), null), inProgressAttemptId: a.find((x) => x.status === "IN_PROGRESS")?.id ?? null }; });
   }
 

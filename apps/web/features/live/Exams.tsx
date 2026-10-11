@@ -10,12 +10,54 @@ import { useApi } from "../../lib/useApi";
 import { fmtTime } from "../../lib/exam";
 import { Async, diffTone } from "./shared";
 
-type ExamRow = { id: string; type: string; title: string; description: string | null; minutes: number; questionCount: number; passingScore: number; locked: boolean; bestPercentage: number | null; inProgressAttemptId: string | null };
+type ExamRow = { id: string; type: string; title: string; description: string | null; minutes: number; questionCount: number; passingScore: number; locked: boolean; bestPercentage: number | null; inProgressAttemptId: string | null; subjectId?: string | null; subjectName?: string | null };
+
+type CatalogExam = ExamRow & { subjectKey: string; subjectLabel: string };
+
+const subjectPalette = [
+  { tint: "#0b5d3b", soft: "#e8f4ee" },
+  { tint: "#2563a6", soft: "#eaf2fb" },
+  { tint: "#b7791f", soft: "#fbf3df" },
+  { tint: "#8a3b6e", soft: "#f7eaf3" },
+  { tint: "#6b4bb1", soft: "#f0ebfb" },
+];
+
+function catalogSubject(e: ExamRow) {
+  if (e.subjectId || e.subjectName) return { key: e.subjectId ?? e.subjectName!, label: e.subjectName ?? "Subject" };
+  if (e.type === "DIAGNOSTIC") return { key: "all-subjects", label: "All subjects" };
+  if (e.type === "MOCK") return { key: "all-subjects", label: "All subjects" };
+  return { key: "other", label: "Other exams" };
+}
+
+export function ExamCatalog({ rows }: { rows: ExamRow[] }) {
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const catalog = rows.map((e) => ({ ...e, ...catalogSubject(e) })).map((e) => ({ ...e, subjectKey: e.key, subjectLabel: e.label }));
+  const subjects = Array.from(new Map(catalog.map((e) => [e.subjectKey, e])).values()).map((first, index) => {
+    const palette = subjectPalette[index % subjectPalette.length] ?? subjectPalette[0]!;
+    return { key: first.subjectKey, label: first.subjectLabel, exams: catalog.filter((e) => e.subjectKey === first.subjectKey), palette };
+  });
+  const selected = subjects.find((x) => x.key === selectedSubject);
+
+  if (!rows.length) return <EmptyState title="No exams published yet" body="Check back soon." />;
+  return <div className="space-y-6">
+    <div className="relative overflow-hidden rounded-[1.5rem] border border-primary/15 bg-gradient-to-br from-primary to-secondary p-5 text-white shadow-card sm:p-7">
+      <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-accent/20 blur-2xl" aria-hidden />
+      <div className="relative max-w-2xl"><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Your exam library</p><h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">Choose a subject. Find your next win.</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-white/75">Start with a subject to see topic quizzes, subject tests, and mock exams in one focused view.</p><div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-white/80"><span className="rounded-full bg-white/10 px-3 py-1.5">{rows.length} exams available</span><span className="rounded-full bg-white/10 px-3 py-1.5">Progress saved automatically</span></div></div>
+    </div>
+    {selected ? <section aria-labelledby="selected-subject-heading">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><button type="button" onClick={() => setSelectedSubject(null)} className="mb-2 inline-flex min-h-[36px] items-center gap-1 rounded-lg px-2 text-sm font-semibold text-primary hover:bg-primary/10"><ChevronLeft size={16} />All subjects</button><h2 id="selected-subject-heading" className="text-2xl font-bold">{selected.label}</h2><p className="mt-1 text-sm text-muted">{selected.exams.length} exam{selected.exams.length === 1 ? "" : "s"} to help you practice with purpose.</p></div><span className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted">Subject view</span></div>
+      <div className="grid gap-4 sm:grid-cols-2">{selected.exams.map((e) => <ExamCard key={e.id} exam={e} />)}</div>
+    </section> : <section aria-labelledby="subject-heading"><div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Browse by subject</p><h2 id="subject-heading" className="mt-1 text-2xl font-bold">What are you studying today?</h2></div><span className="hidden text-sm text-muted sm:block">{subjects.length} areas</span></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{subjects.map((subject, index) => { const best = subject.exams.filter((e) => e.bestPercentage != null).map((e) => e.bestPercentage!); const locked = subject.exams.filter((e) => e.locked).length; return <button type="button" key={subject.key} onClick={() => setSelectedSubject(subject.key)} className="group relative overflow-hidden rounded-[1.25rem] border border-border bg-surface p-5 text-left shadow-card transition duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><span className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: subject.palette.tint }} /><div className="flex items-start justify-between gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-extrabold" style={{ color: subject.palette.tint, backgroundColor: subject.palette.soft }}>{String(index + 1).padStart(2, "0")}</span><span className="rounded-full bg-border/50 px-2.5 py-1 text-xs font-semibold text-muted">{subject.exams.length} exam{subject.exams.length === 1 ? "" : "s"}</span></div><h3 className="mt-5 text-lg font-bold">{subject.label}</h3><p className="mt-1 text-sm text-muted">{locked ? `${locked} premium option${locked === 1 ? "" : "s"} · ` : ""}{best.length ? `Best ${Math.round(Math.max(...best))}%` : "Ready when you are"}</p><div className="mt-5 flex items-center justify-between text-sm font-bold" style={{ color: subject.palette.tint }}><span>Explore exams</span><span className="transition-transform group-hover:translate-x-1" aria-hidden>→</span></div></button>; })}</div></section>}
+  </div>;
+}
+
+function ExamCard({ exam: e }: { exam: CatalogExam }) {
+  return <Card className="group relative overflow-hidden !p-0 transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"><div className="h-1.5 bg-gradient-to-r from-primary via-primary-light to-accent" /><div className="p-5"><div className="flex items-center justify-between gap-3"><Badge tone={e.type === "MOCK" ? "accent" : e.type === "DIAGNOSTIC" ? "info" : "muted"}>{e.type === "DIAGNOSTIC" ? "ASSESSMENT" : e.type}</Badge>{e.locked && <Lock size={17} className="text-accent" aria-label="Premium" />}</div><h3 className="mt-3 text-lg font-bold leading-snug">{e.title}</h3>{e.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{e.description}</p>}<div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-muted"><span className="rounded-full bg-border/45 px-2.5 py-1.5">{e.questionCount} questions</span><span className="rounded-full bg-border/45 px-2.5 py-1.5"><Clock size={13} className="mr-1 inline" />{e.minutes} min</span>{e.bestPercentage != null && <span className="rounded-full bg-success/10 px-2.5 py-1.5 text-success">Best {Math.round(e.bestPercentage)}%</span>}</div><Button href={e.locked ? "/pricing" : `/exams/${e.id}${e.inProgressAttemptId ? `?attempt=${e.inProgressAttemptId}` : ""}`} variant={e.locked ? "secondary" : "primary"} className="mt-5 w-full sm:w-auto">{e.locked ? "View premium" : e.inProgressAttemptId ? "Continue exam" : "Start exam"}</Button></div></Card>;
+}
+
 export function LiveExams() {
   const q = useApi(() => api<ExamRow[]>("/exams"));
-  return <><PageHeader title="Exams" sub="Topic quizzes, subject tests and full mock examinations." /><Async q={q}>{(rows) => rows.length ? <div className="grid gap-4 sm:grid-cols-2">{rows.map((e) => <Card key={e.id}><div className="flex items-center justify-between"><Badge tone={e.type === "MOCK" ? "accent" : "info"}>{e.type}</Badge>{e.locked && <Lock size={16} className="text-accent" aria-label="Premium" />}</div>
-    <h2 className="mt-2 font-bold">{e.title}</h2><p className="text-sm text-muted">{e.description}</p><p className="mt-2 text-xs text-muted">{e.questionCount} questions · {e.minutes} min{e.bestPercentage != null ? ` · Best ${Math.round(e.bestPercentage)}%` : ""}</p>
-    <Button href={e.locked ? "/pricing" : `/exams/${e.id}${e.inProgressAttemptId ? `?attempt=${e.inProgressAttemptId}` : ""}`} variant={e.locked ? "secondary" : "primary"} className="mt-3">{e.locked ? "Premium" : e.inProgressAttemptId ? "Continue" : "Start"}</Button></Card>)}</div> : <EmptyState title="No exams published yet" body="Check back soon." />}</Async></>;
+  return <><PageHeader title="Exams" sub="A calmer way to move from subject practice to confident exam day." /><Async q={q}>{(rows) => <ExamCatalog rows={rows} />}</Async></>;
 }
 
 type QItem = { id: string; text: string; type: string; difficulty: string; topicId: string; topicName: string; options: { id: string; text: string }[]; yourOptionId: string | null; yourNumeric: number | null; correctOptionId?: string | null; correctNumeric?: number | null; explanation?: string; isCorrect?: boolean | null };
@@ -25,16 +67,16 @@ type Ans = { selectedOptionId?: string | null; numericAnswer?: number | null };
 function Runner({ attemptId }: { attemptId: string }) {
   const router = useRouter(); const toast = useToast(); const q = useApi(() => api<Attempt>(`/attempts/${attemptId}`), [attemptId]);
   const [answers, setAnswers] = useState<Record<string, Ans>>({}); const [flag, setFlag] = useState<string[]>([]); const [idx, setIdx] = useState(0); const [confirm, setConfirm] = useState(false);
-  const [now, setNow] = useState(Date.now()); const [unsaved, setUnsaved] = useState(false); const offset = useRef(0); const pending = useRef<Record<string, Ans>>({}); const busy = useRef(false); const submitting = useRef(false);
+  const [now, setNow] = useState(Date.now()); const [unsaved, setUnsaved] = useState(false); const [submitState, setSubmitState] = useState<"idle" | "saving" | "submitting" | "complete">("idle"); const offset = useRef(0); const pending = useRef<Record<string, Ans>>({}); const busy = useRef(false); const submitting = useRef(false);
   useEffect(() => { const a = q.data; if (!a) return; offset.current = new Date(a.serverNow).getTime() - Date.now(); if (a.status !== "IN_PROGRESS") { router.replace(`/results/${a.id}`); return; }
     setAnswers(Object.fromEntries(a.questions.filter((x) => x.yourOptionId || x.yourNumeric != null).map((x) => [x.id, { selectedOptionId: x.yourOptionId, numericAnswer: x.yourNumeric }]))); }, [q.data, router]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
-  const flush = useCallback(async () => { if (busy.current || !Object.keys(pending.current).length) return; busy.current = true; const batch = pending.current; pending.current = {};
+  const flush = useCallback(async () => { if (busy.current) await new Promise<void>((resolve) => { const wait = () => busy.current ? window.setTimeout(wait, 50) : resolve(); wait(); }); if (!Object.keys(pending.current).length) return; busy.current = true; const batch = pending.current; pending.current = {};
     try { const r = await api<{ expired?: boolean }>(`/attempts/${attemptId}/answers`, { method: "PUT", body: { answers: Object.entries(batch).map(([questionId, a]) => ({ questionId, ...a })) } }); setUnsaved(Object.keys(pending.current).length > 0); if (r.expired) router.replace(`/results/${attemptId}`); }
     catch (e) { pending.current = { ...batch, ...pending.current }; setUnsaved(true); if (e instanceof ApiError && e.code === "ATTEMPT_CLOSED") router.replace(`/results/${attemptId}`); } finally { busy.current = false; } }, [attemptId, router]);
   useEffect(() => { const t = setInterval(() => void flush(), 4000); return () => clearInterval(t); }, [flush]); // retries failed saves
   useEffect(() => { const h = (e: BeforeUnloadEvent) => { if (unsaved) e.preventDefault(); }; addEventListener("beforeunload", h); return () => removeEventListener("beforeunload", h); }, [unsaved]);
-  const submit = useCallback(async () => { if (submitting.current) return; submitting.current = true; try { await flush(); await api(`/attempts/${attemptId}/submit`, { method: "POST", body: {} }); router.replace(`/results/${attemptId}`); } catch (e) { submitting.current = false; toast(e instanceof ApiError ? e.message : "Could not submit. Try again.", "error"); } }, [attemptId, flush, router, toast]);
+  const submit = useCallback(async () => { if (submitting.current) return; submitting.current = true; setSubmitState("saving"); try { await flush(); setSubmitState("submitting"); await api(`/attempts/${attemptId}/submit`, { method: "POST", body: {} }); setSubmitState("complete"); window.setTimeout(() => router.replace(`/results/${attemptId}`), 350); } catch (e) { submitting.current = false; setSubmitState("idle"); toast(e instanceof ApiError ? e.message : "Could not submit. Try again.", "error"); } }, [attemptId, flush, router, toast]);
   const a = q.data; const remaining = a ? Math.ceil((new Date(a.deadlineAt).getTime() - (now + offset.current)) / 1000) : 1;
   useEffect(() => { if (a && a.status === "IN_PROGRESS" && remaining <= 0) void submit(); }, [a, remaining, submit]);
   return <Async q={q} rows={3}>{(att) => { if (att.status !== "IN_PROGRESS") return null; const qs = att.questions; const cur = qs[idx]!; const ans = answers[cur.id]; const done = Object.values(answers).filter((x) => x.selectedOptionId || x.numericAnswer != null).length;
@@ -49,7 +91,7 @@ function Runner({ attemptId }: { attemptId: string }) {
       <div className="flex justify-between gap-2"><Button variant="secondary" disabled={idx === 0} onClick={() => setIdx(idx - 1)}><ChevronLeft size={16} />Previous</Button>{idx < qs.length - 1 ? <Button onClick={() => setIdx(idx + 1)}>Next<ChevronRight size={16} /></Button> : <Button onClick={() => setConfirm(true)}>Submit</Button>}</div>
       <nav aria-label="Question navigator" className="flex flex-wrap gap-2">{qs.map((x, i) => { const d = answers[x.id]?.selectedOptionId || answers[x.id]?.numericAnswer != null; return <button key={x.id} onClick={() => setIdx(i)} aria-label={`Question ${i + 1}${d ? ", answered" : ""}${flag.includes(x.id) ? ", flagged" : ""}`} aria-current={i === idx} className={cx("h-10 w-10 rounded-lg border text-sm font-semibold", i === idx && "ring-2 ring-accent", d ? "border-primary bg-primary text-white" : "border-border", flag.includes(x.id) && "border-2 border-warning")}>{i + 1}</button>; })}</nav>
       <div className="text-center"><Button variant="ghost" onClick={() => setConfirm(true)}>Submit exam</Button></div>
-      <Modal open={confirm} title="Submit your exam?" onClose={() => setConfirm(false)}><p className="text-sm">{qs.length - done > 0 ? `${qs.length - done} question(s) are unanswered. ` : "All questions are answered. "}You cannot change answers after submitting.</p><div className="mt-4 flex gap-2"><Button onClick={submit}>Submit now</Button><Button variant="secondary" onClick={() => setConfirm(false)}>Keep working</Button></div></Modal></div>; }}</Async>;
+      <Modal open={confirm} title={submitState === "idle" ? "Submit your exam?" : "Submitting your exam…"} onClose={() => { if (submitState === "idle") setConfirm(false); }}><p className="text-sm">{submitState === "idle" ? <>{qs.length - done > 0 ? `${qs.length - done} question(s) are unanswered. ` : "All questions are answered. "}You cannot change answers after submitting.</> : <span role="status">{submitState === "saving" ? "Saving your latest answers securely…" : submitState === "submitting" ? "Checking your answers and preparing your results…" : "Submission complete. Loading your results…"}</span>}</p>{submitState !== "idle" && <div className="mt-5"><div className="mb-2 flex justify-between text-xs font-semibold text-muted"><span>{submitState === "saving" ? "Saving answers" : submitState === "submitting" ? "Submitting" : "Complete"}</span><span>{submitState === "saving" ? "35%" : submitState === "submitting" ? "75%" : "100%"}</span></div><div className="h-3 overflow-hidden rounded-full bg-border" role="progressbar" aria-label="Exam submission progress" aria-valuenow={submitState === "saving" ? 35 : submitState === "submitting" ? 75 : 100} aria-valuemin={0} aria-valuemax={100}><div className={cx("h-full rounded-full bg-gradient-to-r from-primary-light via-primary to-accent transition-all duration-500", submitState !== "complete" && "animate-pulse")} style={{ width: submitState === "saving" ? "35%" : submitState === "submitting" ? "75%" : "100%" }} /></div></div>}{submitState === "idle" && <div className="mt-4 flex gap-2"><Button onClick={submit}>Submit now</Button><Button variant="secondary" onClick={() => setConfirm(false)}>Keep working</Button></div>}</Modal></div>; }}</Async>;
 }
 
 function ExamPageInner({ examId }: { examId: string }) {
