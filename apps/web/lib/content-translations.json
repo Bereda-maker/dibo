@@ -140,8 +140,8 @@
     "om": "Bulchaa"
   },
   "Admin dashboard": {
-    "am": "የአስተዳደር ዳሽቦርድ",
-    "om": "Daashiboorɗii Bulchaa"
+    "am": "የአስተዳዳሪ ዳሽቦርድ",
+    "om": "Daashboordii bulchaa"
   },
   "Admin overview": {
     "am": "የአስተዳደር እይታ",
@@ -328,8 +328,8 @@
     "om": "Sirna barnootaa si fuulduratti tarkaanfachiisu ijaari."
   },
   "Built around steady progress": {
-    "am": "በቋሚ እድገት የተገነባ",
-    "om": "Guddina tasgabbaaʼaa irratti hundaaʼe"
+    "am": "በቀጣይ እድገት የተገነባ",
+    "om": "Guddina itti fufiinsa qabu irratti kan hundaa’e"
   },
   "By continuing, you agree to Dibora’s": {
     "am": "ቀጥሎ በመቀጠል የDibora’s ህጎችን ተቀብለዋል።",
@@ -428,8 +428,8 @@
     "om": "Ingiliizii"
   },
   "Every part of preparation, working together.": {
-    "am": "የዝግጅት እያንዳንዱ ክፍል በትብብር ይሰራ",
-    "om": "Qophii hunda, waliin hojjetamee."
+    "am": "እያንዳንዱ የዝግጅት ክፍል በአንድነት ይሰራል።",
+    "om": "Qophiin hundi walitti hidhamee hojjechaa jira."
   },
   "Everything works together": {
     "am": "ሁሉም ነገር በአንድነት ይሰራል",
@@ -464,8 +464,8 @@
     "om": "Bara qormaataa"
   },
   "Example study focus": {
-    "am": "የምሳሌ የትምህርት ትኩረት",
-    "om": "Fakkeenya xiyyeeffannaa barnootaa"
+    "am": "የጥናት ትኩረት ምሳሌ",
+    "om": "Fakkeenya xiyyeeffannoo barnootaa"
   },
   "Exams": {
     "am": "ፈተናዎች",
@@ -488,8 +488,8 @@
     "om": "Qormaata qoradhaa"
   },
   "Explore features": {
-    "am": "ባህሪያትን ይመርምሩ",
-    "om": "Amalawwan qoradhaa"
+    "am": "ባህሪያትን ያስሱ",
+    "om": "Amaloota qoradhu"
   },
   "Explore the learning tools, see how the study cycle works, or send the team a question.": {
     "am": "የትምህርት መሣሪያዎችን ይመርምሩ፣ የጥናት ሂደት እንዴት እንደሚሰራ ይዩ ወይም ጥያቄ ለቡድኑ ይላኩ።",
@@ -552,8 +552,8 @@
     "om": "Gaaffilee yeroo baay'ee dogoggoran"
   },
   "From the first diagnostic to your final review, Dibora gives you a structured way to learn, practise and understand your progress.": {
-    "am": "ከመጀመሪያ ዲያግኖሲስ እስከ መጨረሻ እይታዎ ድረስ፣ Dibora የተዋሰነ ስርዓተ-መንገድ ለማማር፣ ለልምድ እና ለእውቀት የሚረዳዎትን መንገድ ይሰጣል።",
-    "om": "Dibora irraa jalqabee qorannoo duraa hanga ilaalcha dhumaa keetti, karaa qindaa'aa barachuu, shaakalu fi guddina keetii hubachuu siif kenna."
+    "am": "ከመጀመሪያው ምርመራ እስከ የመጨረሻ ግምገማህ ድረስ፣ ዲቦራ ለመማር፣ ለመለማመድና እድገትህን ለመረዳት የተደራጀ መንገድ ይሰጥሃል።",
+    "om": "Qorannoo jalqabaa irraa kaasee hanga gamaaggama dhumaa keetti, Dibora barachuu, shaakaluu fi guddina kee hubachuuf karaa qindaa’aa siif kenna."
   },
   "Full name": {
     "am": "ሙሉ ስም",
@@ -568,8 +568,8 @@
     "om": "Daashibordii dhaqaa"
   },
   "Good to know": {
-    "am": "ለማወቅ ጥሩ",
-    "om": "Beekuuf gaarii dha"
+    "am": "ማወቅ የሚገባህ",
+    "om": "Gaarii beekuu"
   },
   "Google": {
     "am": "Google",
@@ -608,7 +608,7 @@
     "om": "Maqaa"
   },
   "Need another answer?": {
-    "am": "ሌላ መልስ ይፈልጋሉ?",
+    "am": "ሌላ መልስ ያስፈልግሃል?",
     "om": "Deebii biraa barbaaddaa?"
   },
   "Needs attention": {
@@ -688,8 +688,8 @@
     "om": "Yeroo kana keessatti dalagaa barnootaa hin galmeeffamne."
   },
   "No long setup form to begin—choose Google or Telegram, then complete the details that help personalize your learning.": {
-    "am": "ለመጀመር ረዥም የመረጃ ቅርጽ የለም—Google ወይም Telegram ይምረጡ ከዚያም ለትምህርትዎ ልዩነት የሚሰጡ ዝርዝሮችን ይጨምሩ።",
-    "om": "Furmaata dheeraa hin barbaachisu—Google yookiin Telegram filadhu, achiin odeeffannoo barnootaa siif adda baasuu guuti."
+    "am": "ለመጀመር ረጅም ቅጽ አያስፈልግም—Google ወይም Telegram ምረጥ፣ ከዚያም ትምህርትህን የሚስማማ መረጃ ሙላ።",
+    "om": "Jalqabuuf unka dheeraan hin barbaachisu—Google ykn Telegram filadhu, sana booda odeeffannoo barnoota kee dhuunfachuuf gargaaru guuti."
   },
   "No matching questions. Create a draft below or change filters.": {
     "am": "ማስማቴ ጥያቄዎች የሉም። ከታች ንድፍ ይፍጠሩ ወይም ፊልተሮችን ይቀይሩ።",
@@ -772,8 +772,8 @@
     "om": "Lakkoofsaa"
   },
   "One learning loop. Better every time.": {
-    "am": "አንድ የመማር ማለት፣ በየጊዜው ይሻላል።",
-    "om": "Marsaa barnootaa tokko. Yeroo hunda fooyya'a."
+    "am": "አንድ የመማር ዑደት። በእያንዳንዱ ጊዜ የተሻለ።",
+    "om": "Marsaa barnootaa tokko. Yeroo hunda fooyya’aa."
   },
   "One step at a time": {
     "am": "እያንዳንዱን እርምጃ አንድ በአንድ",
@@ -828,8 +828,8 @@
     "om": "Maxxanfame"
   },
   "Paid plan availability, payment instructions and verification details are shown in the app before you proceed.": {
-    "am": "የክፍያ የተከፈለ እቅድ እንዲገኝ፣ የክፍያ መመሪያና የተረጋጋ መረጃዎች በመተግበሪያው ከመቀጠልዎ በፊት ይታያሉ።",
-    "om": "Karoora kaffaltii kaffalamu, akeekkachiisa kaffaltii fi odeeffannoo mirkaneessuu app keessatti si dura ni mulʼatu."
+    "am": "የክፍያ ዕቅዶች፣ የክፍያ መመሪያዎችና የማረጋገጫ ዝርዝሮች ከመቀጠልህ በፊት በመተግበሪያው ይታያሉ።",
+    "om": "Karoora kaffaltii, qajeelfama kaffaltii fi bal’inni mirkaneessaa itti fufuuf dura app keessatti mul’atu."
   },
   "Pass mark": {
     "am": "የማለፊያ ነጥብ",
@@ -892,8 +892,8 @@
     "om": "Metriksiwwan bu'uuraa platformii"
   },
   "Please do not include passwords, payment details or sensitive personal information in feedback.": {
-    "am": "እባክዎ የይለፍ ቃላት፣ የክፍያ ዝርዝሮች ወይም የግል የሚያስደንግጡ መረጃዎች በእትም አትጨምሩ።",
-    "om": "Mee password, odeeffannoo kaffaltii ykn odeeffannoo dhuunfaa xaxamaa feedback keessa hin galchinaa."
+    "am": "እባክህ በአስተያየትህ ውስጥ የይለፍ ቃል፣ የክፍያ ዝርዝር ወይም ሚስጥራዊ የግል መረጃ አታካትት።",
+    "om": "Maaloo yaada keessatti jecha iccitii, odeeffannoo kaffaltii ykn odeeffannoo dhuunfaa miira-qabeessa hin galchin."
   },
   "Practice": {
     "am": "ልምድ",
@@ -964,8 +964,8 @@
     "om": "Ijo"
   },
   "Privacy": {
-    "am": "የግላዊነት",
-    "om": "Dhuunfa"
+    "am": "ግላዊነት",
+    "om": "Dhuunfaa"
   },
   "Profile": {
     "am": "መገለጫ",
@@ -1052,12 +1052,12 @@
     "om": "Gaaffilee deebifaman"
   },
   "Questions, answered clearly.": {
-    "am": "ጥያቄዎች፣ በግልጽ ተመለሱ።",
-    "om": "Gaaffilee, ifaan deebifaman."
+    "am": "ጥያቄዎች፣ በግልጽ መልስ ተሰጥቷቸዋል።",
+    "om": "Gaaffilee, ifatti deebifaman."
   },
   "Questions, ideas or feedback?": {
-    "am": "ጥያቄዎች፣ ሃሳቦች ወይም አስተያየት?",
-    "om": "Gaaffilee, yaada yookin deebii?"
+    "am": "ጥያቄዎች፣ ሀሳቦች ወይም አስተያየቶች?",
+    "om": "Gaaffii, yaada ykn yaada deebii qabdaa?"
   },
   "Quick actions": {
     "am": "ፈጣን እርምጃዎች",
@@ -1080,8 +1080,8 @@
     "om": "Qophii gorsa barnootaa dha; bu'aa qormaata seeraa hin tilmaamu. Odeeffannoo barnootaa dhuunfaa keessan iccitiidha."
   },
   "Ready to find your focus?": {
-    "am": "ትኩረትህን ለማግኘት ዝግጁ?",
-    "om": "Xiyyeeffannoo kee argachuuf qophaa'aa?"
+    "am": "ትኩረትህን ለማግኘት ዝግጁ ነህ?",
+    "om": "Xiyyeeffannoo kee argachuuf qophiidhaa?"
   },
   "Recent active days": {
     "am": "የቅርብ ጊዜ ንቁ ቀናት",
@@ -1296,8 +1296,8 @@
     "om": "Qormaata qorannoo (diagnostic) kee fudhadhu"
   },
   "Talk to Dibora": {
-    "am": "ከDibora ጋር ይነጋገሩ",
-    "om": "Dibora waliin dubbadhu"
+    "am": "ከዲቦራ ጋር ይነጋገሩ",
+    "om": "Dibora waliin haasa’i"
   },
   "Telegram": {
     "am": "Telegram",
@@ -1372,8 +1372,8 @@
     "om": "Mata-duree"
   },
   "Tools for every part of preparation.": {
-    "am": "ለእያንዳንዱ ክፍል የእርዳታ መሣሪያዎች።",
-    "om": "Meeshaalee qophii hundaaf."
+    "am": "ለእያንዳንዱ የዝግጅት ክፍል መሣሪያዎች።",
+    "om": "Meeshaalee qophii kutaalee hundaaf."
   },
   "Topic": {
     "am": "ጉዳይ",
@@ -1476,8 +1476,8 @@
     "om": "Kan koo kuufame"
   },
   "My profile": {
-    "am": "መገለጫዬ",
-    "om": "Piroofiila koo"
+    "am": "የእኔ መገለጫ",
+    "om": "Profaayila koo"
   },
   "Search failed.": {
     "am": "ፍለጋ አልተሳካም.",
@@ -1521,7 +1521,7 @@
   },
   "See how it works": {
     "am": "እንዴት እንደሚሰራ ይመልከቱ",
-    "om": "Akkaataa hojjetu ilaali"
+    "om": "Akka inni itti hojjetu ilaali"
   },
   "See how the journey works": {
     "am": "ጉዞው እንዴት እንደሚሰራ ይመልከቱ",
@@ -1558,5 +1558,105 @@
   "Selected period activity": {
     "am": "የተመረጠ ጊዜ እንቅስቃሴ",
     "om": "Sochii yeroo filatame"
+  },
+  "Home": {
+    "am": "መነሻ",
+    "om": "Fuula jalqabaa"
+  },
+  "Features": {
+    "am": "ባህሪያት",
+    "om": "Amaloota"
+  },
+  "How it works": {
+    "am": "እንዴት እንደሚሰራ",
+    "om": "Akka inni itti hojjetu"
+  },
+  "Pricing": {
+    "am": "ዋጋዎች",
+    "om": "Gatii"
+  },
+  "FAQ": {
+    "am": "ተደጋጋሚ ጥያቄዎች",
+    "om": "Gaaffilee yeroo baay’ee gaafataman"
+  },
+  "About": {
+    "am": "ስለ ዲቦራ",
+    "om": "Waa’ee Dibora"
+  },
+  "Contact": {
+    "am": "አግኙን",
+    "om": "Nu qunnamaa"
+  },
+  "Log in": {
+    "am": "ግባ",
+    "om": "Seeni"
+  },
+  "Start free": {
+    "am": "በነጻ ጀምር",
+    "om": "Bilisaa jalqabi"
+  },
+  "Start learning": {
+    "am": "መማር ጀምር",
+    "om": "Barachuu jalqabi"
+  },
+  "My learning": {
+    "am": "የእኔ ትምህርት",
+    "om": "Barnoota koo"
+  },
+  "Student account": {
+    "am": "የተማሪ መለያ",
+    "om": "Herrega barataa"
+  },
+  "Administrator": {
+    "am": "አስተዳዳሪ",
+    "om": "Bulchaa"
+  },
+  "Log out": {
+    "am": "ውጣ",
+    "om": "Ba’i"
+  },
+  "Your study toolkit": {
+    "am": "የጥናት መሣሪያዎችህ",
+    "om": "Meeshaalee barnootaa kee"
+  },
+  "Send a message": {
+    "am": "መልዕክት ላክ",
+    "om": "Ergaa ergi"
+  },
+  "We value your perspective": {
+    "am": "አስተያየትህን እናከብራለን",
+    "om": "Yaada kee ni dinqisiifanna"
+  },
+  "Continue to Dibora": {
+    "am": "ወደ ዲቦራ ቀጥል",
+    "om": "Gara Diboraatti itti fufi"
+  },
+  "Continue with Google or Telegram": {
+    "am": "በGoogle ወይም Telegram ቀጥል",
+    "om": "Google ykn Telegram waliin itti fufi"
+  },
+  "Make your effort count.": {
+    "am": "ጥረትህ ውጤት ያምጣ።",
+    "om": "Carraan kee bu’aa haa fidu."
+  },
+  "Practice with purpose": {
+    "am": "በዓላማ ተለማመድ",
+    "om": "Kaayyoo waliin shaakali"
+  },
+  "Progress you can see": {
+    "am": "ማየት የምትችለው እድገት",
+    "om": "Guddina arguu dandeessu"
+  },
+  "Dibora connects what you learn, the questions you practice and the progress you make—so it is easier to keep moving forward.": {
+    "am": "ዲቦራ የምትማረውን፣ የምትለማመደውን ጥያቄና የምታደርገውን እድገት ያገናኛል፤ ስለዚህ ወደፊት መቀጠል ይቀላል።",
+    "om": "Dibora waan barattu, gaaffilee shaakaltuufi guddina gootu walitti hidha; kanaaf fuulduratti itti fufuun salphata."
+  },
+  "When the syllabus feels huge, a small, clear next step can make all the difference.": {
+    "am": "ሥርዓተ ትምህርቱ ትልቅ ሲመስል፣ ትንሽና ግልጽ ቀጣይ እርምጃ ሁሉንም ሊቀይር ይችላል።",
+    "om": "Yeroo silabasichi guddaa fakkaatutti, tarkaanfiin itti aanu xiqqaa fi ifa ta’e garaagarummaa hunda fiduu danda’a."
+  },
+  "Start free. Upgrade when you are ready.": {
+    "am": "በነጻ ጀምር። ዝግጁ ስትሆን አሻሽል።",
+    "om": "Bilisaa jalqabi. Yeroo qophooftetti fooyyessi."
   }
 }
