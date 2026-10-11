@@ -21,7 +21,8 @@ export const subscriptionRoutes = (checkout: CheckoutService, payments: PaymentS
   r.post("/payments/:reference/submit", rateLimit({ limit: 6, windowMs: 60_000, prefix: "pay-submit", keyBy: "user" }),
     bodyLimit({ maxSize: MAX_RECEIPT_BYTES + 256 * 1024, onError: (c) => c.json({ success: false, error: { code: "BAD_REQUEST", message: "Receipt image must be 8 MB or smaller" } }, 413) }),
     zValidator("param", z.object({ reference: ref })), async (c) => {
-      const form = await c.req.parseBody();
+      let form: Record<string, string | File>;
+      try { form = await c.req.parseBody(); } catch { throw Errors.badRequest("Could not read the receipt upload"); }
       const f = form["image"]; if (!(f instanceof File)) throw Errors.badRequest("Receipt image is required");
       const f2 = z.object({ method: z.string().min(2).max(30), transactionReference: z.string().max(64).optional() }).safeParse({ method: form["method"], transactionReference: typeof form["transactionReference"] === "string" ? form["transactionReference"] : undefined });
       if (!f2.success) throw f2.error;
