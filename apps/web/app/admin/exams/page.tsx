@@ -5,7 +5,9 @@ import { StatusTable } from "../../../components/StatusTable";
 import { DataTable } from "../../../components/DataTable";
 import { useAdmin, type Status } from "../../../lib/admin";
 import { SUBJECTS, TOPICS } from "../../../lib/mock";
-export default function P() {
+import { DEMO } from "../../../lib/config";
+import { LiveAdminExams } from "../../../features/live/AdminModules";
+function DemoExamsPage() {
   const { d, set } = useAdmin(); const toast = useToast(); const [open, setOpen] = useState(false); const [err, setErr] = useState("");
   const [f, setF] = useState({ title: "", subject: "all", topic: "all", difficulty: "all", count: 10, minutes: 20, random: true, limit: 3, premium: false });
   if (!d) return <Skeleton className="h-60" />;
@@ -27,3 +29,4 @@ export default function P() {
     <StatusTable rows={d.exams} cols={[{ key: "t", label: "Title", render: (r) => r.title }, { key: "ty", label: "Type", render: (r) => r.type }, { key: "c", label: "Questions", render: (r) => r.count }, { key: "m", label: "Minutes", render: (r) => r.minutes }, { key: "p", label: "Premium", render: (r) => (r.premium ? "Yes" : "No") }]}
       onChange={(ids, s: Status) => { set((x) => ({ ...x, exams: x.exams.map((e) => ids.includes(e.id) ? { ...e, status: s } : e) }), `Set ${ids.length} exams to ${s}`); toast(`${ids.length} → ${s}`); }} onDelete={(ids) => set((x) => ({ ...x, exams: x.exams.filter((e) => !ids.includes(e.id)) }), `Deleted ${ids.length} exams`)} />
     <h2 className="mb-2 mt-8 font-bold">Recent results (sample)</h2><Card><DataTable rows={[{ id: "1", s: "Selam T.", e: "Mock 1", p: 78 }, { id: "2", s: "Dawit M.", e: "Mock 1", p: 64 }, { id: "3", s: "Hana B.", e: "Diagnostic", p: 71 }]} cols={[{ key: "s", label: "Student", render: (r) => r.s }, { key: "e", label: "Exam", render: (r) => r.e }, { key: "p", label: "Score", render: (r) => `${r.p}%` }]} /></Card></>; }
+export default function Page() { return DEMO ? <DemoExamsPage /> : <LiveAdminExams />; }

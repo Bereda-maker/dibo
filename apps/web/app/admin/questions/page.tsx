@@ -5,9 +5,11 @@ import { Badge, Button, Card, Field, PageHeader, Skeleton, inputCls, useToast } 
 import { StatusTable } from "../../../components/StatusTable";
 import { useAdmin, type Status } from "../../../lib/admin";
 import { SUBJECTS, TOPICS, topicName, type Question } from "../../../lib/mock";
+import { DEMO } from "../../../lib/config";
+import { LiveAdminQuestions } from "../../../features/live/AdminModules";
 const PLACEHOLDER = "00000000-0000-4000-8000-000000000000"; // demo ids are not UUIDs; the shared rules still validate everything else
 const blank = { subjectId: "math", topicId: "alg", difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "", explanation: "", opts: ["", "", "", ""], correct: 0, numeric: "", tolerance: "0" };
-export default function P() {
+function DemoQuestionsPage() {
   const { d, set } = useAdmin(); const toast = useToast(); const [f, setF] = useState(blank); const [open, setOpen] = useState(false); const [err, setErr] = useState<string[]>([]); const [preview, setPreview] = useState(false);
   if (!d) return <Skeleton className="h-60" />;
   const parse = () => questionUpsertSchema.safeParse({ subjectId: PLACEHOLDER, topicId: PLACEHOLDER, difficulty: f.difficulty, type: f.type, text: f.text, explanation: f.explanation,
@@ -32,3 +34,4 @@ export default function P() {
       {preview && <div className="mt-3 rounded-xl border border-dashed border-border p-3 text-sm"><p className="font-semibold">{f.text || "(question text)"}</p>{f.type === "NUMERICAL" ? <p className="text-muted">Answer: {f.numeric}</p> : <ul className="mt-1 list-disc pl-5">{(f.type === "TRUE_FALSE" ? ["True", "False"] : f.opts).map((o, i) => <li key={i} className={i === f.correct ? "font-bold text-success" : ""}>{o}</li>)}</ul>}<p className="mt-1 text-muted">{f.explanation}</p></div>}
       <div className="mt-4 flex gap-2"><Button variant="secondary" onClick={() => { setPreview(true); const r = parse(); setErr(r.success ? [] : r.error.issues.map((i) => i.message)); }}>Preview & validate</Button><Button onClick={save}>Save draft</Button></div></Card>}
     <StatusTable rows={d.questions} cols={[{ key: "t", label: "Question", render: (r) => <span className="line-clamp-2 max-w-md">{r.text}</span> }, { key: "tp", label: "Topic", render: (r) => topicName(r.topicId) }, { key: "d", label: "Difficulty", render: (r) => <Badge tone="info">{r.difficulty}</Badge> }]} onChange={ch} onDelete={(ids) => set((x) => ({ ...x, questions: x.questions.filter((q) => !ids.includes(q.id)) }), `Deleted ${ids.length} questions`)} /></>; }
+export default function Page() { return DEMO ? <DemoQuestionsPage /> : <LiveAdminQuestions />; }

@@ -17,11 +17,11 @@ export default function Page() {
         </dl>
       </Card>
       <Card>
-        <div className="flex items-start gap-3"><span className="rounded-xl bg-success/10 p-2.5 text-success"><ShieldCheck size={20} aria-hidden="true" /></span><div><h2 className="font-bold">Privacy and safety</h2><p className="mt-1 text-sm leading-6 text-muted">The API screens prompt-injection attempts, sanitizes user input and model output, and keeps provider credentials on the server. AI requests are currently not exposed as an admin analytics feed.</p></div></div>
+        <div className="flex items-start gap-3"><span className="rounded-xl bg-success/10 p-2.5 text-success"><ShieldCheck size={20} aria-hidden="true" /></span><div><h2 className="font-bold">Privacy and safety</h2><p className="mt-1 text-sm leading-6 text-muted">The API screens prompt-injection attempts, sanitizes user input and model output, and keeps provider credentials on the server. Analytics provides a basic count of student AI messages, not conversation content.</p></div></div>
         <div className="mt-5 rounded-xl border border-border bg-bg p-4"><p className="text-sm font-semibold">Conversation review</p><p className="mt-1 text-sm leading-6 text-muted">Student conversations are private and are not displayed here. This console does not currently provide an authorized support or safety review workflow.</p></div>
       </Card>
       <Card className="lg:col-span-2">
-        <div className="flex items-start gap-3"><span className="rounded-xl bg-warning/10 p-2.5 text-warning"><AlertCircle size={20} aria-hidden="true" /></span><div><h2 className="font-bold">Usage analytics unavailable</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-muted">Request volume, latency, failure rates, token costs, student feedback, and per-plan usage limits are not currently provided by the admin API. No sample values are shown. Add server-side usage instrumentation before treating these figures as operational metrics.</p></div></div>
+        <div className="flex items-start gap-3"><span className="rounded-xl bg-warning/10 p-2.5 text-warning"><AlertCircle size={20} aria-hidden="true" /></span><div><h2 className="font-bold">Detailed usage analytics unavailable</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-muted">Latency, failure rates, token costs, student feedback, and per-plan usage limits are not currently provided by the admin API. No sample values are shown. Add server-side usage instrumentation before treating those figures as operational metrics.</p></div></div>
       </Card>
     </div>
   </>;

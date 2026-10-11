@@ -4,7 +4,9 @@ import { Button, Card, PageHeader, Skeleton, inputCls, useToast } from "../../..
 import { StatusTable } from "../../../components/StatusTable";
 import { useAdmin, type Status } from "../../../lib/admin";
 import { subjectName } from "../../../lib/mock";
-export default function P() {
+import { DEMO } from "../../../lib/config";
+import { LiveAdminContent } from "../../../features/live/AdminModules";
+function DemoContentPage() {
   const { d, set } = useAdmin(); const toast = useToast(); const [name, setName] = useState(""); if (!d) return <Skeleton className="h-60" />;
   type K = "subjects" | "topics" | "notes";
   const ch = (k: K) => (ids: string[], s: Status) => { set((x) => ({ ...x, [k]: (x[k] as { id: string }[]).map((r) => ids.includes(r.id) ? { ...r, status: s } : r) }) as typeof x, `Set ${ids.length} ${k} to ${s}`); toast(`${ids.length} ${k} → ${s}`); };
@@ -14,3 +16,4 @@ export default function P() {
     <div className="space-y-6"><Card><h2 className="mb-3 font-bold">Subjects</h2><StatusTable rows={d.subjects} cols={[{ key: "n", label: "Name", render: (r) => r.name }]} onChange={ch("subjects")} onDelete={rm("subjects")} /></Card>
       <Card><h2 className="mb-3 font-bold">Topics</h2><StatusTable rows={d.topics} cols={[{ key: "n", label: "Topic", render: (r) => r.name }, { key: "s", label: "Subject", render: (r) => subjectName(r.subjectId) }]} onChange={ch("topics")} onDelete={rm("topics")} /></Card>
       <Card><h2 className="mb-3 font-bold">Short notes</h2><StatusTable rows={d.notes} cols={[{ key: "n", label: "Title", render: (r) => r.title }]} onChange={ch("notes")} onDelete={rm("notes")} /></Card></div></>; }
+export default function Page() { return DEMO ? <DemoContentPage /> : <LiveAdminContent />; }

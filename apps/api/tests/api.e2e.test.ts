@@ -172,6 +172,56 @@ describe("admin API", () => {
     const [q2] = await raw.insert(s.questions).values({ subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "Incomplete question", explanation: "x" }).returning();
     expect((await post(`/api/admin/questions/${q2!.id}/publish`, {}, adm)).status).toBe(422);
   });
+  test("live admin modules use database-backed curriculum, question, exam, results, plans, analytics, and notifications", async () => {
+    const adm = await adminCookie("SUPER_ADMIN", "modules-admin@x.et");
+    const student = await signup("modules-student@x.et");
+    expect((await get("/api/admin/curriculum", student)).status).toBe(403);
+    const catalogBefore = (await (await get("/api/admin/curriculum", adm)).json()).data;
+    expect(catalogBefore.subjects.some((row: { id: string }) => row.id === subjectId)).toBe(true);
+    const createdSubject = await post("/api/admin/subjects", { grade: 11, slug: `admin-module-${Date.now()}`, names: { en: "Admin Module Test" }, sortOrder: 10 }, adm);
+    expect(createdSubject.status).toBe(201);
+    const createdSubjectId = (await createdSubject.json()).data.id as string;
+    const createdTopic = await post("/api/admin/topics", { subjectId: createdSubjectId, slug: "api-test-topic", names: { en: "API Test Topic" }, sortOrder: 1 }, adm);
+    expect(createdTopic.status).toBe(201);
+    const createdTopicId = (await createdTopic.json()).data.id as string;
+    expect((await post(`/api/admin/curriculum/topic/${createdTopicId}/status`, { status: "PUBLISHED" }, adm, "PATCH")).status).toBe(422);
+    expect((await post(`/api/admin/curriculum/subject/${createdSubjectId}/status`, { status: "PUBLISHED" }, adm, "PATCH")).status).toBe(200);
+    expect((await post(`/api/admin/curriculum/topic/${createdTopicId}/status`, { status: "PUBLISHED" }, adm, "PATCH")).status).toBe(200);
+    const material = await post("/api/admin/materials", { topicId: createdTopicId, kind: "NOTE", locale: "en", title: "Admin module note", content: { explanation: "Created by the integration test." } }, adm);
+    expect(material.status).toBe(201);
+    const materialId = (await material.json()).data.materialId as string;
+    expect((await post(`/api/admin/curriculum/material/${materialId}/status`, { status: "PUBLISHED" }, adm, "PATCH")).status).toBe(200);
+
+    const madeQuestion = await post("/api/admin/questions", { subjectId, topicId, difficulty: "MEDIUM", type: "MULTIPLE_CHOICE", text: "How much is 6 multiplied by 7?", explanation: "Six groups of seven make forty-two.", options: [{ text: "42", isCorrect: true }, { text: "36", isCorrect: false }] }, adm);
+    expect(madeQuestion.status).toBe(201);
+    const questionId = (await madeQuestion.json()).data.id as string;
+    const listedQuestions = (await (await get("/api/admin/questions?status=DRAFT&limit=100", adm)).json()).data;
+    const listedQuestion = listedQuestions.items.find((row: { id: string }) => row.id === questionId);
+    expect(listedQuestion.subjectName).toBe("Physics");
+    expect(listedQuestion.options.find((option: { isCorrect: boolean }) => option.isCorrect)).toBeTruthy();
+    expect((await post(`/api/admin/questions/${questionId}/publish`, {}, adm)).status).toBe(200);
+
+    const madeExam = await post("/api/admin/exams", { type: "MOCK", subjectId, title: "Admin API integration mock", durationMinutes: 30, passingScore: 50, randomize: true, requiresPremium: false, questionIds: [questionId] }, adm);
+    expect(madeExam.status).toBe(201);
+    const examId = (await madeExam.json()).data.id as string;
+    expect((await post(`/api/admin/exams/${examId}/status`, { status: "PUBLISHED" }, adm, "PATCH")).status).toBe(200);
+    const listedExams = (await (await get("/api/admin/exams?limit=100", adm)).json()).data;
+    expect(listedExams.items.find((row: { id: string }) => row.id === examId).status).toBe("PUBLISHED");
+    expect((await get("/api/admin/results?limit=20", adm)).status).toBe(200);
+
+    const plans = (await (await get("/api/admin/plans", adm)).json()).data;
+    expect(Array.isArray(plans)).toBe(true);
+    const analytics = await get("/api/admin/analytics?range=7", adm);
+    expect(analytics.status).toBe(200);
+    expect((await analytics.json()).data.summary).toHaveProperty("answers");
+
+    const broadcast = await post("/api/admin/notifications/broadcast", { title: "Test notice", body: "A test in-app notice for integration coverage.", confirm: true }, adm);
+    expect(broadcast.status).toBe(200);
+    expect((await broadcast.json()).data.recipientCount).toBeGreaterThan(0);
+    const notifications = (await (await get("/api/admin/notifications?limit=20", adm)).json()).data;
+    expect(notifications.some((row: { title: string }) => row.title === "Test notice")).toBe(true);
+    expect(notifications.find((row: { title: string }) => row.title === "Test notice").recipientCount).toBeGreaterThan(0);
+  });
   test("diagnostic builder protects the answer key, saves drafts, gates thin topic coverage, and allows one live test", async () => {
     const admin = await adminCookie("ADMIN", "diagnostic-builder-admin@x.et");
     const student = await signup("diagnostic-builder-student@x.et");

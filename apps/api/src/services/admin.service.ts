@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
-import { adminAuditLogs, contactMessages, examQuestions, exams, questions, questionOptions, studentProfiles, subjects, subscriptionPlans, topics, users, type Db } from "@dibora/database";
+import { adminAuditLogs, contactMessages, examAttempts, examQuestions, exams, learningMaterials, notes, notifications, questionOptions, questions, studentAnswers, studentProfiles, subjects, subtopics, subscriptionPlans, topics, users, type Db } from "@dibora/database";
 import { diagnosticUpsertSchema, questionUpsertSchema } from "@dibora/validation";
 import { MIN_RECOMMENDATION_SAMPLE } from "@dibora/core/recommendation";
 import type { z } from "zod";
@@ -150,6 +150,206 @@ export class AdminService {
       return q!.id;
     });
     await this.audit(a, "QUESTION_CREATED", "question", id); return { id };
+  }
+
+  async listQuestions(f: { q?: string; subjectId?: string; topicId?: string; status?: "DRAFT" | "PUBLISHED" | "ARCHIVED"; limit: number; offset: number }) {
+    const query = f.q?.replace(/[%_]/g, "");
+    const where = and(isNull(questions.deletedAt), f.subjectId ? eq(questions.subjectId, f.subjectId) : undefined,
+      f.topicId ? eq(questions.topicId, f.topicId) : undefined, f.status ? eq(questions.status, f.status) : undefined,
+      query ? ilike(questions.text, `%${query}%`) : undefined);
+    const [items, totalRows] = await Promise.all([
+      this.db.select({ id: questions.id, subjectId: questions.subjectId, topicId: questions.topicId, subtopicId: questions.subtopicId,
+        difficulty: questions.difficulty, type: questions.type, text: questions.text, explanation: questions.explanation,
+        numericAnswer: questions.numericAnswer, numericTolerance: questions.numericTolerance, tags: questions.tags,
+        source: questions.source, status: questions.status, createdAt: questions.createdAt, updatedAt: questions.updatedAt,
+        subjectNames: subjects.names, subjectSlug: subjects.slug, topicNames: topics.names, topicSlug: topics.slug })
+        .from(questions).innerJoin(subjects, eq(subjects.id, questions.subjectId)).innerJoin(topics, eq(topics.id, questions.topicId))
+        .where(where).orderBy(desc(questions.createdAt)).limit(f.limit).offset(f.offset),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(questions).where(where),
+    ]);
+    const optionRows = items.length ? await this.db.select().from(questionOptions).where(inArray(questionOptions.questionId, items.map((row) => row.id))).orderBy(asc(questionOptions.sortOrder)) : [];
+    return { items: items.map(({ subjectNames, subjectSlug, topicNames, topicSlug, ...row }) => ({ ...row,
+      subjectName: subjectNames.en ?? subjectSlug, topicName: topicNames.en ?? topicSlug,
+      options: optionRows.filter((option) => option.questionId === row.id).map(({ questionId: _questionId, ...option }) => option),
+    })), total: Number(totalRows[0]?.count ?? 0), limit: f.limit, offset: f.offset };
+  }
+
+  async curriculum() {
+    const [subjectRows, topicRows, materialRows] = await Promise.all([
+      this.db.select().from(subjects).where(isNull(subjects.deletedAt)).orderBy(asc(subjects.sortOrder), asc(subjects.createdAt)),
+      this.db.select({ id: topics.id, subjectId: topics.subjectId, slug: topics.slug, names: topics.names, sortOrder: topics.sortOrder, status: topics.status, createdAt: topics.createdAt, subjectNames: subjects.names, subjectSlug: subjects.slug })
+        .from(topics).innerJoin(subjects, eq(subjects.id, topics.subjectId)).where(isNull(topics.deletedAt)).orderBy(asc(subjects.sortOrder), asc(topics.sortOrder)),
+      this.db.select({ id: learningMaterials.id, topicId: learningMaterials.topicId, subtopicId: learningMaterials.subtopicId,
+        kind: learningMaterials.kind, status: learningMaterials.status, createdAt: learningMaterials.createdAt,
+        noteId: notes.id, locale: notes.locale, title: notes.title, summary: notes.summary, content: notes.content,
+        topicNames: topics.names, topicSlug: topics.slug, subjectNames: subjects.names, subjectSlug: subjects.slug })
+        .from(learningMaterials).innerJoin(topics, eq(topics.id, learningMaterials.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))
+        .leftJoin(notes, eq(notes.materialId, learningMaterials.id)).where(isNull(learningMaterials.deletedAt)).orderBy(desc(learningMaterials.createdAt)),
+    ]);
+    return { subjects: subjectRows, topics: topicRows.map(({ subjectNames, subjectSlug, ...row }) => ({ ...row, subjectName: subjectNames.en ?? subjectSlug })),
+      materials: materialRows.map(({ topicNames, topicSlug, subjectNames, subjectSlug, ...row }) => ({ ...row,
+        topicName: topicNames.en ?? topicSlug, subjectName: subjectNames.en ?? subjectSlug })),
+    };
+  }
+
+  async createSubject(a: Actor, input: { educationLevel: string; grade: number; stream?: string | null; slug: string; names: Record<string, string>; sortOrder: number }) {
+    const [row] = await this.db.insert(subjects).values({ ...input, stream: input.stream || null, status: "DRAFT" }).returning({ id: subjects.id });
+    await this.audit(a, "SUBJECT_CREATED", "subject", row!.id); return { id: row!.id };
+  }
+  async createTopic(a: Actor, input: { subjectId: string; slug: string; names: Record<string, string>; sortOrder: number }) {
+    const [subject] = await this.db.select({ id: subjects.id }).from(subjects).where(and(eq(subjects.id, input.subjectId), isNull(subjects.deletedAt))).limit(1);
+    if (!subject) throw Errors.notFound("Subject");
+    const [row] = await this.db.insert(topics).values({ ...input, status: "DRAFT" }).returning({ id: topics.id });
+    await this.audit(a, "TOPIC_CREATED", "topic", row!.id); return { id: row!.id };
+  }
+  async createMaterial(a: Actor, input: { topicId: string; subtopicId?: string | null; kind: string; locale: string; title: string; summary?: string; content: Record<string, unknown> }) {
+    const [topic] = await this.db.select({ id: topics.id }).from(topics).where(and(eq(topics.id, input.topicId), isNull(topics.deletedAt))).limit(1);
+    if (!topic) throw Errors.notFound("Topic");
+    if (input.subtopicId) {
+      const [subtopic] = await this.db.select({ id: subtopics.id }).from(subtopics).where(and(eq(subtopics.id, input.subtopicId), eq(subtopics.topicId, input.topicId), isNull(subtopics.deletedAt))).limit(1);
+      if (!subtopic) throw new AppError(422, "INVALID_SUBTOPIC", "The selected subtopic does not belong to this topic");
+    }
+    const created = await this.db.transaction(async (tx) => {
+      const [material] = await tx.insert(learningMaterials).values({ topicId: input.topicId, subtopicId: input.subtopicId || null, kind: input.kind, status: "DRAFT" }).returning({ id: learningMaterials.id });
+      const [note] = await tx.insert(notes).values({ materialId: material!.id, locale: input.locale, title: input.title, summary: input.summary || null, content: input.content }).returning({ id: notes.id });
+      return { materialId: material!.id, noteId: note!.id };
+    });
+    await this.audit(a, "MATERIAL_CREATED", "learning_material", created.materialId); return created;
+  }
+  async setCurriculumStatus(a: Actor, kind: "subject" | "topic" | "material", id: string, status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
+    if (status === "PUBLISHED" && kind === "topic") {
+      const [row] = await this.db.select({ subjectStatus: subjects.status }).from(topics).innerJoin(subjects, eq(subjects.id, topics.subjectId))
+        .where(and(eq(topics.id, id), isNull(topics.deletedAt), isNull(subjects.deletedAt))).limit(1);
+      if (!row) throw Errors.notFound("Topic");
+      if (row.subjectStatus !== "PUBLISHED") throw new AppError(422, "PARENT_NOT_PUBLISHED", "Publish the parent subject before publishing its topic");
+    }
+    if (status === "PUBLISHED" && kind === "material") {
+      const [row] = await this.db.select({ topicStatus: topics.status, subjectStatus: subjects.status }).from(learningMaterials)
+        .innerJoin(topics, eq(topics.id, learningMaterials.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))
+        .where(and(eq(learningMaterials.id, id), isNull(learningMaterials.deletedAt), isNull(topics.deletedAt), isNull(subjects.deletedAt))).limit(1);
+      if (!row) throw Errors.notFound("Learning material");
+      if (row.topicStatus !== "PUBLISHED" || row.subjectStatus !== "PUBLISHED") throw new AppError(422, "PARENT_NOT_PUBLISHED", "Publish the parent subject and topic before publishing this material");
+    }
+    const table = kind === "subject" ? subjects : kind === "topic" ? topics : learningMaterials;
+    const idColumn = kind === "subject" ? subjects.id : kind === "topic" ? topics.id : learningMaterials.id;
+    const [updated] = await this.db.update(table).set({ status, updatedAt: new Date() }).where(and(eq(idColumn, id), isNull(table.deletedAt))).returning({ id: idColumn });
+    if (!updated) throw Errors.notFound(kind);
+    await this.audit(a, `${kind.toUpperCase()}_STATUS_${status}`, kind, id, { status });
+  }
+
+  async listExams(f: { q?: string; status?: "DRAFT" | "PUBLISHED" | "ARCHIVED"; limit: number; offset: number }) {
+    const where = and(isNull(exams.deletedAt), f.status ? eq(exams.status, f.status) : undefined,
+      f.q ? ilike(exams.title, `%${f.q.replace(/[%_]/g, "")}%`) : undefined);
+    const [items, count] = await Promise.all([
+      this.db.select({ id: exams.id, type: exams.type, subjectId: exams.subjectId, title: exams.title, description: exams.description,
+        instructions: exams.instructions, durationMinutes: exams.durationMinutes, questionCount: exams.questionCount,
+        passingScore: exams.passingScore, difficulty: exams.difficulty, attemptLimit: exams.attemptLimit,
+        randomize: exams.randomize, requiresPremium: exams.requiresPremium, status: exams.status, createdAt: exams.createdAt })
+        .from(exams).where(where).orderBy(desc(exams.createdAt)).limit(f.limit).offset(f.offset),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(exams).where(where),
+    ]);
+    const ids = items.map((item) => item.id);
+    const links = ids.length ? await this.db.select({ examId: examQuestions.examId, questionId: examQuestions.questionId, sortOrder: examQuestions.sortOrder }).from(examQuestions).where(inArray(examQuestions.examId, ids)).orderBy(asc(examQuestions.sortOrder)) : [];
+    const attempts = ids.length ? await this.db.select({ examId: examAttempts.examId, total: sql<number>`count(*)::int`, submitted: sql<number>`count(*) filter (where ${examAttempts.status} = 'SUBMITTED')::int` })
+      .from(examAttempts).where(inArray(examAttempts.examId, ids)).groupBy(examAttempts.examId) : [];
+    return { items: items.map((item) => ({ ...item, questionIds: links.filter((link) => link.examId === item.id).map((link) => link.questionId),
+      attempts: Number(attempts.find((attempt) => attempt.examId === item.id)?.total ?? 0), completedAttempts: Number(attempts.find((attempt) => attempt.examId === item.id)?.submitted ?? 0) })),
+      total: Number(count[0]?.count ?? 0), limit: f.limit, offset: f.offset };
+  }
+  async createExam(a: Actor, input: { type: "PRACTICE" | "TOPIC" | "SUBJECT" | "MOCK"; subjectId?: string | null; title: string; description?: string; instructions?: string; durationMinutes: number; passingScore: number; difficulty?: "EASY" | "MEDIUM" | "HARD" | null; attemptLimit?: number | null; randomize: boolean; requiresPremium: boolean; questionIds: string[] }) {
+    if (new Set(input.questionIds).size !== input.questionIds.length) throw new AppError(422, "DUPLICATE_QUESTIONS", "An exam cannot include a question more than once");
+    const eligible = input.questionIds.length ? await this.db.select({ id: questions.id, subjectId: questions.subjectId, status: questions.status }).from(questions).where(and(inArray(questions.id, input.questionIds), eq(questions.status, "PUBLISHED"), isNull(questions.deletedAt))) : [];
+    if (eligible.length !== input.questionIds.length) throw new AppError(422, "INVALID_EXAM_QUESTIONS", "Select only published, active questions");
+    if (input.subjectId && eligible.some((question) => question.subjectId !== input.subjectId)) throw new AppError(422, "INVALID_EXAM_SCOPE", "All selected questions must belong to the chosen subject");
+    const examId = await this.db.transaction(async (tx) => {
+      const [exam] = await tx.insert(exams).values({ type: input.type, subjectId: input.subjectId || null, title: input.title,
+        description: input.description || null, instructions: input.instructions || null, durationMinutes: input.durationMinutes,
+        questionCount: input.questionIds.length, passingScore: input.passingScore, difficulty: input.difficulty || null,
+        attemptLimit: input.attemptLimit ?? null, randomize: input.randomize, requiresPremium: input.requiresPremium, status: "DRAFT" }).returning({ id: exams.id });
+      if (input.questionIds.length) await tx.insert(examQuestions).values(input.questionIds.map((questionId, sortOrder) => ({ examId: exam!.id, questionId, sortOrder, marks: 1 })));
+      return exam!.id;
+    });
+    await this.audit(a, "EXAM_CREATED", "exam", examId, { type: input.type, questionCount: input.questionIds.length }); return { id: examId };
+  }
+  async setExamStatus(a: Actor, id: string, status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
+    const [exam] = await this.db.select().from(exams).where(and(eq(exams.id, id), isNull(exams.deletedAt))).limit(1);
+    if (!exam) throw Errors.notFound("Exam");
+    if (exam.status !== "DRAFT" && status === "DRAFT") throw new AppError(409, "EXAM_LOCKED", "Published exams cannot be returned to draft; archive the exam instead");
+    if (status === "PUBLISHED") {
+      const rows = await this.db.select({ questionId: questions.id, questionStatus: questions.status, topicStatus: topics.status, subjectStatus: subjects.status })
+        .from(examQuestions).innerJoin(questions, eq(questions.id, examQuestions.questionId)).innerJoin(topics, eq(topics.id, questions.topicId)).innerJoin(subjects, eq(subjects.id, questions.subjectId))
+        .where(and(eq(examQuestions.examId, id), isNull(questions.deletedAt), isNull(topics.deletedAt), isNull(subjects.deletedAt)));
+      if (rows.length !== exam.questionCount || rows.some((row) => row.questionStatus !== "PUBLISHED" || row.topicStatus !== "PUBLISHED" || row.subjectStatus !== "PUBLISHED")) throw new AppError(422, "EXAM_QUESTIONS_INVALID", "All exam questions, topics, and subjects must still be published");
+    }
+    await this.db.update(exams).set({ status, updatedAt: new Date() }).where(eq(exams.id, id));
+    await this.audit(a, `EXAM_${status}`, "exam", id);
+  }
+  async examResults(f: { examId?: string; limit: number; offset: number }) {
+    const where = and(eq(examAttempts.status, "SUBMITTED"), f.examId ? eq(examAttempts.examId, f.examId) : undefined, isNull(studentProfiles.deletedAt), isNull(users.deletedAt));
+    const [items, count] = await Promise.all([
+      this.db.select({ id: examAttempts.id, examId: examAttempts.examId, examTitle: exams.title, studentId: studentProfiles.id,
+        studentName: studentProfiles.fullName, startedAt: examAttempts.startedAt, submittedAt: examAttempts.submittedAt,
+        score: examAttempts.score, maxScore: examAttempts.maxScore, percentage: examAttempts.percentage })
+        .from(examAttempts).innerJoin(exams, eq(exams.id, examAttempts.examId)).innerJoin(studentProfiles, eq(studentProfiles.id, examAttempts.studentId))
+        .innerJoin(users, eq(users.id, studentProfiles.userId)).where(where).orderBy(desc(examAttempts.submittedAt)).limit(f.limit).offset(f.offset),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(examAttempts).innerJoin(studentProfiles, eq(studentProfiles.id, examAttempts.studentId))
+        .innerJoin(users, eq(users.id, studentProfiles.userId)).where(where),
+    ]);
+    return { items, total: Number(count[0]?.count ?? 0), limit: f.limit, offset: f.offset };
+  }
+
+  async analytics(rangeDays: number) {
+    const days = [7, 30, 90].includes(rangeDays) ? rangeDays : 30;
+    const result = await this.db.execute(sql`
+      WITH scoped_answers AS (
+        SELECT sa.question_id, sa.is_correct, sa.answered_at, q.topic_id, q.subject_id
+        FROM student_answers sa JOIN questions q ON q.id = sa.question_id
+        JOIN student_profiles sp ON sp.id = sa.student_id JOIN users u ON u.id = sp.user_id
+        WHERE sa.answered_at >= now() - (${days}::int * interval '1 day') AND sp.deleted_at IS NULL AND u.deleted_at IS NULL AND u.role = 'STUDENT'
+      )
+      SELECT (SELECT count(*)::int FROM scoped_answers) AS answers,
+        (SELECT count(*)::int FROM exam_attempts ea JOIN student_profiles sp ON sp.id=ea.student_id JOIN users u ON u.id=sp.user_id WHERE ea.started_at >= now()-(${days}::int * interval '1 day') AND ea.status='SUBMITTED' AND sp.deleted_at IS NULL AND u.deleted_at IS NULL) AS completed_exams,
+        (SELECT round(avg(percentage)::numeric,1) FROM exam_attempts ea JOIN student_profiles sp ON sp.id=ea.student_id JOIN users u ON u.id=sp.user_id WHERE ea.started_at >= now()-(${days}::int * interval '1 day') AND ea.status='SUBMITTED' AND sp.deleted_at IS NULL AND u.deleted_at IS NULL) AS average_exam_score,
+        (SELECT count(*)::int FROM users WHERE role='STUDENT' AND deleted_at IS NULL AND created_at >= now()-(${days}::int * interval '1 day')) AS new_students,
+        (SELECT count(*)::int FROM student_profiles sp JOIN users u ON u.id=sp.user_id WHERE sp.subscription_status='PREMIUM' AND sp.deleted_at IS NULL AND u.deleted_at IS NULL AND u.role='STUDENT') AS premium_students,
+        (SELECT count(*)::int FROM subscriptions WHERE status='ACTIVE') AS active_subscriptions,
+        (SELECT coalesce(sum(amount_minor),0)::bigint FROM payments WHERE status='VERIFIED' AND verified_at >= now()-(${days}::int * interval '1 day')) AS verified_revenue_minor,
+        (SELECT count(*)::int FROM ai_messages m JOIN ai_conversations c ON c.id=m.conversation_id JOIN users u ON u.id=c.user_id WHERE m.role='user' AND m.created_at >= now()-(${days}::int * interval '1 day') AND u.role='STUDENT' AND u.deleted_at IS NULL AND c.deleted_at IS NULL) AS ai_requests
+    `);
+    const summary = rowsOf<Record<string, string | number | null>>(result)[0] ?? {};
+    const topicsWithAccuracy = rowsOf<Record<string, string | number | null>>(await this.db.execute(sql`
+      SELECT COALESCE(t.names->>'en',t.slug) AS topic, COALESCE(s.names->>'en',s.slug) AS subject,
+        count(*)::int AS attempts, round(avg(CASE WHEN sa.is_correct THEN 100.0 ELSE 0 END)::numeric,1) AS accuracy
+      FROM student_answers sa JOIN questions q ON q.id=sa.question_id JOIN topics t ON t.id=q.topic_id JOIN subjects s ON s.id=q.subject_id
+      JOIN student_profiles sp ON sp.id=sa.student_id JOIN users u ON u.id=sp.user_id
+      WHERE sa.answered_at >= now()-(${days}::int * interval '1 day') AND sp.deleted_at IS NULL AND u.deleted_at IS NULL
+      GROUP BY t.id,t.names,t.slug,s.names,s.slug HAVING count(*) >= 3 ORDER BY avg(CASE WHEN sa.is_correct THEN 100.0 ELSE 0 END) ASC LIMIT 8
+    `)).map((row) => ({ topic: String(row.topic), subject: String(row.subject), attempts: Number(row.attempts), accuracy: Number(row.accuracy ?? 0) }));
+    return { rangeDays: days, generatedAt: new Date().toISOString(), summary: {
+      answers: Number(summary.answers ?? 0), completedExams: Number(summary.completed_exams ?? 0), averageExamScore: summary.average_exam_score === null ? null : Number(summary.average_exam_score ?? 0),
+      newStudents: Number(summary.new_students ?? 0), premiumStudents: Number(summary.premium_students ?? 0), activeSubscriptions: Number(summary.active_subscriptions ?? 0),
+      verifiedRevenueMinor: Number(summary.verified_revenue_minor ?? 0), aiRequests: Number(summary.ai_requests ?? 0),
+    }, topicsWithAccuracy };
+  }
+
+  listPlans() { return this.db.select().from(subscriptionPlans).orderBy(asc(subscriptionPlans.sortOrder), asc(subscriptionPlans.priceMinor)); }
+  listNotifications(limit: number) {
+    return this.db.select({ id: sql<string>`min(${notifications.id}::text)`, type: notifications.type, channel: notifications.channel, title: notifications.title,
+      body: notifications.body, createdAt: notifications.createdAt, recipientCount: sql<number>`count(*)::int` })
+      .from(notifications).groupBy(notifications.type, notifications.channel, notifications.title, notifications.body, notifications.createdAt)
+      .orderBy(desc(notifications.createdAt)).limit(limit);
+  }
+  async broadcastNotification(a: Actor, input: { title: string; body: string }) {
+    const recipients = await this.db.select({ id: users.id }).from(users).where(and(eq(users.role, "STUDENT"), eq(users.isActive, true), isNull(users.deletedAt)));
+    const sentAt = new Date();
+    await this.db.transaction(async (tx) => {
+      for (let start = 0; start < recipients.length; start += 500) {
+        const batch = recipients.slice(start, start + 500);
+        if (batch.length) await tx.insert(notifications).values(batch.map((user) => ({ userId: user.id, type: "ANNOUNCEMENT", channel: "IN_APP", title: input.title, body: input.body, data: { audience: "ALL_ACTIVE_STUDENTS" }, createdAt: sentAt })));
+      }
+    });
+    await this.audit(a, "NOTIFICATION_BROADCAST", "notification", "all-active-students", { recipients: recipients.length });
+    return { recipientCount: recipients.length };
   }
   /** Publishing re-validates from stored data so a half-edited draft can never go live. */
   async setQuestionStatus(a: Actor, id: string, status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
