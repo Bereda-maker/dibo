@@ -1,0 +1,1562 @@
+{
+  "1. Choose published questions": {
+    "am": "1. የታቀመ ጥያቄዎችን ይምረጡ",
+    "om": "1. Gaaffilee maxxanfaman filadhu"
+  },
+  "12 questions, about 20 minutes. We will find your strong and weak topics and build your first study plan.": {
+    "am": "12 ጥያቄዎች፣ ከ20 ደቂቃ ዙሪያ። ጽኑ እና ደካማ ርዕሶችህን እናውቃለን እና የመጀመሪያ የጥናት እቅድህን እናፈጥራለን።",
+    "om": "Gaaffilee 12, daqiiqaa ~20. Mata-dureewwan si jabaa fi si laafaa ta’an ni argina; karoora barnoota jalqabaa siif qopheessina."
+  },
+  "2. Topic coverage check": {
+    "am": "2. የርዕሶች ክትትል ምርመራ",
+    "om": "2. Qorannoo bal’ina mata-duree"
+  },
+  "3. Recommendation preview": {
+    "am": "3. የምክር ቅድመ እይታ",
+    "om": "3. Ilaalcha gorsa duraa"
+  },
+  "A calmer way to move from subject practice to confident exam day.": {
+    "am": "ከርዕስ ልምድ ወደ ታማኝ የፈተና ቀን የሚያስመላለስ ዝግጁ መንገድ።",
+    "om": "Akka tasgabbaa’een hojii mata-duree irraa gara guyyaa qormaata amansiisaa deemtu."
+  },
+  "A clear path from where you are to what is next.": {
+    "am": "ከእርስዎ ያሉበት ወደ ቀጣይ የሚያሳየው ግልጽ መንገድ።",
+    "om": "Iddoo ati jiruu irraa gara kan itti aanuutti karaa ifa ta’e."
+  },
+  "A connected study space for learning, practice, exam preparation and reflection.": {
+    "am": "ለትምህርት፣ ልምድ፣ የፈተና እቅድና ማስተካከል የተገናኘ የጥናት ቦታ።",
+    "om": "Bakki barnootaa walitti hidhameef baruu, hojiirra oolchu, qophii qormaataa fi yaadannoo."
+  },
+  "A few useful details about getting started, using your study tools and understanding how Dibora supports your preparation.": {
+    "am": "መጀመር፣ የጥናት መሣሪያዎችን እንዴት እንደሚጠቀሙና Dibora እንዴት እንደሚያገለግልዎ ስለሚሰጡ ጥቂት ገፆች።",
+    "om": "Ka’umsaa, meeshaalee barnootaa keetii fayyadamuufi Dibora akkamitti qopheessuu keetii deeggartuu ta’u ilaalchisee odeeffannoo muraasa."
+  },
+  "A live pulse on Dibora’s learning community and platform activity.": {
+    "am": "የDibora የትምህርት ማህበርና የመድረክ እንቅስቃሴ ቀጥታ እይታ።",
+    "om": "Walii-galtee barnootaa fi hojii marsariitii Dibora irratti yeroo-dhaabaa odeeffannoo."
+  },
+  "A more focused way to prepare for what comes next.": {
+    "am": "ለቀጣይ ነገር በትክክል የሚተዋወቅ ዝግጅት።",
+    "om": "Waan itti aanuuf xiyyeeffannoo qabuun qophaa’uuf karaa ifaa."
+  },
+  "A name, a way to reply and a little context helps us understand your note.": {
+    "am": "ስም፣ መልስ መልእክት እና ጥቂት እይታ ማቅረብ ያስፈልጋል እንዲንተዋወቅ ይረዳል።",
+    "om": "Maqaa, deebii erguu danda’uufi haala gabaabaa ibsuun yaada keenyatti hubannoo nuuf kenna."
+  },
+  "A next step, not a guess": {
+    "am": "ግምት ሳይሆን ቀጣይ እርምጃ",
+    "om": "Tarkaanfii itti aanu, hin tilmaamamin"
+  },
+  "A note about Exam Readiness:": {
+    "am": "ስለ ፈተና ዝግጅት ማስታወቂያ:",
+    "om": "Ilaalcha Qophii Qormaataa:"
+  },
+  "A rhythm you can repeat": {
+    "am": "የማዳገም የሚችሉት ስርዓት",
+    "om": "Sirna ati irra-deebi’uun geggeessitu"
+  },
+  "A sample of Dibora learning insights": {
+    "am": "የDibora የትምህርት እውቀት ናሙና",
+    "om": "Faayidaa gabaabaa hubannoo barnoota Dibora irraa"
+  },
+  "A simple study rhythm": {
+    "am": "ቀላል የጥናት ስርዓት",
+    "om": "Sirna barnoota salphaa"
+  },
+  "A steady study rhythm, shaped around the learner—not just another place to scroll through questions.": {
+    "am": "በተማሪው ዙሪያ የተመሠረተ የቋሚ የጥናት ስርዓት—ጥያቄዎችን ለመሳለቅ ሌላ ቦታ ብቻ አይደለም።",
+    "om": "Sirna barumsaa dhaabbataa kan barataa irratti hundaa’e — bakka gaaffilee qofa darban miti."
+  },
+  "ADMIN": {
+    "am": "አስተዳደር",
+    "om": "Bulchaa"
+  },
+  "AI Study Assistant": {
+    "am": "AI የጥናት እርዳታ",
+    "om": "AI Gargaaraa Barnootaa"
+  },
+  "AI management": {
+    "am": "AI አስተዳደር",
+    "om": "Bulchiinsa AI"
+  },
+  "AI prompts": {
+    "am": "AI ፕሮምፕቶች",
+    "om": "AI piroomptoota"
+  },
+  "AI usage by day": {
+    "am": "በቀን የAI አጠቃቀም",
+    "om": "Fayyadama AI guyyaa‑guyyaa"
+  },
+  "AI_BASE_URL": {
+    "am": "AI_BASE_URL",
+    "om": "AI_BASE_URL"
+  },
+  "AI_MODEL": {
+    "am": "AI_MODEL",
+    "om": "AI_MODEL"
+  },
+  "AI_PROVIDER_API_KEY": {
+    "am": "AI_PROVIDER_API_KEY",
+    "om": "AI_PROVIDER_API_KEY"
+  },
+  "API key: set via": {
+    "am": "API ቁልፍ: በ... ይተካላል",
+    "om": "Furmaata API: karaa ... irra kaa’ama"
+  },
+  "ARCHIVED": {
+    "am": "በአርካይቭ ውስጥ",
+    "om": "Arkiivii keessa"
+  },
+  "About Dibora": {
+    "am": "ስለ Dibora",
+    "om": "Waa'ee Dibora"
+  },
+  "Achievements": {
+    "am": "ስኬቶች",
+    "om": "Milkaa'inoota"
+  },
+  "Active": {
+    "am": "ንቁ",
+    "om": "Hojiirra jiru"
+  },
+  "Active learners": {
+    "am": "ንቁ ተማሪዎች",
+    "om": "Barattoota hojiirra jiran"
+  },
+  "Add a question draft": {
+    "am": "የጥያቄ ድራፍ ያክሉ",
+    "om": "Draftii gaaffii ida'i"
+  },
+  "Add question": {
+    "am": "ጥያቄ አክል",
+    "om": "Gaaffii ida'i"
+  },
+  "Add subject": {
+    "am": "ርዕስ አክል",
+    "om": "Mata-duree ida'i"
+  },
+  "Admin": {
+    "am": "አስተዳደር",
+    "om": "Bulchaa"
+  },
+  "Admin dashboard": {
+    "am": "የአስተዳደር ዳሽቦርድ",
+    "om": "Daashiboorɗii Bulchaa"
+  },
+  "Admin overview": {
+    "am": "የአስተዳደር እይታ",
+    "om": "Waliigala Bulchaa"
+  },
+  "Admin shortcuts": {
+    "am": "የአስተዳደር አጭር መንገዶች",
+    "om": "Karaa gabaabduu Bulchaa"
+  },
+  "Afaan Oromoo": {
+    "am": "Afaan Oromoo",
+    "om": "Afaan Oromoo"
+  },
+  "All": {
+    "am": "ሁሉ",
+    "om": "Hundumaa"
+  },
+  "All difficulties": {
+    "am": "ሁሉም የከባድነት ደረጃዎች",
+    "om": "Rakkinoota hunda"
+  },
+  "All exams": {
+    "am": "ሁሉም ፈተናዎች",
+    "om": "Qormaata hunda"
+  },
+  "All notes": {
+    "am": "ሁሉም ማስታወሻዎች",
+    "om": "Yaadannoota hunda"
+  },
+  "All plans": {
+    "am": "ሁሉም እቅዶች",
+    "om": "Karoora hunda"
+  },
+  "All statuses": {
+    "am": "ሁሉም ሁኔታዎች",
+    "om": "Haala hunda"
+  },
+  "All subjects": {
+    "am": "ሁሉም ትምህርቶች",
+    "om": "Mata-dureewwan hunda"
+  },
+  "All topics": {
+    "am": "ሁሉም ርዕሶች",
+    "om": "Dhimmoota hunda"
+  },
+  "Amount to pay:": {
+    "am": "የሚከፈለው መጠን:",
+    "om": "Gatii kaffalamu:"
+  },
+  "Analytics": {
+    "am": "ትንተና",
+    "om": "Xiinxala"
+  },
+  "Answer a few practice questions to unlock a personalised recommendation.": {
+    "am": "የግል ምክር ለመክፈት ጥቂት ልምድ ጥያቄዎችን መለምስ።",
+    "om": "Gorsa siif qophaa’e banachuuf gaaffilee shaakala muraasa deebisi."
+  },
+  "Answer choices": {
+    "am": "የምርጫ አማራጮች",
+    "om": "Filannoo deebii"
+  },
+  "Answer independently. Your results are used to guide your study plan.": {
+    "am": "በብቻዎ ይመልሱ። ውጤቶቻችሁ የማስተማር እቅዳችሁን ለመመሪያ ይጠቀማሉ።",
+    "om": "Ofiin deebisi. Buʼaan kee karoora barnootaa keetiif akeekkachiisa taʼa."
+  },
+  "Answer some questions and anything you miss will appear here.": {
+    "am": "ጥያቄዎችን አንዳንድ ይመልሱ፤ የላሉህ ነገሮች እዚህ ይታያሉ።",
+    "om": "Gaaffilee muraasa deebisi; waan dhabu kamiyyu asitti ni mul'ata."
+  },
+  "Answers are saved as you go. If you refresh, you can continue.": {
+    "am": "መልሶች በመሄድዎ ይቀርባሉ። ገፅን ከድገም ከፈለጉ ማቆያ ላይ ትቀጥላላችሁ።",
+    "om": "Deebiin yeroo deemtu ni olkaa'ama. Fuula haaromsita taʼe itti fufuu dandeessa."
+  },
+  "Answers come from approved Dibora notes. If I do not know, I will say so.": {
+    "am": "መልሶቹ ከተረጋገጡ የDibora ማስታወሻዎች ናቸው። ካልእውቅ እለካለሁ።",
+    "om": "Deebiin kan dhufu barreeffamoota Dibora kan raggaʼan irraa dha. Yoo hinbeeku nan hima."
+  },
+  "Answers recorded in the selected period": {
+    "am": "በተመረጠው ጊዜ ውስጥ የተመዘገቡ መልሶች",
+    "om": "Deebii yeroo filatame keessatti galmee taʼan"
+  },
+  "Answers where retrieval found no approved material appear here so your team can add content. Private student conversations are not shown to admins.": {
+    "am": "ማግኘት ሲያልፍ ከማይገኙ የተረጋገጡ ንጥሎች እዚህ ይታያሉ ፣ ቡድናችሁ ሊቀርብ ይችላል። የደቂቃ የተማሪ ውይይቶች አስተዳዳሪዎችን አያቀርቡም።",
+    "om": "Deebiin meeshaa raggaʼaa hin arganne yeroo argamu asitti ni mulʼata, gareen keessan waan dabaluu dandaʼa. Waliigalteewwan dhuunfaa barattootaa abbootiin hojii hin mulʼisan."
+  },
+  "Any": {
+    "am": "ማንኛውም",
+    "om": "Kamiyyuu"
+  },
+  "Any difficulty": {
+    "am": "ማንኛውም የችግኝነት ደረጃ",
+    "om": "Rakkina kamiyyuu"
+  },
+  "Archive": {
+    "am": "አርካይቭ",
+    "om": "Arkaayivii"
+  },
+  "Ask about any topic in your notes.": {
+    "am": "በማንኛውም ርዕስ ላይ ያለዎትን ማስታወሻ ጠይቁ።",
+    "om": "Gaaffii waa'ee mata-duree kamiyyuu barreeffama kee keessatti jiru gaafadhu."
+  },
+  "Ask the AI": {
+    "am": "AI ጠይቅ",
+    "om": "AI gaafadhu"
+  },
+  "Assemble a trusted starting-point assessment, check topic coverage, and preview the recommendation rules.": {
+    "am": "የታመነ የመጀመሪያ ግምገማ ያቀርቡ፣ የርዕሶችን ስፋት ይፈትሹ፣ የምክር ህጎችን ቅድመ እይታ ይመልከቱ።",
+    "om": "Qorannoo jalqabaa amanamaa qindeessi, balʼina mata-duree sakattaʼi, seerota gorsa dursee ilaali."
+  },
+  "Assessment title": {
+    "am": "የግምገማ ርዕስ",
+    "om": "Maqaa qorannoo"
+  },
+  "Attempt limit": {
+    "am": "የሙከራ ገደብ",
+    "om": "Daangaa yaalii"
+  },
+  "Attempt not found": {
+    "am": "የሙከራ መሞከር አልተገኘም",
+    "om": "Yaalii hin argamne"
+  },
+  "Audit log": {
+    "am": "የኦዲት መዝገብ",
+    "om": "Galmee auditi"
+  },
+  "Audit logs": {
+    "am": "የኦዲት መዝገቦች",
+    "om": "Galmeewwan auditi"
+  },
+  "Back": {
+    "am": "ተመለስ",
+    "om": "Deebi'i"
+  },
+  "Back to dashboard": {
+    "am": "ወደ ዳሽቦርድ ይመለሱ",
+    "om": "Gara dashboarditti deebi'i"
+  },
+  "Back to exams": {
+    "am": "ወደ ፈተናዎች ይመለሱ",
+    "om": "Gara qormaataatti deebi'i"
+  },
+  "Back to plans": {
+    "am": "ወደ እቅዶች ይመለሱ",
+    "om": "Gara karooraatti deebi'i"
+  },
+  "Best value": {
+    "am": "ምርጥ ዋጋ",
+    "om": "Gatii gaarii"
+  },
+  "Bookmark notes, questions and topics to find them here.": {
+    "am": "ማስታወሻዎችን፣ ጥያቄዎችን እና ርዕሶችን ይመዝግቡ እና እዚህ ይገኛሉ።",
+    "om": "Barreeffamoota, gaaffilee fi mata-dureewwan bookmarq godhi; asitti ni argattu."
+  },
+  "Bookmark question": {
+    "am": "ጥያቄን ያስመዝግቡ",
+    "om": "Gaaffii galmeessi"
+  },
+  "Bookmarked": {
+    "am": "የተመዘገበ",
+    "om": "Kan galmaa'e"
+  },
+  "Browse by subject": {
+    "am": "በርዕስ ይመልከቱ",
+    "om": "Mata-duree irratti ilaali"
+  },
+  "Browse notes": {
+    "am": "ማስታወሻዎችን ይመልከቱ",
+    "om": "Barreeffamoota ilaali"
+  },
+  "Build a curriculum-tagged assessment and preview its learning recommendations.": {
+    "am": "በስርዓተ ትምህርት ምልክት የተሰደደ ግምገማ ይገነቡ እና የትምህርት ምክሮቹን ቅድመ እይታ ይመልከቱ።",
+    "om": "Qorannoo sagantaa barnootaa irratti mallattoo qabu ijaari fi gorsa barnootaa dursee ilaali."
+  },
+  "Build a steady study routine with the Free plan, then explore more practice and exam tools whenever you need them. Available plan details appear below.": {
+    "am": "ከFree እቅድ ጋር የቋሚ የትምህርት ስርዓት ይገነቡ፤ ከዚያ በኋላ የተጨማሪ ልምዶችና ፈተና መሣሪያዎችን በየጊዜው ይፈትሹ። የሚገኙ ዝርዝሮች በታች ይታያሉ።",
+    "om": "Karoora Free waliin sirna barnootaa tasgabbaaʼaa ijaari, achii booda meeshaalee leenjii fi qormaata dabalataa yeroo barbaaddu qoradhu. Faayiloonni karooraa armaan gadiitti mulʼatu."
+  },
+  "Build a steady study routine with the Free plan, then explore more practice and exam tools whenever you need them. Current prices and inclusions are shown below.": {
+    "am": "ከFree እቅድ ጋር የቋሚ የትምህርት ስርዓት ይገነቡ፤ ከዚያም የተጨማሪ ልምዶችና ፈተና መሣሪያዎችን በየጊዜው ይፈትሹ። አሁን ያሉ ዋጋዎችና የሚካተቱ ነገሮች በታች ይታያሉ።",
+    "om": "Karoora Free waliin sirna barnootaa tasgabbaaʼaa ijaari, achii booda meeshaalee leenjii fi qormaata dabalataa yeroo barbaaddu qoradhu. Gatii amma jiru fi kan dabalaman armaan gadiitti mulʼatu."
+  },
+  "Build a study routine that moves you forward.": {
+    "am": "ወደፊት የሚንቀሳቀስ የትምህርት ስርዓት ይገነቡ።",
+    "om": "Sirna barnootaa si fuulduratti tarkaanfachiisu ijaari."
+  },
+  "Built around steady progress": {
+    "am": "በቋሚ እድገት የተገነባ",
+    "om": "Guddina tasgabbaaʼaa irratti hundaaʼe"
+  },
+  "By continuing, you agree to Dibora’s": {
+    "am": "ቀጥሎ በመቀጠል የDibora’s ህጎችን ተቀብለዋል።",
+    "om": "Itti fufuun, ati seerota Dibora’s ni fudhata."
+  },
+  "Cancel": {
+    "am": "ሰርዝ",
+    "om": "Haqi"
+  },
+  "Cancel editing": {
+    "am": "ማስተካከያን ይሰርዙ",
+    "om": "Gulaallii haqi"
+  },
+  "Change filters": {
+    "am": "ፊልተሮችን ይቀይሩ",
+    "om": "Filtarota jijjiiri"
+  },
+  "Check answer": {
+    "am": "መልስን ያረጋግጡ",
+    "om": "Deebii mirkaneessi"
+  },
+  "Check back soon.": {
+    "am": "በቅርብ ጊዜ ደግመው ይመለሱ።",
+    "om": "Yeroo dhiyootti deebii ilaali."
+  },
+  "Check the spelling or try a broader word like “algebra”.": {
+    "am": "ስምዎን ያረጋግጡ ወይም “algebra” ያሉ አጠቃላይ ቃላት ይሞክሩ።",
+    "om": "Barreeffama sirreessi ykn jecha balʼaa akka “algebra” yaali."
+  },
+  "Check the spelling or try a broader word.": {
+    "am": "ስምዎን ያረጋግጡ ወይም ትርጉም አጠቃላይ ቃል ይሞክሩ።",
+    "om": "Barreeffama sirreessi ykn jecha balʼaa yaali."
+  },
+  "Choices": {
+    "am": "አማራጮች",
+    "om": "Filannoowwan"
+  },
+  "Choose a realistic time for the number and difficulty of questions.": {
+    "am": "ለጥያቄዎች ብዛትና ከባድነት የሚስማሩ እውነተኛ ጊዜ ይምረጡ።",
+    "om": "Lakkoofsa fi rakkina gaaffilee irratti yeroo dhugaa filadhu."
+  },
+  "Choose a sign-in provider": {
+    "am": "የመግባት አገልጋይ ይምረጡ",
+    "om": "Tajaajila seensaa filadhu"
+  },
+  "Choose a subject. Find your next win.": {
+    "am": "ርዕስ ይምረጡ። ቀጣይ ስኬትዎን ያገኙ።",
+    "om": "Mata-duree filadhu. Milkaa'ina itti aanu argadhu."
+  },
+  "City": {
+    "am": "ከተማ",
+    "om": "Magaalaa"
+  },
+  "Clear": {
+    "am": "አጽዳ",
+    "om": "Ifteessi"
+  },
+  "Clear, exam-focused summaries.": {
+    "am": "ግልጽ፣ ፈተና ትኩረት ያደረጉ ማጠቃለያዎች።",
+    "om": "Ibsa ifaa, qormaata irratti xiyyeeffate."
+  },
+  "Complete": {
+    "am": "ጨርሱ",
+    "om": "Xumuri"
+  },
+  "Completed": {
+    "am": "ተጠናቀቀ",
+    "om": "Xumurame"
+  },
+  "EASY": {
+    "am": "ቀላል",
+    "om": "Salphaa"
+  },
+  "Easy": {
+    "am": "ቀላል",
+    "om": "Salphaa"
+  },
+  "Edit draft": {
+    "am": "ቅድመ እቅድን አርትዕ",
+    "om": "Qabiyyee jalqabaa gulaali"
+  },
+  "Editing draft": {
+    "am": "ቅድመ እቅድን በማስተካከል",
+    "om": "Qabiyyee jalqabaa gulaachaa jira"
+  },
+  "Email": {
+    "am": "ኢሜይል",
+    "om": "Imeelii"
+  },
+  "End session": {
+    "am": "ስብሰባን ይዝጉ",
+    "om": "Seshinii xumuri"
+  },
+  "English": {
+    "am": "እንግሊዝኛ",
+    "om": "Ingiliizii"
+  },
+  "Every part of preparation, working together.": {
+    "am": "የዝግጅት እያንዳንዱ ክፍል በትብብር ይሰራ",
+    "om": "Qophii hunda, waliin hojjetamee."
+  },
+  "Everything works together": {
+    "am": "ሁሉም ነገር በአንድነት ይሰራል",
+    "om": "Hundumtuu waliin hojjetu"
+  },
+  "Exam attempts": {
+    "am": "የፈተና ሞከራዎች",
+    "om": "Yaaliiwwan qormaataa"
+  },
+  "Exam builder": {
+    "am": "ፈተና ፍጠራ መሣሪያ",
+    "om": "Qopheessa qormaataa"
+  },
+  "Exam not found": {
+    "am": "ፈተና አልተገኘም",
+    "om": "Qormaanni hin argamne"
+  },
+  "Exam progress": {
+    "am": "የፈተና እድገት",
+    "om": "Sadarkaa qormaataa"
+  },
+  "Exam scores over time": {
+    "am": "የፈተና ነጥቦች ከጊዜ ወደ ጊዜ",
+    "om": "Bu'aa qormaataa yeroo waliin"
+  },
+  "Exam submission progress": {
+    "am": "የፈተና ማቅረብ እድገት",
+    "om": "Sadarkaa dhiyeessii qormaataa"
+  },
+  "Exam year": {
+    "am": "የፈተና ዓመት",
+    "om": "Bara qormaataa"
+  },
+  "Example study focus": {
+    "am": "የምሳሌ የትምህርት ትኩረት",
+    "om": "Fakkeenya xiyyeeffannaa barnootaa"
+  },
+  "Exams": {
+    "am": "ፈተናዎች",
+    "om": "Qormaatawwan"
+  },
+  "Exams & results": {
+    "am": "ፈተናዎች እና ውጤቶች",
+    "om": "Qormaata fi bu'aa"
+  },
+  "Explanation": {
+    "am": "ማብራሪያ",
+    "om": "Ibsa"
+  },
+  "Explanation shown after an attempt": {
+    "am": "ማብራሪያ ከሞከርከው በኋላ ይታያል",
+    "om": "Ibsi erga yaalii booda ni mul'ata"
+  },
+  "Explore exams": {
+    "am": "ፈተናዎችን ይመርምሩ",
+    "om": "Qormaata qoradhaa"
+  },
+  "Explore features": {
+    "am": "ባህሪያትን ይመርምሩ",
+    "om": "Amalawwan qoradhaa"
+  },
+  "Explore the learning tools, see how the study cycle works, or send the team a question.": {
+    "am": "የትምህርት መሣሪያዎችን ይመርምሩ፣ የጥናት ሂደት እንዴት እንደሚሰራ ይዩ ወይም ጥያቄ ለቡድኑ ይላኩ።",
+    "om": "Meeshaalee barnootaa qoradhaa, tartiiba barnootaa akkam akka hojjatu ilaalaa, yookiin gaaffii gareef ergaa."
+  },
+  "Export my data": {
+    "am": "የኔን ውሂብ አስወግድ",
+    "om": "Daataa koo baasii"
+  },
+  "FREE": {
+    "am": "ነፃ",
+    "om": "Bilisaa"
+  },
+  "False": {
+    "am": "ሐሰት",
+    "om": "Dharaa"
+  },
+  "Filter by difficulty": {
+    "am": "በከባድነት ይጣሩ",
+    "om": "Rakkina irratti filadhu"
+  },
+  "Filter by subject": {
+    "am": "በርዕስ ይጣሩ",
+    "om": "Mata-duree irratti filadhu"
+  },
+  "Filter by topic": {
+    "am": "በንጥረ ጉዳይ ይጣሩ",
+    "om": "Xiyyeeffannaa irratti filadhu"
+  },
+  "Filter results": {
+    "am": "ውጤቶችን ይጣሩ",
+    "om": "Bu'aa filadhu"
+  },
+  "Find your strong and weak topics and get your first study plan.": {
+    "am": "ኃይለኛና ድካም ያሉትን ርዕሶች ይፈልጉና የመጀመሪያዎትን የጥናት ዕቅድ ይግኙ።",
+    "om": "Mata-dureewwan jabaa fi laafaa kee barbaadi, karoora barnootaa jalqabaa argadhu."
+  },
+  "Find your strongest and weakest topics.": {
+    "am": "ኃይለኛና ድካም ያሉ ርዕሶችህን ፈልግ።",
+    "om": "Mata-dureewwan kee cimaa fi laafaa barbaadi."
+  },
+  "Flag question": {
+    "am": "ጥያቄን ምልክት ያድርጉ",
+    "om": "Gaaffii mallatteessi"
+  },
+  "Formulas": {
+    "am": "ፎርሙላዎች",
+    "om": "Foormuloota"
+  },
+  "Free accounts can answer 20 questions a day. Come back tomorrow or upgrade for the full question bank.": {
+    "am": "ነፃ መለያዎች በየቀኑ 20 ጥያቄ ብቻ መልስ ይችላሉ። ነገ ይመለሱ ወይም ለሙሉ ጥያቄ ባንክ ለመድረስ ይዘምኑ።",
+    "om": "Akaawuntiin bilisaa guyyaa tokko gaaffii 20 deebisu danda'a. Bor deebi'aa yookin baankii gaaffilee guutuu argachuuf ol-ka'iinsa bitadhu."
+  },
+  "Free accounts can answer 20 questions a day. Come back tomorrow or upgrade.": {
+    "am": "ነፃ መለያዎች በየቀኑ 20 ጥያቄ መልስ ይችላሉ። ነገ ይመለሱ ወይም ይዘምኑ።",
+    "om": "Akaawuntiin bilisaa guyyaa tokko gaaffii 20 deebisu danda'a. Bor deebi'aa yookin ol-ka'iinsa bitadhu."
+  },
+  "Frequently missed questions": {
+    "am": "ብዙ ጊዜ የሚሳሉ ጥያቄዎች",
+    "om": "Gaaffilee yeroo baay'ee dogoggoran"
+  },
+  "From the first diagnostic to your final review, Dibora gives you a structured way to learn, practise and understand your progress.": {
+    "am": "ከመጀመሪያ ዲያግኖሲስ እስከ መጨረሻ እይታዎ ድረስ፣ Dibora የተዋሰነ ስርዓተ-መንገድ ለማማር፣ ለልምድ እና ለእውቀት የሚረዳዎትን መንገድ ይሰጣል።",
+    "om": "Dibora irraa jalqabee qorannoo duraa hanga ilaalcha dhumaa keetti, karaa qindaa'aa barachuu, shaakalu fi guddina keetii hubachuu siif kenna."
+  },
+  "Full name": {
+    "am": "ሙሉ ስም",
+    "om": "Maqaa guutuu"
+  },
+  "Funnel": {
+    "am": "ፈንንል",
+    "om": "Fannela"
+  },
+  "Go to dashboard": {
+    "am": "ወደ ዳሽቦርድ ይሂዱ",
+    "om": "Daashibordii dhaqaa"
+  },
+  "Good to know": {
+    "am": "ለማወቅ ጥሩ",
+    "om": "Beekuuf gaarii dha"
+  },
+  "Google": {
+    "am": "Google",
+    "om": "Google"
+  },
+  "Google and Telegram sign-in are available when the live Dibora API is configured. Email and password sign-in are not offered.": {
+    "am": "Live Dibora API ሲታተም የGoogle እና የTelegram መግባት ይገኛሉ። በኢሜይል እና በየሚስጥር ቃል መግባት አይቀርባም።",
+    "om": "Yeroo Dibora API jireenyaatti qindaa'u Google fi Telegramiin seenuu ni danda'ama. Imeelii fi passwordiin seenuun hin kennamu."
+  },
+  "Google sign-in is not configured yet. Please choose Telegram or try again later.": {
+    "am": "Google መግባት አሁን አልተቀረጸም። እባክዎ Telegram ይምረጡ ወይም በኋላ ደግሞ ይሞክሩ።",
+    "om": "Google seensaan amma hin qindaa'in. Telegram filadhu yookin booda yaali."
+  },
+  "Grade 12 starting-point diagnostic": {
+    "am": "የ12ኛ ክፍል መጀመሪያ ዲያግኖሲስ",
+    "om": "Diagnoostiika jalqabaa kutaa 12"
+  },
+  "HARD": {
+    "am": "ከባድ",
+    "om": "Ulfaataa"
+  },
+  "Hard": {
+    "am": "ከባድ",
+    "om": "Ulfaataa"
+  },
+  "Help us make study feel more focused.": {
+    "am": "ትምህርትን እንዲታጠቅ ያደርገን ለማድረግ ይረዱን።",
+    "om": "Barnoota akka xiyyeeffannoo qabaatu nu gargaaraa."
+  },
+  "NUMERICAL": {
+    "am": "ቁጥራዊ",
+    "om": "Lakkoofsaa"
+  },
+  "Name": {
+    "am": "ስም",
+    "om": "Maqaa"
+  },
+  "Need another answer?": {
+    "am": "ሌላ መልስ ይፈልጋሉ?",
+    "om": "Deebii biraa barbaaddaa?"
+  },
+  "Needs attention": {
+    "am": "ጥንቃቄ ያስፈልጋል",
+    "om": "Xiyyeeffannaa barbaachisa"
+  },
+  "Needs improvement": {
+    "am": "ማሻሻያ ያስፈልጋል",
+    "om": "Fooyya'iinsa barbaachisa"
+  },
+  "New conversation": {
+    "am": "አዲስ ውይይት",
+    "om": "Mari'i haaraa"
+  },
+  "New draft": {
+    "am": "አዲስ ንድፍ",
+    "om": "Qorannoo haaraa"
+  },
+  "New messages from the contact form will appear here.": {
+    "am": "ከኮንታክት ፎርም የሚመጡ አዲስ መልዶች እዚህ ይታያሉ።",
+    "om": "Ergaan haaraa fuula qunnamtii irraa asitti ni mul'atu."
+  },
+  "New registrations": {
+    "am": "አዲስ ምዝገባዎች",
+    "om": "Galmeewwan haaraa"
+  },
+  "New students": {
+    "am": "አዲስ ተማሪዎች",
+    "om": "Barattoota haaraa"
+  },
+  "New subject name": {
+    "am": "አዲስ የርዕስ ስም",
+    "om": "Maqaa mata-duree haaraa"
+  },
+  "New to Dibora? Your account is created automatically when you first continue with Google or Telegram. You can complete your student profile next.": {
+    "am": "Dibora ላይ አዲስ? በመጀመሪያ በGoogle ወይም Telegram ሲከተሉ መለያዎ በራስሰር ይፈጠራል። ቀጣይ ደግሞ የተማሪ መግለጫዎን ማሟላት ይችላሉ።",
+    "om": "Dibora irratti haaraa? Akkuma Google yookiin Telegram waliin itti fufan yeroo jalqabaatti account keessan ofumaan ni uumama. Itti aansee profile barataa keessan ni guuttattu."
+  },
+  "Next": {
+    "am": "ቀጣይ",
+    "om": "Itti aanu"
+  },
+  "Next steps": {
+    "am": "ቀጣይ እርምጃዎች",
+    "om": "Tartiiba itti aanu"
+  },
+  "No admin actions recorded yet.": {
+    "am": "እስካሁን የአስተዳደር እርምጃዎች አልተመዘገቡም።",
+    "om": "Ammaaf tarkaanfiiwwan bulchaa hin galmeeffaman."
+  },
+  "No data yet.": {
+    "am": "እስካሁን ውሂብ የለም።",
+    "om": "Ammaaf odeeffannoo hin jiru."
+  },
+  "No diagnostic assessment is published yet": {
+    "am": "እስካሁን የዲያግኖስቲክ ግምገማ አልተለጠፈም።",
+    "om": "Ammaaf qormaata diagnostic hin maxxanfamne."
+  },
+  "No diagnostic drafts yet": {
+    "am": "እስካሁን የዲያግኖስቲክ ንድፎች የሉም።",
+    "om": "Kaawwan diagnostic amma hin jiran."
+  },
+  "No exams published yet": {
+    "am": "እስካሁን ፈተናዎች አልተለጠፉም።",
+    "om": "Ammaaf qormaanni hin maxxanfamne."
+  },
+  "No exams yet.": {
+    "am": "እስካሁን ፈተና የለም።",
+    "om": "Ammaaf qormaata hin jiru."
+  },
+  "No incorrect answers yet. Nice work!": {
+    "am": "እስካሁን ስህተታዊ መልሶች የሉም። ጥሩ ስራ!",
+    "om": "Deebiin dogoggoraan hin jiru. Hojii gaariidha!"
+  },
+  "No learning activity recorded in this period yet.": {
+    "am": "በዚህ የጊዜ ክፍል ውስጥ የማማር እንቅስቃሴ እስካሁን አልተመዘገበም።",
+    "om": "Yeroo kana keessatti dalagaa barnootaa hin galmeeffamne."
+  },
+  "No long setup form to begin—choose Google or Telegram, then complete the details that help personalize your learning.": {
+    "am": "ለመጀመር ረዥም የመረጃ ቅርጽ የለም—Google ወይም Telegram ይምረጡ ከዚያም ለትምህርትዎ ልዩነት የሚሰጡ ዝርዝሮችን ይጨምሩ።",
+    "om": "Furmaata dheeraa hin barbaachisu—Google yookiin Telegram filadhu, achiin odeeffannoo barnootaa siif adda baasuu guuti."
+  },
+  "No matching questions. Create a draft below or change filters.": {
+    "am": "ማስማቴ ጥያቄዎች የሉም። ከታች ንድፍ ይፍጠሩ ወይም ፊልተሮችን ይቀይሩ።",
+    "om": "Gaaffileen wal fakkaatan hin jiru. Gara jalaa draft uumii yookiin filteroota jijjiiri."
+  },
+  "No mistakes to review": {
+    "am": "ለትንታኔ ምርመራ ስህተቶች የሉም።",
+    "om": "Dogoggorri deebisuuf hin jiru."
+  },
+  "No notes found": {
+    "am": "ማስታወሻ አልተገኘም።",
+    "om": "Yaadannoo hin argamne."
+  },
+  "No notes match": {
+    "am": "ማስታወሻዎች አልተመሳሰሉም።",
+    "om": "Yaadannoowwan hin walfakkaatan."
+  },
+  "No one on the leaderboard yet": {
+    "am": "እስካሁን የውድድር ዝርዝር ላይ ማንም የለም።",
+    "om": "Tarree hoggansa irratti nama tokko illee hin jiru."
+  },
+  "No practice yet.": {
+    "am": "እስካሁን ልምድ የለም።",
+    "om": "Ammaaf leenjii hin jiru."
+  },
+  "No preview available.": {
+    "am": "ቅድመ እይታ የለም።",
+    "om": "Dura ilaala hin jiru."
+  },
+  "No questions match": {
+    "am": "ምንም ጥያቄ አልተመሳሰለም።",
+    "om": "Gaaffileen hin walfakkaatan."
+  },
+  "No questions match those choices.": {
+    "am": "እነዚህ አማራጮች የሚመሳሰሉ ጥያቄዎች የሉም።",
+    "om": "Filannoowwan sanaaf gaaffileen hin walfakkaatan."
+  },
+  "No student profiles yet.": {
+    "am": "እስካሁን የተማሪ ፕሮፋይሎች የሉም።",
+    "om": "Ammaaf profile barataa hin jiru."
+  },
+  "No study days yet.": {
+    "am": "እስካሁን የትምህርት ቀናት የሉም።",
+    "om": "Ammaaf guyyaa barnootaa hin jiru."
+  },
+  "No subject activity in this period yet.": {
+    "am": "በዚህ ወቅት ላይ ለርዕስ እንቅስቃሴ እስካሁን አልተመዘገበም።",
+    "om": "Yeroo kana keessatti hojii mata-duree hin jiru."
+  },
+  "Not enough data yet.": {
+    "am": "እስካሁን በቂ ውሂብ የለም።",
+    "om": "Ammaaf odeeffannoo gahaa hin jiru."
+  },
+  "Not included": {
+    "am": "አልተካተተም",
+    "om": "Galmee keessa hin jiru"
+  },
+  "Not quite.": {
+    "am": "አይደለም",
+    "om": "Hanga tokko miti."
+  },
+  "Note not found": {
+    "am": "ማስታወሻ አልተገኘም።",
+    "om": "Yaadannoon hin argamne."
+  },
+  "Nothing saved yet": {
+    "am": "እስካሁን አንዳች አልተያዘም።",
+    "om": "Ammaaf waan tokkollee hin olkaa'amne."
+  },
+  "Notifications": {
+    "am": "ማሳወቂያዎች",
+    "om": "Beeksisota"
+  },
+  "Number of questions": {
+    "am": "የጥያቄዎች ብዛት",
+    "om": "Lakkoofsa gaaffilee"
+  },
+  "Numerical": {
+    "am": "ቁጥራዊ",
+    "om": "Lakkoofsaa"
+  },
+  "One learning loop. Better every time.": {
+    "am": "አንድ የመማር ማለት፣ በየጊዜው ይሻላል።",
+    "om": "Marsaa barnootaa tokko. Yeroo hunda fooyya'a."
+  },
+  "One step at a time": {
+    "am": "እያንዳንዱን እርምጃ አንድ በአንድ",
+    "om": "Tartiibaan tokkoon tokkoon"
+  },
+  "Only one diagnostic can be active for students.": {
+    "am": "ለተማሪዎች አንድ ብቻ የዲያግኖስቲክ ፈተና ሊኖር ይችላል።",
+    "om": "Diagnostic tokko qofatu barattootaaf hojjachuu danda'a."
+  },
+  "Only published questions can be selected.": {
+    "am": "ብቻ የታቀዱ ጥያቄዎች ሊመረጡ ይችላሉ።",
+    "om": "Gaaffileen maxxanfaman qofatu filatama."
+  },
+  "Only you can see this information.": {
+    "am": "እርስዎ ብቻ ይህን መረጃ ማየት ይችላሉ።",
+    "om": "Ati qofa odeeffannoo kana ni argita."
+  },
+  "Open contact messages": {
+    "am": "የኮንታክት መልዶችን ክፈት",
+    "om": "Ergaa qunnamtii bani"
+  },
+  "OpenAI helps generate study replies from your question and limited study context. Avoid sharing private information.": {
+    "am": "OpenAI ከጥያቄዎ እና ከየተገደበ የትምህርት ሁኔታ መሰረት ላይ የማማር መልሶች ይፍጠራል። ግል መረጃ እንዳትካፈሉ ይጠንቀቁ።",
+    "om": "OpenAI deebiiwwan barnootaa gaaffii keetii fi haala barnootaa murtaa'e irraa uumuuf si gargaara. Odeeffannoo dhuunfaa akka hin qoodne of eegi."
+  },
+  "Opening your assessment…": {
+    "am": "ምርመራዎን እየከፈተ…",
+    "om": "Qorannaa kee banuu…"
+  },
+  "Operational signals from live records": {
+    "am": "ከቀጥታ መዝገቦች የሚመጡ ስርዓታዊ ምልክቶች",
+    "om": "Mallattoolee hojii irraa kan kaʼan galmee jiraatanii"
+  },
+  "Opt out of leaderboard": {
+    "am": "ከየሸለም ዝርዝር ውጭ ይሆኑ",
+    "om": "Lakkaddaa sadarkaa irraa of baasuu"
+  },
+  "Optional and private by default. Only display names and points are shown.": {
+    "am": "ነፃ እና በነባር ግል ነው። ስሞችና ነጥቦች ብቻ ይታያሉ።",
+    "om": "Filatamaa fi dhuunfaa taʼee kan jalqabaadha. Maqaa fi dhibbeentaa qofa ni mulʼatu."
+  },
+  "Our aim": {
+    "am": "ዓላማችን",
+    "om": "Kaayyoon keenya"
+  },
+  "PREMIUM": {
+    "am": "ፕሪሚየም",
+    "om": "PIRIMIYAM"
+  },
+  "PUBLISHED": {
+    "am": "ታተሙ",
+    "om": "Maxxanfame"
+  },
+  "Paid plan availability, payment instructions and verification details are shown in the app before you proceed.": {
+    "am": "የክፍያ የተከፈለ እቅድ እንዲገኝ፣ የክፍያ መመሪያና የተረጋጋ መረጃዎች በመተግበሪያው ከመቀጠልዎ በፊት ይታያሉ።",
+    "om": "Karoora kaffaltii kaffalamu, akeekkachiisa kaffaltii fi odeeffannoo mirkaneessuu app keessatti si dura ni mulʼatu."
+  },
+  "Pass mark": {
+    "am": "የማለፊያ ነጥብ",
+    "om": "Mallattoo darbii"
+  },
+  "Pay and submit your receipt": {
+    "am": "ክፍያ አድርጉ እና የደረሰኝዎን አቅርቡ",
+    "om": "Kaffaliitii ragaa kee galchi"
+  },
+  "Pay to": {
+    "am": "ክፍያ ወደ",
+    "om": "Kaffali gara"
+  },
+  "Payment could not be verified. Check the details and submit a clear receipt screenshot again.": {
+    "am": "ክፍያው ሊረጋገጥ አልቻለም። ዝርዝሮቹን ያረጋግጡ እና ግልጽ የደረሰኝ ስክሪንሾት እንደገና ያስገቡ።",
+    "om": "Kaffaltiin hin mirkanaaʼin. Odeeffannoo sirriitti ilaali, suuraa ragaa ifaa irra deebiin ergi."
+  },
+  "Payment method": {
+    "am": "የክፍያ ዘዴ",
+    "om": "Akkaataa kaffaltii"
+  },
+  "Payment verified": {
+    "am": "ክፍያ ተረጋግጧል",
+    "om": "Kaffaltichi mirkanaaʼe"
+  },
+  "Payments": {
+    "am": "ክፍያዎች",
+    "om": "Kaffaltiiwwan"
+  },
+  "Period": {
+    "am": "ጊዜ",
+    "om": "Yeroo"
+  },
+  "Phone": {
+    "am": "ስልክ",
+    "om": "Bilbila"
+  },
+  "Physics": {
+    "am": "ፊዚክስ",
+    "om": "Fisiksi"
+  },
+  "Plan": {
+    "am": "እቅድ",
+    "om": "Karoora"
+  },
+  "Plans": {
+    "am": "እቅዶች",
+    "om": "Karooraalee"
+  },
+  "Plans & pricing": {
+    "am": "እቅዶች & ዋጋ",
+    "om": "Karooraalee & gatii"
+  },
+  "Plans that grow with you": {
+    "am": "ከእርስዎ ጋር የሚያድጉ እቅዶች",
+    "om": "Karooraaleen si waliin guddatan"
+  },
+  "Platform key metrics": {
+    "am": "የመድረክ ዋና መለኪያዎች",
+    "om": "Metriksiwwan bu'uuraa platformii"
+  },
+  "Please do not include passwords, payment details or sensitive personal information in feedback.": {
+    "am": "እባክዎ የይለፍ ቃላት፣ የክፍያ ዝርዝሮች ወይም የግል የሚያስደንግጡ መረጃዎች በእትም አትጨምሩ።",
+    "om": "Mee password, odeeffannoo kaffaltii ykn odeeffannoo dhuunfaa xaxamaa feedback keessa hin galchinaa."
+  },
+  "Practice": {
+    "am": "ልምድ",
+    "om": "Leenjii"
+  },
+  "Practice 15 questions, then review what felt difficult.": {
+    "am": "ጥያቄ 15 ልምድ አድርጉ፣ ከዚያ ያስቸገረውን ይመለከቱ።",
+    "om": "Gaaffii 15 irra leenjii taasisi, achii irraan kan si rakkise qoradhu."
+  },
+  "Practice again": {
+    "am": "እንደገና ልምድ አድርግ",
+    "om": "Deebiʼee leenjii godhi"
+  },
+  "Practice mode": {
+    "am": "የልምድ ሁኔታ",
+    "om": "Haala leenjii"
+  },
+  "Practice my mistakes": {
+    "am": "የስህተቶቼን ልምድ አድርግ",
+    "om": "Dogoggora koo leenjisi"
+  },
+  "Practice similar": {
+    "am": "የተመሳሳይ ልምድ",
+    "om": "Walfakkaatuun leenjii godhi"
+  },
+  "Practice these": {
+    "am": "እነዚህን ልምድ አድርግ",
+    "om": "Kanneen leenjisi"
+  },
+  "Practice this topic": {
+    "am": "ይህን ርዕስ ልምድ አድርግ",
+    "om": "Mata-duree kana leenjisi"
+  },
+  "Practice with a clear purpose": {
+    "am": "ግልፅ ዓላማ ያለው ልምድ አድርግ",
+    "om": "Kaayyoo ifaa qabuun leenjii godhi"
+  },
+  "Premium": {
+    "am": "ፕሪሚየም",
+    "om": "Pirimiyam"
+  },
+  "Premium is active. Your new features are ready.": {
+    "am": "ፕሪሚየም እየተገናኘ ነው። አዲሱ ባህሪዎችዎ ዝግጁ ናቸው።",
+    "om": "Pirimiyam sochoʼaa jira. Amaloota haaraan kee qophaaʼanii jiru."
+  },
+  "Premium only": {
+    "am": "ለፕሪሚየም ብቻ",
+    "om": "Pirimiyam qofaan"
+  },
+  "Premium students": {
+    "am": "ፕሪሚየም ተማሪዎች",
+    "om": "Barattoota pirimiyam"
+  },
+  "Press Control or Command plus Enter to send.": {
+    "am": "ለላክ የControl ወይም Command ከEnter ጋር ይጠቀሙ።",
+    "om": "Ergaa erguuf Control yookaan Command waliin Enter tuqi."
+  },
+  "Preview & validate": {
+    "am": "ቅድመ እይታ & ማረጋገጫ",
+    "om": "Duraa ilaali & mirkaneessi"
+  },
+  "Previous": {
+    "am": "ያለፈ",
+    "om": "Duraa"
+  },
+  "Primary": {
+    "am": "ዋና",
+    "om": "Ijo"
+  },
+  "Privacy": {
+    "am": "የግላዊነት",
+    "om": "Dhuunfa"
+  },
+  "Profile": {
+    "am": "መገለጫ",
+    "om": "Profaayilii"
+  },
+  "Profile completion": {
+    "am": "የመገለጫ ሙላት",
+    "om": "Xumuramuu profaayilii"
+  },
+  "Progress": {
+    "am": "እድገት",
+    "om": "Guddina"
+  },
+  "Progress saved automatically": {
+    "am": "እድገት በራስሰር ተቀምጧል",
+    "om": "Guddinni ofumaan olkaʼameera"
+  },
+  "Prompt-injection screening: on": {
+    "am": "Prompt-injection ምርመራ: እየተካሄደ",
+    "om": "Prompt-injection screening: hojjetaa jira"
+  },
+  "Provider endpoint: set via": {
+    "am": "Provider endpoint: በ… ተቀመጠ",
+    "om": "Provider endpoint: karaa … irra kaaʼame"
+  },
+  "Provider settings live on the server. Keys are never shown here.": {
+    "am": "የአቅራቢ ቅንብሮች በአገልግሎት አውታረ ሰርቨር ላይ ይኖራሉ። ቁልፎች እዚህ አይታዩም።",
+    "om": "Qindaaʼinoonni provider server irra jiraatu. Keywwan asitti hin mulʼatan."
+  },
+  "Provider sign-in is not active in demo mode": {
+    "am": "የአቅራቢ መግቢያ በማሳያ ሁኔታ ውስጥ አይሰራም",
+    "om": "Seensa provider demo mode keessatti hin hojjetu"
+  },
+  "Publish": {
+    "am": "ያስተዋወቁ",
+    "om": "Maxxansi"
+  },
+  "Publish a subject and at least one topic before adding questions.": {
+    "am": "ጥያቄዎችን ለማስጨመር ቢያንስ አንድ subject እና አንድ topic ያስተዋወቁ።",
+    "om": "Gaaffilee dabaluuf dura mata-duree (subject) tokko fi mata-duree xiqqaa (topic) tokko maxxansi."
+  },
+  "Published questions": {
+    "am": "የተለቀቁ ጥያቄዎች",
+    "om": "Gaaffilee maxxanfaman"
+  },
+  "Quality review queue": {
+    "am": "የጥራት ግምገማ ተራ",
+    "om": "Tarree qorannoo qulqullinaa"
+  },
+  "Question bank": {
+    "am": "የጥያቄ ባንክ",
+    "om": "Baankii gaaffii"
+  },
+  "Question editor": {
+    "am": "የጥያቄ አርታኢ",
+    "om": "Gulaalaa gaaffii"
+  },
+  "Question navigator": {
+    "am": "የጥያቄ መሪ",
+    "om": "Deemtuu gaaffii"
+  },
+  "Question text": {
+    "am": "የጥያቄ ጽሑፍ",
+    "om": "Barruu gaaffii"
+  },
+  "Question type": {
+    "am": "የጥያቄ አይነት",
+    "om": "Gosa gaaffii"
+  },
+  "Questions": {
+    "am": "ጥያቄዎች",
+    "om": "Gaaffilee"
+  },
+  "Questions I Got Wrong": {
+    "am": "የእኔ የተሳሳቱ ጥያቄዎች",
+    "om": "Gaaffilee ani dogoggoree"
+  },
+  "Questions I got wrong": {
+    "am": "የእኔ የተሳሳቱ ጥያቄዎች",
+    "om": "Gaaffilee ani dogoggoree"
+  },
+  "Questions answered": {
+    "am": "የተመለሱ ጥያቄዎች",
+    "om": "Gaaffilee deebifaman"
+  },
+  "Questions, answered clearly.": {
+    "am": "ጥያቄዎች፣ በግልጽ ተመለሱ።",
+    "om": "Gaaffilee, ifaan deebifaman."
+  },
+  "Questions, ideas or feedback?": {
+    "am": "ጥያቄዎች፣ ሃሳቦች ወይም አስተያየት?",
+    "om": "Gaaffilee, yaada yookin deebii?"
+  },
+  "Quick actions": {
+    "am": "ፈጣን እርምጃዎች",
+    "om": "Dalagoota ariifachiisaa"
+  },
+  "Randomize question order": {
+    "am": "የጥያቄዎችን ቅደም ተከተል ይዘዋወሩ",
+    "om": "Tasa tartiiba gaaffilee jijjiiri"
+  },
+  "Randomize questions": {
+    "am": "ጥያቄዎችን በድንበር ያቀናሉ",
+    "om": "Gaaffilee akka tasaa qindeessi"
+  },
+  "Read note": {
+    "am": "ማስታወሻን አንብብ",
+    "om": "Hubachiisa dubbisi"
+  },
+  "Readiness is a learning guide, not a prediction of official exam results. Your personal learning information stays private.": {
+    "am": "ዝግጁነት የማማረር መመሪያ ነው፣ የመንግስታዊ ፈተና ውጤቶችን አይቀጥልም። የእርስዎ የመማር ግል መረጃ ግል ብቻ ነው።",
+    "om": "Qophii gorsa barnootaa dha; bu'aa qormaata seeraa hin tilmaamu. Odeeffannoo barnootaa dhuunfaa keessan iccitiidha."
+  },
+  "Ready to find your focus?": {
+    "am": "ትኩረትህን ለማግኘት ዝግጁ?",
+    "om": "Xiyyeeffannoo kee argachuuf qophaa'aa?"
+  },
+  "Recent active days": {
+    "am": "የቅርብ ጊዜ ንቁ ቀናት",
+    "om": "Guyyoota dhiyoo hojiirra turan"
+  },
+  "Recent admin activity": {
+    "am": "የቅርብ አስተዳደር እንቅስቃሴ",
+    "om": "Hojiilee bulchaa dhiyoo"
+  },
+  "Recent exams": {
+    "am": "የቅርብ ጊዜ ፈተናዎች",
+    "om": "Qormaata dhiyoo"
+  },
+  "Recent results": {
+    "am": "የቅርብ ጊዜ ውጤቶች",
+    "om": "Bu'aa dhiyoo"
+  },
+  "Recent searches": {
+    "am": "የቅርብ ጊዜ ፈለጋዎች",
+    "om": "Barbaachawwan dhiyoo"
+  },
+  "Recommendation sample": {
+    "am": "የምክር ምሳሌ",
+    "om": "Fakkeenya gorsa"
+  },
+  "Recommendation-ready": {
+    "am": "ለምክር ዝግጁ",
+    "om": "Gorsaaf qophaa'e"
+  },
+  "Refresh": {
+    "am": "አዘምን",
+    "om": "Haaraa godhi"
+  },
+  "Refresh dashboard": {
+    "am": "ዳሽቦርድን አዘምን",
+    "om": "Daashiboard haaraa godhi"
+  },
+  "Refresh failed. Showing the last loaded dashboard data.": {
+    "am": "አዘምን አልተሳካም። የመጨረሻውን የተጫነ ዳሽቦርድ መረጃ እየታዩ ነው።",
+    "om": "Haaraan godhuun hin milkoofne. Odeeffannoo daashiboard dhuma irra olkaa'ame agarsiisaa jira."
+  },
+  "Region": {
+    "am": "ክልል",
+    "om": "Naannoo"
+  },
+  "Related note": {
+    "am": "ተዛማጅ ማስታወሻ",
+    "om": "Hubachiisa walqabatu"
+  },
+  "Result not found": {
+    "am": "ውጤት አልተገኘም",
+    "om": "Bu'aan hin argamne"
+  },
+  "Retake": {
+    "am": "እንደገና ሞክር",
+    "om": "Irra deebisi"
+  },
+  "Retention": {
+    "am": "ማስቆየት",
+    "om": "Qabannoo"
+  },
+  "Retry": {
+    "am": "ደግመህ ሞክር",
+    "om": "Deebi'ee yaali"
+  },
+  "Review": {
+    "am": "ግምገማ",
+    "om": "Qorannoo"
+  },
+  "Review answers": {
+    "am": "መልሶችን ይገምግሙ",
+    "om": "Deebiiwwan ilaali"
+  },
+  "Review later": {
+    "am": "በኋላ ይገምግሙ",
+    "om": "Booda ilaali"
+  },
+  "Sample data in demo mode.": {
+    "am": "በዳሞ ሞድ ያለ የምሳሌ ውሂብ።",
+    "om": "Odeeffannoo fakkeenyaa demo mode keessatti."
+  },
+  "Sample data in demo mode. Connect the API for live figures.": {
+    "am": "በዳሞ ሞድ ያለ የምሳሌ ውሂብ። ለቀጥታ መረጃ API ያገናኙ።",
+    "om": "Odeeffannoo fakkeenyaa demo keessa. Lakkoofsa dhugaa argachuuf API wal-qunnamti."
+  },
+  "Sample records. Payment status is always verified server-side by Verify.et.": {
+    "am": "የምሳሌ መዝገቦች። የክፍያ ሁኔታ እስከሁሉም ጊዜ Verify.et በሰርቨር ጎን ይረጋገጣል።",
+    "om": "Galmeewwan fakkeenyaa. Haala kaffaltii yeroo hunda Verify.et dhaan server irratti mirkanaa'a."
+  },
+  "Save as draft": {
+    "am": "እንደ ድራፍ ያስቀምጡ",
+    "om": "Akka draft olkaa'i"
+  },
+  "Save changes": {
+    "am": "ለውጦችን አስቀምጥ",
+    "om": "Fooyya'insa olkaa'i"
+  },
+  "Save draft": {
+    "am": "ድራፉን አስቀምጥ",
+    "om": "Draft olkaa'i"
+  },
+  "Save pricing": {
+    "am": "ዋጋ አስቀምጥ",
+    "om": "Gatii olkaa'i"
+  },
+  "Saved diagnostics": {
+    "am": "የተያዙ የምርመራ መረጃዎች",
+    "om": "Diagnostics olkaa'aman"
+  },
+  "School": {
+    "am": "ትምህርት ቤት",
+    "om": "Mana barumsaa"
+  },
+  "Search": {
+    "am": "ፈለጋ",
+    "om": "Barbaadi"
+  },
+  "Student journey": {
+    "am": "የተማሪ ጉዞ",
+    "om": "Daandii barataa"
+  },
+  "Student live": {
+    "am": "ቀጥታ ለተማሪ",
+    "om": "Toora jiraataa barataa"
+  },
+  "Students": {
+    "am": "ተማሪዎች",
+    "om": "Barattoota"
+  },
+  "Study consistency": {
+    "am": "የትምህርት ቋሚነት",
+    "om": "Walitti fufiinsa barnootaa"
+  },
+  "Study reminder: 15 minutes today keeps your streak alive.": {
+    "am": "የስራ ማስታወሻ: ዛሬ 15 ደቂቃ እንደገና መስራት የተደጋጋ ስርዓትዎን ይጠብቃል።",
+    "om": "Yaadachiisa: har'a daqiiqaa 15 barachuu tartiiba kee akka jiraachisu si gargaara."
+  },
+  "Studying hard matters. Studying with direction helps.": {
+    "am": "ብርታት ማስተማር አስፈላጊ ነው። በአቅጣጫ ማስተማር ግን ይረዳል።",
+    "om": "Barachuun cimaa barbaachisaa dha. Karaa ifaa fi kaayyoo qabuun barachuun ni gargaara."
+  },
+  "Subject": {
+    "am": "ርዕስ",
+    "om": "Mata-duree"
+  },
+  "Subject performance": {
+    "am": "የርዕስ አፈጻጸም",
+    "om": "Raawwii mata-duree"
+  },
+  "Subject scores": {
+    "am": "የርዕስ ነጥቦች",
+    "om": "Bu'aa mata-duree"
+  },
+  "Subject view": {
+    "am": "የርዕስ እይታ",
+    "om": "Mul'ata mata-duree"
+  },
+  "Subjects": {
+    "am": "ርዕሶች",
+    "om": "Mata-dureewwan"
+  },
+  "Subjects, topics & notes": {
+    "am": "ርዕሶች፣ ጉዳዮች እና ማስታወሻዎች",
+    "om": "Mata-dureewwan, mata-xiyyeeffannoo fi yaadannoo"
+  },
+  "Submit": {
+    "am": "ላክ",
+    "om": "Ergi"
+  },
+  "Submit exam": {
+    "am": "ፈተና ላክ",
+    "om": "Qormaata ergi"
+  },
+  "Submit for verification": {
+    "am": "ለማረጋገጥ ላክ",
+    "om": "Mirkaneessuuf ergi"
+  },
+  "Submit it here. Access is granted only after the payment is verified.": {
+    "am": "እዚህ ያስገቡ። ከክፍያው ማረጋገጥ በኋላ ብቻ መዳረሻ ይሰጣል።",
+    "om": "Asitti ergi. Teessoon seensaa kaffaltiin mirkanaa'ee booda qofa ni kenname."
+  },
+  "Submit now": {
+    "am": "አሁን ላክ",
+    "om": "Amma ergi"
+  },
+  "Submit your exam?": {
+    "am": "ፈተናዎን ላክለት ይፈልጋሉ?",
+    "om": "Qormaata kee erguu barbaadda?"
+  },
+  "Subscriptions & payments": {
+    "am": "የስብስክሪፕሽኖች እና ክፍያዎች",
+    "om": "Galmeewwan fi kaffaltii"
+  },
+  "Suspended accounts": {
+    "am": "ተዘግተው ያሉ አካውንቶች",
+    "om": "Akaawuntiiwwan dhaabbatan"
+  },
+  "Switch to the live API environment to read submitted contact messages.": {
+    "am": "የተላኩትን መልእክቶች ለማንበብ ወደ live API አካባቢ ይቀይሩ።",
+    "om": "Ergaa qunnamtii ergaman dubbisuuf gara live API naannoo jijjiiri."
+  },
+  "TRUE_FALSE": {
+    "am": "እውነት_ሐሰት",
+    "om": "DHUGAA_SOBA"
+  },
+  "Take a screenshot of the receipt.": {
+    "am": "የክፍያ ደረሰኝን ስክሪንሾት ይውሰዱ።",
+    "om": "Suuraa ragaa kaffaltii kaasi."
+  },
+  "Take your diagnostic assessment": {
+    "am": "የዲያግኖስቲክ ግምገማዎን ይወስዱ",
+    "om": "Qormaata qorannoo (diagnostic) kee fudhadhu"
+  },
+  "Talk to Dibora": {
+    "am": "ከDibora ጋር ይነጋገሩ",
+    "om": "Dibora waliin dubbadhu"
+  },
+  "Telegram": {
+    "am": "Telegram",
+    "om": "Telegram"
+  },
+  "Telegram sign-in is not configured yet. Please choose Google or try again later.": {
+    "am": "Telegram መግቢያ አልተቀናበረም። እባክዎ Google ይምረጡ ወይም በኋላ ድጋሜ ይሞክሩ።",
+    "om": "Seensa Telegram amma qophaa'e miti. Google fili yookiin booda irra deebi'ii yaali."
+  },
+  "Telegram verification is checked by Dibora’s API.": {
+    "am": "የTelegram ማረጋገጥ በDibora’s API ይታመናል።",
+    "om": "Mirkaneessi Telegram Dibora’s API'n ni ilaallama."
+  },
+  "Tell us what is on your mind…": {
+    "am": "በልብዎ ያለውን ነገር ይናገሩን…",
+    "om": "Waa'ee sammuu kee nuuf himi…"
+  },
+  "Tell us what is working, where you got stuck, or what would make your next study session better.": {
+    "am": "ምን እንደሚሰራ፣ የተቋራጩበት ቦታ ወይም የሚያሻሽለው ቀጣይ የትምህርት ጊዜ ምን እንደሆን ንገሩን።",
+    "om": "Maaltu hojjetaa jira, eessa irra dadhabde, yookiin yeroo barumsaa itti aanutti maal fooyyeessu akka qabu nuu himi."
+  },
+  "Textbook, chapter, page": {
+    "am": "መፅሐፍ፣ ምዕራፍ፣ ገጽ",
+    "om": "Kitaaba barnootaa, kutaa, fuula"
+  },
+  "The time limit is enforced by the server. When time ends, the exam submits automatically.": {
+    "am": "የጊዜ ገደብ በሰርቨር ይፈጽማል። ጊዜ ሲያለፍ፣ ፈተናው ራሱን በራሱ ይላካል።",
+    "om": "Daangaan yeroon sirna serveriin ni hojiirra oola. Yeroon xumurame qormaanni ofuma isaatiin ni ergame."
+  },
+  "The timer runs on the server clock deadline. When time ends, the exam submits automatically.": {
+    "am": "ታይመሩ በሰርቨር የሰዓት ግዜ ላይ ይሰራል። ጊዜ ሲያለፍ፣ ፈተናው ራሱን ይላካል።",
+    "om": "Timer-n sa'atii server irratti deema. Yeroon xumurame qormaanni ofumaan ni ergame."
+  },
+  "This admin screen is not available in live mode yet": {
+    "am": "ይህ የአስተዳደር ማያ እስካሁን በlive ሁኔታ አልተገኘም",
+    "om": "Fuula admin kun ammaaf gara live mode hin jiru."
+  },
+  "This attempt is still in progress": {
+    "am": "ይህ ሙከራ እየቀጠለ ነው",
+    "om": "Yaaliin kun hanga ammaatti itti fufaa jira."
+  },
+  "This exam is part of Premium.": {
+    "am": "ይህ ፈተና የPremium ክፍል ነው።",
+    "om": "Qormaanni kun kutaa Premium dha."
+  },
+  "This is a transparent example, not a prediction. Student recommendations update as practice history grows.": {
+    "am": "ይህ ግልጽ ምሳሌ ነው፣ ትንታኔ አይደለም። የተማሪ ምክሮች የተለምዶ እርምጃ ታሪክ ሲጨምር ይዘርጋሉ።",
+    "om": "Kun fakkeenya ifaa dha, tilmaama miti. Gorsii barattootaa seenaa hojiirra oolmaa dabaluun ni haaromsa."
+  },
+  "This page is a placeholder. Have it reviewed against Ethiopian data-protection requirements before launch.": {
+    "am": "ይህ ገፅ ቦታ ለመያዝ ነው። ከመከፈት በፊት እባክዎ በኢትዮጵያ የውሂብ ጥበቃ መስፈርቶች ላይ ያስፈልጋሉ የሚባሉትን ይገምግሙ።",
+    "om": "Fuulli kun bakka bu'aa dha. Dura akka baneetti seera eegumsa odeeffannoo Itoophiyaa waliin madaali."
+  },
+  "This permanently removes your profile, progress and conversations from this device. This cannot be undone.": {
+    "am": "ይህ ፕሮፋይልዎን፣ እድገትዎን እና ውይይቶችዎን ከዚህ መሣሪያ በሙሉ ይሰርዳል። ይህን እንደገና ማስመለስ አይቻልም።",
+    "om": "Kun profaayilii kee, guddina kee fi mariiwwan meeshaa kana irra jiru irraa guutumaan guutuutti ni haqa. Deebisu hin danda'amu."
+  },
+  "This removes your profile details and AI conversations and signs you out. This cannot be undone.": {
+    "am": "ይህ የፕሮፋይል ዝርዝሮችዎን እና ከAI ጋር ያደረጉትን ውይይቶች ይሰርያል፤ እና ይወጣሉ። ይህን መለወጥ አይቻልም።",
+    "om": "Kun odeeffannoo profaayilii kee fi haasawwan AI waliin goote ni haqaa; si baasuu ni danda'a. Deebisu hin danda'amu."
+  },
+  "Time remaining": {
+    "am": "የቀረው ጊዜ",
+    "om": "Yeroo hafaa"
+  },
+  "Time used": {
+    "am": "የተጠቀሰ ጊዜ",
+    "om": "Yeroo fayyadame"
+  },
+  "Title": {
+    "am": "ርዕስ",
+    "om": "Mata-duree"
+  },
+  "Tools for every part of preparation.": {
+    "am": "ለእያንዳንዱ ክፍል የእርዳታ መሣሪያዎች።",
+    "om": "Meeshaalee qophii hundaaf."
+  },
+  "Topic": {
+    "am": "ጉዳይ",
+    "om": "Mata-xiyyeeffannoo"
+  },
+  "Topic performance": {
+    "am": "የጉዳይ አፈጻጸም",
+    "om": "Raawwii mata-xiyyeeffannoo"
+  },
+  "Topics": {
+    "am": "ጉዳዮች",
+    "om": "Matadureewwan"
+  },
+  "True": {
+    "am": "እውነት",
+    "om": "Dhugaa"
+  },
+  "Try a different search or subject.": {
+    "am": "ሌላ ፍለጋ ወይም ሌላ ርዕስ ይሞክሩ።",
+    "om": "Barbaacha adda yookiin mata-duree adda yaali."
+  },
+  "Try a different search.": {
+    "am": "ሌላ ፍለጋ ይሞክሩ።",
+    "om": "Barbaacha adda yaali."
+  },
+  "Mark read": {
+    "am": "እንደተነበበ ምልክት ያድርጉ",
+    "om": "Akka dubbifameatti mallatteessi"
+  },
+  "Mark resolved": {
+    "am": "እንደተፈታ ምልክት ያድርጉ",
+    "om": "Akka furameetti mallatteessi"
+  },
+  "Matches the shared recommendation engine threshold.": {
+    "am": "ከተካፋይ የምክር ሞተር ገደብ ጋር ይመሳሰላል.",
+    "om": "Daangaa makiinaa gorsa waliinii waliin ni walfakkaata."
+  },
+  "Mechanics": {
+    "am": "ሜካኒክስ",
+    "om": "Mekaniksii"
+  },
+  "Medium": {
+    "am": "መካከለኛ",
+    "om": "Giddu-galeessa"
+  },
+  "Message": {
+    "am": "መልዕክት",
+    "om": "Ergaa"
+  },
+  "Messages go to the secure Dibora support inbox.": {
+    "am": "መልዕክቶች ወደ ደህንነታዊው የDibora የድጋፍ ኢንቦክስ ይላካሉ.",
+    "om": "Ergaan gara sanduuqa deggersa Dibora kan nageenya qabuutti ni ergama."
+  },
+  "Messages submitted by visitors through the Dibora contact form.": {
+    "am": "በDibora የአገናኝ ቅጽ በጎብኚዎች የተላኩ መልዕክቶች.",
+    "om": "Ergaa daawwitoonni karaa fuula qunnamtii Dibora ergan."
+  },
+  "Minutes": {
+    "am": "ደቂቃ",
+    "om": "Daqiiqaa"
+  },
+  "Mock exam performance": {
+    "am": "የሞክ ፈተና አፈፃፀም",
+    "om": "Milkaa'ina qormaata fakkii"
+  },
+  "Mock exam scores": {
+    "am": "የሞክ ፈተና ነጥቦች",
+    "om": "Bu'aa qormaata fakkii"
+  },
+  "Model: set via": {
+    "am": "ሞዴል: በ… ተቀመጠ",
+    "om": "Moodelii: karaa … dhaan kaa'ame"
+  },
+  "More": {
+    "am": "ተጨማሪ",
+    "om": "Dabalata"
+  },
+  "More confidence in every next step.": {
+    "am": "በእያንዳንዱ ቀጣይ እርምጃ የተጨማሪ እምነት.",
+    "om": "Tarkaanfii itti aanu hundatti amantii dabalataa."
+  },
+  "Most attempted subjects": {
+    "am": "ብዙ ጊዜ የተሞከሩ ርዕሶች",
+    "om": "Barnoota yeroo baay'ee yaalaman"
+  },
+  "Most difficult topics": {
+    "am": "በጣም የሚያስቸግሩ ርዕሶች",
+    "om": "Mata-dureewwan cimaa ta'an"
+  },
+  "Most practiced subjects": {
+    "am": "ብዙ ጊዜ የተሠሩ ርዕሶች",
+    "om": "Barnoota yeroo baay'ee hojjetaman"
+  },
+  "Multiple choice": {
+    "am": "የብዙ አማራጭ ጥያቄ",
+    "om": "Filannoo hedduu"
+  },
+  "My Bookmarks": {
+    "am": "የእኔ የተሰረዙ ነገሮች",
+    "om": "Kan koo kuufame"
+  },
+  "My profile": {
+    "am": "መገለጫዬ",
+    "om": "Piroofiila koo"
+  },
+  "Search failed.": {
+    "am": "ፍለጋ አልተሳካም.",
+    "om": "Barbaadi hin milkoofne."
+  },
+  "Search name or region": {
+    "am": "ስም ወይም ክልል ፈልግ",
+    "om": "Maqaa yookiin naannoo barbaadi"
+  },
+  "Search notes": {
+    "am": "ማስታወሻዎችን ፈልግ",
+    "om": "Barreeffamoota barbaadi"
+  },
+  "Search notes, topics, questions, exams…": {
+    "am": "ማስታወሻዎች፣ ርዕሶች፣ ጥያቄዎች፣ ፈተናዎችን ፈልግ…",
+    "om": "Barreeffamoota, mata-dureewwan, gaaffilee, qormaata… barbaadi"
+  },
+  "Search question text": {
+    "am": "የጥያቄ ጽሑፍ ፈልግ",
+    "om": "Barruu gaaffii barbaadi"
+  },
+  "Search questions": {
+    "am": "ጥያቄዎችን ፈልግ",
+    "om": "Gaaffilee barbaadi"
+  },
+  "Search students": {
+    "am": "ተማሪዎችን ፈልግ",
+    "om": "Barattoota barbaadi"
+  },
+  "Search subjects, topics, notes, questions and exams": {
+    "am": "ትምህርቶች፣ ርዕሶች፣ ማስታወሻዎች፣ ጥያቄዎችና ፈተናዎች ፈልግ",
+    "om": "Barnoota, mata-duree, barreeffamoota, gaaffilee fi qormaata barbaadi"
+  },
+  "See Premium": {
+    "am": "Premiumን ይመልከቱ",
+    "om": "Premium ilaali"
+  },
+  "See all": {
+    "am": "ሁሉን ይመልከቱ",
+    "om": "Hundumaa ilaali"
+  },
+  "See how it works": {
+    "am": "እንዴት እንደሚሰራ ይመልከቱ",
+    "om": "Akkaataa hojjetu ilaali"
+  },
+  "See how the journey works": {
+    "am": "ጉዞው እንዴት እንደሚሰራ ይመልከቱ",
+    "om": "Imala akkamitti akka hojjetu ilaali"
+  },
+  "See plans": {
+    "am": "ዕቅዶችን ይመልከቱ",
+    "om": "Karoorota ilaali"
+  },
+  "See recommendations": {
+    "am": "ምክሮችን ይመልከቱ",
+    "om": "Gorsota ilaali"
+  },
+  "Select at least one published question to see recommendation scenarios.": {
+    "am": "ምክር ሁኔታዎችን ለማየት ቢያንስ አንድ የታተመ ጥያቄ ይምረጡ.",
+    "om": "Haala gorsa ilaaluf gaaffii maxxanfame tokkoo ol akka xiqqaa tokko filadhu."
+  },
+  "Select row": {
+    "am": "ረድፍ ይምረጡ",
+    "om": "Tarree filadhu"
+  },
+  "Select subject": {
+    "am": "ትምህርት ይምረጡ",
+    "om": "Barnoota filadhu"
+  },
+  "Select topic": {
+    "am": "ርዕስ ይምረጡ",
+    "om": "Mata-duree filadhu"
+  },
+  "Selected": {
+    "am": "ተመረጠ",
+    "om": "Filatame"
+  },
+  "Selected period activity": {
+    "am": "የተመረጠ ጊዜ እንቅስቃሴ",
+    "om": "Sochii yeroo filatame"
+  }
+}

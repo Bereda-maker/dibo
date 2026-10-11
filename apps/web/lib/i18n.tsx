@@ -1,8 +1,9 @@
 "use client";
 
 import en from "../i18n/en.json"; import am from "../i18n/am.json"; import om from "../i18n/om.json";
+import content from "./content-translations.json";
 import { useStore } from "./store";
-const dict: Record<string, Record<string, string>> = { en, am, om };
+const dict: Record<string, Record<string, string>> = { en: { ...en, ...Object.fromEntries(Object.keys(content).map((key) => [key, key])) }, am: { ...am, ...Object.fromEntries(Object.entries(content).map(([key, value]) => [key, value.am])) }, om: { ...om, ...Object.fromEntries(Object.entries(content).map(([key, value]) => [key, value.om])) } };
 const nav: Record<string, Record<string, string>> = {
   en: { dashboard: "Dashboard", notes: "Notes", practice: "Practice", exams: "Exams", assistant: "AI Assistant", progress: "Progress", more: "More" },
   am: { dashboard: "ዳሽቦርድ", notes: "ማስታወሻዎች", practice: "ልምምድ", exams: "ፈተናዎች", assistant: "የAI ረዳት", progress: "እድገት", more: "ተጨማሪ" },
