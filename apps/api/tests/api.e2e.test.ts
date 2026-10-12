@@ -392,12 +392,12 @@ describe("exam flow, bookmarks, leaderboard, search over HTTP", () => {
     const firstCookie = await signup(firstEmail), secondCookie = await signup(secondEmail);
     const [firstUser] = await raw.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, firstEmail));
     const [secondUser] = await raw.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, secondEmail));
-    await raw.insert(s.notifications).values([
+    const notificationRows = await raw.insert(s.notifications).values([
       { userId: firstUser!.id, type: "TEST", title: "Unread one" },
       { userId: firstUser!.id, type: "TEST", title: "Unread two" },
       { userId: firstUser!.id, type: "TEST", title: "Already read", readAt: new Date() },
       { userId: secondUser!.id, type: "TEST", title: "Other student's unread" },
-    ]);
+    ]).returning({ id: s.notifications.id, title: s.notifications.title });
     expect((await get("/api/notifications/unread-count")).status).toBe(401);
     const admin = await adminCookie("ADMIN", `notification-count-admin-${suffix}@x.et`);
     expect((await get("/api/notifications/unread-count", admin)).status).toBe(403);
@@ -405,6 +405,12 @@ describe("exam flow, bookmarks, leaderboard, search over HTTP", () => {
     const secondCount = (await (await get("/api/notifications/unread-count", secondCookie)).json()).data;
     expect(firstCount.count).toBe(2);
     expect(secondCount.count).toBe(1);
+    const firstUnreadId = notificationRows.find((notification) => notification.title === "Unread one")!.id;
+    const secondStudentsId = notificationRows.find((notification) => notification.title === "Other student's unread")!.id;
+    expect((await post(`/api/notifications/${firstUnreadId}/read`, {}, firstCookie)).status).toBe(200);
+    expect((await (await get("/api/notifications/unread-count", firstCookie)).json()).data.count).toBe(1);
+    expect((await post(`/api/notifications/${secondStudentsId}/read`, {}, firstCookie)).status).toBe(404);
+    expect((await (await get("/api/notifications/unread-count", secondCookie)).json()).data.count).toBe(1);
     expect((await post("/api/notifications/read-all", {}, firstCookie)).status).toBe(200);
     expect((await (await get("/api/notifications/unread-count", firstCookie)).json()).data.count).toBe(0);
     expect((await (await get("/api/notifications/unread-count", secondCookie)).json()).data.count).toBe(1);
@@ -427,7 +433,7 @@ describe("exam flow, bookmarks, leaderboard, search over HTTP", () => {
 describe("regression: every protected route rejects anonymous callers", () => {
   const paths: [string, string][] = [["GET", "/api/students/me"], ["GET", "/api/practice/questions"], ["POST", "/api/practice/answer"], ["GET", "/api/progress"], ["GET", "/api/recommendations"], ["GET", "/api/achievements"], ["GET", "/api/notifications"], ["GET", "/api/notifications/unread-count"],
     ["GET", "/api/ai/conversations"], ["POST", "/api/ai/messages"], ["GET", "/api/exams"], ["GET", "/api/attempts/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11"], ["POST", "/api/attempts"], ["GET", "/api/bookmarks"], ["GET", "/api/notes/completed"],
-    ["POST", "/api/notes/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11/complete"], ["GET", "/api/leaderboard"], ["GET", "/api/search?q=ab"], ["GET", "/api/content/subjects"], ["POST", "/api/subscriptions/checkout"], ["GET", "/api/admin/overview"], ["GET", "/api/admin/diagnostics/builder"], ["POST", "/api/admin/diagnostics"], ["GET", "/api/admin/audit-logs"], ["GET", "/api/admin/contact-messages"], ["GET", "/api/auth/me"]];
+    ["POST", "/api/notifications/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11/read"], ["POST", "/api/notes/3f0e1c1e-1b5a-4c52-9f4e-6a8f6a1f7b11/complete"], ["GET", "/api/leaderboard"], ["GET", "/api/search?q=ab"], ["GET", "/api/content/subjects"], ["POST", "/api/subscriptions/checkout"], ["GET", "/api/admin/overview"], ["GET", "/api/admin/diagnostics/builder"], ["POST", "/api/admin/diagnostics"], ["GET", "/api/admin/audit-logs"], ["GET", "/api/admin/contact-messages"], ["GET", "/api/auth/me"]];
   for (const [m, p] of paths) test(`${m} ${p} -> 401`, async () => { const r = await app.request(p, { method: m, headers: { origin: ORIGIN, "content-type": "application/json", "x-forwarded-for": ip() }, body: m === "GET" ? undefined : "{}" }); expect(r.status).toBe(401); });
 });
 

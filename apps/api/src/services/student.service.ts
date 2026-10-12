@@ -25,6 +25,14 @@ export class StudentService {
       .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
     return { count: Number(row?.count ?? 0) };
   }
+  async markNotificationRead(userId: string, notificationId: string) {
+    const [owned] = await this.db.select({ id: notifications.id }).from(notifications)
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId))).limit(1);
+    if (!owned) throw Errors.notFound("Notification");
+    await this.db.update(notifications).set({ readAt: new Date() })
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId), isNull(notifications.readAt)));
+    return { done: true };
+  }
   async markAllRead(userId: string) { await this.db.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.userId, userId), isNull(notifications.readAt))); }
   async achievements(studentId: string) {
     const all = await this.db.select().from(achievements); const mine = await this.db.select().from(studentAchievements).where(eq(studentAchievements.studentId, studentId));

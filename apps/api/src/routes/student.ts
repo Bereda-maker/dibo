@@ -32,6 +32,7 @@ export const studentRoutes = (d: Deps) => {
   r.get("/achievements", async (c) => ok(c, await d.students.achievements((await who(c)).studentId)));
   r.get("/notifications/unread-count", async (c) => ok(c, await d.students.unreadNotificationCount((await who(c)).userId)));
   r.get("/notifications", async (c) => ok(c, await d.students.notifications((await who(c)).userId)));
+  r.post("/notifications/:id/read", zValidator("param", uuid), async (c) => ok(c, await d.students.markNotificationRead((await who(c)).userId, c.req.valid("param").id)));
   r.post("/notifications/read-all", async (c) => { await d.students.markAllRead((await who(c)).userId); return ok(c, { done: true }); });
 
   r.get("/ai/conversations", async (c) => ok(c, await d.chat.list((await who(c)).userId)));

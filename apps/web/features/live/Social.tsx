@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Award, Bell, Check, Copy, Download, Lock, Pencil, Plus, Search as SearchIcon, Send, Trash2 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Field, Modal, PageHeader, Skeleton, cx, inputCls, useToast } from "../../components/ui";
@@ -50,10 +50,52 @@ export function LiveAssistant() {
 }
 
 type Notif = { id: string; title: string; body: string | null; readAt: string | null };
+function LiveNotificationItem({ notification, onAutoRead }: { notification: Notif; onAutoRead: (id: string) => Promise<void> }) {
+  const visibleNode = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (notification.readAt || !visibleNode.current) return;
+    let timer: number | null = null;
+    let attemptedWhileVisible = false;
+    const markAfterReadingTime = () => {
+      timer = null;
+      attemptedWhileVisible = true;
+      void onAutoRead(notification.id);
+    };
+    const ObserverCtor = (window as unknown as { IntersectionObserver?: typeof IntersectionObserver }).IntersectionObserver;
+    if (!ObserverCtor) {
+      timer = window.setTimeout(markAfterReadingTime, 1_200);
+      return () => { if (timer !== null) window.clearTimeout(timer); };
+    }
+    const observer = new ObserverCtor((entries) => {
+      const visible = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.25);
+      if (visible && timer === null && !attemptedWhileVisible) timer = window.setTimeout(markAfterReadingTime, 1_000);
+      if (!visible) {
+        if (timer !== null) window.clearTimeout(timer);
+        timer = null;
+        attemptedWhileVisible = false;
+      }
+    }, { threshold: [0, 0.25] });
+    observer.observe(visibleNode.current);
+    return () => { if (timer !== null) window.clearTimeout(timer); observer.disconnect(); };
+  }, [notification.id, notification.readAt, onAutoRead]);
+
+  return <Card className={cx("transition-opacity", notification.readAt && "opacity-60")}><div ref={visibleNode} className="flex gap-3"><Bell size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{notification.title}</p>{!notification.readAt && <Badge tone="info">New</Badge>}</div><p className="text-sm text-muted">{notification.body}</p></div></div></Card>;
+}
 export function LiveNotifications() {
   const q = useApi(() => api<Notif[]>("/notifications"));
-  const notificationCount = useStudentNotificationCountContext(); const toast = useToast(); const [marking, setMarking] = useState(false);
+  const notificationCount = useStudentNotificationCountContext(); const toast = useToast(); const [marking, setMarking] = useState(false); const readInFlight = useRef(new Set<string>());
   const unread = notificationCount.count ?? 0;
+  const markOneRead = useCallback(async (id: string) => {
+    if (readInFlight.current.has(id)) return;
+    readInFlight.current.add(id);
+    try {
+      await api(`/notifications/${id}/read`, { method: "POST", body: {} });
+      q.setData((current) => current?.map((notification) => notification.id === id ? { ...notification, readAt: new Date().toISOString() } : notification) ?? current);
+      notifyStudentUnreadNotificationsChanged();
+    } catch (error) {
+      toast(error instanceof ApiError ? error.message : "Could not mark this notification as read. Scroll back to it to retry.", "error");
+    } finally { readInFlight.current.delete(id); }
+  }, [q.setData, toast]);
   const markAllRead = async () => {
     setMarking(true);
     try {
@@ -63,7 +105,7 @@ export function LiveNotifications() {
       toast(error instanceof ApiError ? error.message : "Could not mark notifications as read.", "error");
     } finally { setMarking(false); }
   };
-  return <><PageHeader title="Notifications" action={<div className="flex flex-wrap items-center gap-2">{unread > 0 && <Badge tone="info"><span aria-hidden="true">{unread.toLocaleString()}</span><span className="sr-only">{unread} unread notifications</span></Badge>}<Button variant="secondary" loading={marking} disabled={notificationCount.count === 0} onClick={() => void markAllRead()}>Mark all read</Button></div>} /><Async q={q}>{(rows) => rows.length ? <div className="space-y-2">{rows.map((n) => <Card key={n.id} className={cx("flex gap-3 !p-4", n.readAt && "opacity-60")}><Bell size={18} className="mt-0.5 text-accent" aria-hidden /><div><p className="font-semibold">{n.title}</p><p className="text-sm text-muted">{n.body}</p></div></Card>)}</div> : <EmptyState title="You're all caught up" />}</Async></>;
+  return <><PageHeader title="Notifications" sub="New messages are marked as read after you view them." action={<div className="flex flex-wrap items-center gap-2">{unread > 0 && <Badge tone="info"><span aria-hidden="true">{unread.toLocaleString()}</span><span className="sr-only">{unread} unread notifications</span></Badge>}<Button variant="secondary" loading={marking} disabled={notificationCount.count === 0} onClick={() => void markAllRead()}>Mark all read</Button></div>} /><Async q={q}>{(rows) => rows.length ? <div className="space-y-2">{rows.map((notification) => <LiveNotificationItem key={notification.id} notification={notification} onAutoRead={markOneRead} />)}</div> : <EmptyState title="You're all caught up" />}</Async></>;
 }
 type Ach = { code: string; names: Record<string, string>; points: number; unlockedAt: string | null };
 export function LiveAchievements() {
