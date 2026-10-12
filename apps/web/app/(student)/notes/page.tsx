@@ -1,17 +1,32 @@
 "use client";
 import { DEMO } from "../../../lib/config";
 import { LiveNotes } from "../../../features/live/Learn";
-import Link from "next/link";
-import { useState } from "react";
-import { CheckCircle2, Bookmark } from "lucide-react";
-import { Card, EmptyState, PageHeader, inputCls } from "../../../components/ui";
+import { NotesLibrary, type NotesEntry, type NotesSubject } from "../../../features/NotesLibrary";
 import { NOTES, SUBJECTS, TOPICS, topicName } from "../../../lib/mock";
 import { useStore } from "../../../lib/store";
+import { useState } from "react";
+
 function DemoP() {
-  const { state } = useStore(); const [q, setQ] = useState(""); const [sub, setSub] = useState("all");
-  const list = NOTES.filter((n) => state.user!.subjects.includes(TOPICS.find((t) => t.id === n.topicId)!.subjectId)).filter((n) => sub === "all" || TOPICS.find((t) => t.id === n.topicId)!.subjectId === sub).filter((n) => (n.title + n.summary).toLowerCase().includes(q.toLowerCase()));
-  return <><PageHeader title="Short notes" sub="Clear, exam-focused summaries." />
-    <div className="mb-4 flex flex-wrap gap-2"><input aria-label="Search notes" placeholder="Search notes" className={inputCls + " max-w-xs"} value={q} onChange={(e) => setQ(e.target.value)} /><select aria-label="Subject" className={inputCls + " max-w-[200px]"} value={sub} onChange={(e) => setSub(e.target.value)}><option value="all">All subjects</option>{SUBJECTS.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-    {list.length ? <div className="grid gap-4 sm:grid-cols-2">{list.map((n) => <Link key={n.id} href={`/notes/${n.id}`}><Card className="h-full hover:border-primary"><div className="flex justify-between"><span className="text-xs font-semibold text-accent">{topicName(n.topicId)}</span><span className="flex gap-1">{state.bookmarks.some((b) => b.id === n.id) && <Bookmark size={16} className="fill-accent text-accent" aria-label="Bookmarked" />}{state.notesDone.includes(n.id) && <CheckCircle2 size={16} className="text-success" aria-label="Completed" />}</span></div><h2 className="mt-1 font-bold">{n.title}</h2><p className="text-sm text-muted">{n.summary}</p></Card></Link>)}</div> : <EmptyState title="No notes match" body="Try a different search or subject." />}</>; }
+  const { state } = useStore();
+  const profile = state.user;
+  const [selectedSlug, setSelectedSlug] = useState("");
+  const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
+  const grade = selectedGrade ?? (profile && profile.grade >= 9 && profile.grade <= 12 ? profile.grade : 12);
+  const allowedSubjectIds = profile?.subjects.length ? profile.subjects : SUBJECTS.map((subject) => subject.id);
+  const subjects: NotesSubject[] = SUBJECTS.filter((subject) => allowedSubjectIds.includes(subject.id)).flatMap((subject) =>
+    [9, 10, 11, 12].map((subjectGrade) => ({ id: `${subject.id}-${subjectGrade}`, slug: subject.id, names: { en: subject.name }, grade: subjectGrade })));
+  const notes: NotesEntry[] = NOTES.flatMap((note) => {
+    const topic = TOPICS.find((item) => item.id === note.topicId);
+    const subject = SUBJECTS.find((item) => item.id === topic?.subjectId);
+    if (!topic || !subject || !allowedSubjectIds.includes(subject.id) || subject.id !== selectedSlug) return [];
+    return [{ id: note.id, title: note.title, summary: note.summary, topicId: topic.id, topicName: { en: topic.name }, topicSlug: topic.id }];
+  });
+  const completedTopicIds = NOTES.filter((note) => state.notesDone.includes(note.id)).map((note) => note.topicId);
+  const bookmarkedNoteIds = state.bookmarks.filter((item) => item.type === "NOTE").map((item) => item.id);
+
+  return <NotesLibrary subjects={subjects} subjectSource={profile?.subjects.length ? "profile" : "all"}
+    selectedSlug={selectedSlug} onSelectSubject={(slug) => { setSelectedSlug(slug); setSelectedGrade(profile && profile.grade >= 9 && profile.grade <= 12 ? profile.grade : 12); }}
+    grade={grade} onSelectGrade={setSelectedGrade} notes={notes} completedTopicIds={completedTopicIds} bookmarkedNoteIds={bookmarkedNoteIds} />;
+}
 
 export default function Page() { return DEMO ? <DemoP /> : <LiveNotes />; }

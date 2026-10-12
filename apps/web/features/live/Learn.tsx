@@ -11,6 +11,7 @@ import { useApi } from "../../lib/useApi";
 import { useSession } from "../../lib/session";
 import { useLocalizedName } from "../../lib/i18n";
 import { Async, pct, diffTone, type ProgressData, type Rec } from "./shared";
+import { NotesLibrary, type NotesEntry, type NotesSubject } from "../NotesLibrary";
 
 type ExamRow = { id: string; type: string; title: string; locked: boolean; bestPercentage: number | null };
 export function LiveDashboard() {
@@ -70,11 +71,24 @@ function PracticeInner() {
 }
 export function LivePractice() { return <Suspense><PracticeInner /></Suspense>; }
 
-type NoteRow = { id: string; title: string; summary: string | null; topicId: string };
 export function LiveNotes() {
-  const [qs, setQs] = useState(""); const q = useApi(() => api<NoteRow[]>(`/content/notes?limit=50${qs.length > 1 ? `&q=${encodeURIComponent(qs)}` : ""}`), [qs]); const done = useApi(() => api<{ topicId: string }[]>("/notes/completed"));
-  return <><PageHeader title="Short notes" sub="Clear, exam-focused summaries." /><input aria-label="Search notes" placeholder="Search notes" className={inputCls + " mb-4 max-w-xs"} value={qs} onChange={(e) => setQs(e.target.value)} />
-    <Async q={q}>{(rows) => rows.length ? <div className="grid gap-4 sm:grid-cols-2">{rows.map((n) => <Link key={n.id} href={`/notes/${n.id}`}><Card className="h-full hover:border-primary"><div className="flex justify-between"><span /><span>{done.data?.some((d) => d.topicId === n.topicId) && <CheckCircle2 size={16} className="text-success" aria-label="Completed" />}</span></div><h2 className="font-bold">{n.title}</h2><p className="text-sm text-muted">{n.summary}</p></Card></Link>)}</div> : <EmptyState title="No notes found" body="Try a different search." />}</Async></>;
+  const { profile } = useSession();
+  const subjectQuery = useApi(() => api<NotesSubject[]>("/content/subjects?scope=notes"));
+  const subjectRows = subjectQuery.data ?? [];
+  const [selectedSlug, setSelectedSlug] = useState("");
+  const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
+  const grade = selectedGrade ?? (profile && profile.grade >= 9 && profile.grade <= 12 ? profile.grade : 12);
+  const subjectForGrade = subjectRows.filter((subject) => subject.slug === selectedSlug && subject.grade === grade)
+    .sort((a, b) => Number(b.stream === profile?.stream) - Number(a.stream === profile?.stream))[0];
+  const notesQuery = useApi(() => subjectForGrade ? api<NotesEntry[]>(`/content/notes?subjectId=${encodeURIComponent(subjectForGrade.id)}&limit=50`) : Promise.resolve([] as NotesEntry[]), [subjectForGrade?.id]);
+  const done = useApi(() => api<{ topicId: string }[]>("/notes/completed"));
+  const bookmarks = useApi(() => api<{ type: string; id: string }[]>("/bookmarks"));
+  return <NotesLibrary subjects={subjectRows} subjectSource={profile?.subjectIds.length ? "profile" : "all"}
+    subjectLoading={subjectQuery.loading} subjectError={subjectQuery.error?.message}
+    selectedSlug={selectedSlug} onSelectSubject={(slug) => { setSelectedSlug(slug); setSelectedGrade(profile && profile.grade >= 9 && profile.grade <= 12 ? profile.grade : 12); }}
+    grade={grade} onSelectGrade={setSelectedGrade} notes={notesQuery.loading ? [] : notesQuery.data ?? []} notesLoading={notesQuery.loading}
+    notesError={notesQuery.error?.message} completedTopicIds={(done.data ?? []).map((item) => item.topicId)}
+    bookmarkedNoteIds={(bookmarks.data ?? []).filter((item) => item.type === "NOTE").map((item) => item.id)} />;
 }
 type NoteFull = { id: string; title: string; summary: string | null; topicId: string; content: Record<string, unknown> };
 const list = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
