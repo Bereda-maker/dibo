@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import {
   BarChart3, Bell, BookOpen, Bot, Bookmark, ChevronLeft, ChevronRight,
   ClipboardCheck, Crown, FileQuestion, GraduationCap, LayoutDashboard, LogOut,
-  Menu, MessageSquare, Search, Settings, ShieldCheck, Users,
+  Menu, MessageSquare, Search, Settings, ShieldCheck, Users, Wallet,
   X, XCircle, Dumbbell, TrendingUp, Trophy, Medal, UserCircle,
 } from "lucide-react";
 import { Logo } from "./Logo";
@@ -27,7 +27,7 @@ const adminGroups: readonly AdminRouteGroup[] = [
   { label: "OVERVIEW", items: [["/admin", "Dashboard", LayoutDashboard]] },
   { label: "ACADEMIC MANAGEMENT", items: [["/admin/students", "Students", Users], ["/admin/content", "Subjects & learning materials", BookOpen], ["/admin/questions", "Question bank", FileQuestion], ["/admin/exams", "Exams & results", GraduationCap], ["/admin/diagnostics", "Diagnostic builder", ClipboardCheck]] },
   { label: "INTELLIGENCE", items: [["/admin/ai", "AI management", Bot], ["/admin/analytics", "Analytics", BarChart3]] },
-  { label: "BUSINESS", items: [["/admin/subscriptions", "Subscriptions & payments", Crown], ["/admin/contact", "Contact inbox", MessageSquare], ["/admin/notifications", "Notifications", Bell]] },
+  { label: "BUSINESS", items: [["/admin/subscriptions", "Subscriptions & payments", Crown], ["/admin/finance", "Revenue & allocation", Wallet], ["/admin/contact", "Contact inbox", MessageSquare], ["/admin/notifications", "Notifications", Bell]] },
   { label: "SYSTEM", items: [["/admin/audit", "Audit logs", ShieldCheck], ["/admin/settings", "Settings", Settings]] },
 ] as const;
 
@@ -49,12 +49,12 @@ function pendingHref(href: string, counts: AdminActionCounts | null) {
   return `${href}?status=DRAFT`;
 }
 
-function AdminNavigation({ collapsed, onNavigate, query = "", counts = null, countsLoading = false, countsError = false, onRetry }: { collapsed?: boolean; onNavigate?: () => void; query?: string; counts?: AdminActionCounts | null; countsLoading?: boolean; countsError?: boolean; onRetry?: () => void }) {
+function AdminNavigation({ collapsed, onNavigate, query = "", counts = null, countsLoading = false, countsError = false, onRetry, role }: { collapsed?: boolean; onNavigate?: () => void; query?: string; counts?: AdminActionCounts | null; countsLoading?: boolean; countsError?: boolean; onRetry?: () => void; role: "STUDENT" | "ADMIN" | "SUPER_ADMIN" | null }) {
   const path = usePathname();
   const normalized = query.trim().toLowerCase();
   return <nav aria-label="Admin console navigation" className="space-y-5">
     {adminGroups.map((group) => {
-      const items = group.items.filter(([, label]) => !normalized || label.toLowerCase().includes(normalized));
+      const items = group.items.filter(([href, label]) => (href !== "/admin/finance" || role === "SUPER_ADMIN") && (!normalized || label.toLowerCase().includes(normalized)));
       if (!items.length) return null;
       return <section key={group.label}>
         {!collapsed && <h2 className="mb-2 px-3 text-[10px] font-bold tracking-[.14em] text-muted">{group.label}</h2>}
@@ -106,11 +106,11 @@ export function AppShell({ children, admin = false, items }: { children: React.R
     {admin ? <>
       <aside className={cx("relative hidden shrink-0 border-r border-border bg-surface transition-[width] duration-200 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto", collapsed ? "md:w-[76px] md:p-3" : "md:w-[264px] md:p-5")}>
         <div className={cx("flex items-center", collapsed ? "justify-center" : "justify-between")}><Link href="/admin" aria-label="Dibora Admin Console" className="min-w-0"><Logo />{!collapsed && <span className="ml-2 mt-1 block text-[10px] font-semibold uppercase tracking-[.13em] text-muted">Admin Console</span>}</Link>{!collapsed && <span className="rounded-full bg-accent/15 px-2 py-1 text-[10px] font-bold tracking-wide text-warning">ADMIN</span>}</div>
-        <div className="mt-6"><AdminNavigation collapsed={collapsed} query={navSearch} counts={adminCounts.counts} countsLoading={adminCounts.loading} countsError={adminCounts.error} onRetry={adminCounts.reload} /></div>
+        <div className="mt-6"><AdminNavigation collapsed={collapsed} query={navSearch} counts={adminCounts.counts} countsLoading={adminCounts.loading} countsError={adminCounts.error} onRetry={adminCounts.reload} role={role} /></div>
         <div className={cx("mt-7 border-t border-border pt-4", collapsed && "flex justify-center")}><button type="button" onClick={signOut} title={collapsed ? "Log out" : undefined} className={cx("flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted transition hover:bg-error/5 hover:text-error", collapsed && "px-2")}><LogOut size={17} aria-hidden="true" />{!collapsed && "Log out"}</button></div>
         <button type="button" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="absolute bottom-5 ml-1 hidden h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface text-muted hover:text-text lg:flex">{collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}</button>
       </aside>
-      {drawerOpen && <div className="fixed inset-0 z-50 md:hidden"><button type="button" aria-label="Close navigation" onClick={() => setDrawerOpen(false)} className="absolute inset-0 bg-black/40" /><aside className="absolute inset-y-0 left-0 w-[min(88vw,320px)] overflow-y-auto bg-surface p-5 shadow-xl"><div className="mb-6 flex items-center justify-between"><div><Logo /><p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted">Admin Console</p></div><button onClick={() => setDrawerOpen(false)} aria-label="Close navigation" className="rounded-lg p-2 hover:bg-bg"><X size={20} /></button></div><AdminNavigation query={navSearch} onNavigate={() => setDrawerOpen(false)} counts={adminCounts.counts} countsLoading={adminCounts.loading} countsError={adminCounts.error} onRetry={adminCounts.reload} /><button type="button" onClick={signOut} className="mt-7 flex min-h-11 items-center gap-3 border-t border-border pt-4 text-sm text-muted"><LogOut size={17} />Log out</button></aside></div>}
+      {drawerOpen && <div className="fixed inset-0 z-50 md:hidden"><button type="button" aria-label="Close navigation" onClick={() => setDrawerOpen(false)} className="absolute inset-0 bg-black/40" /><aside className="absolute inset-y-0 left-0 w-[min(88vw,320px)] overflow-y-auto bg-surface p-5 shadow-xl"><div className="mb-6 flex items-center justify-between"><div><Logo /><p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted">Admin Console</p></div><button onClick={() => setDrawerOpen(false)} aria-label="Close navigation" className="rounded-lg p-2 hover:bg-bg"><X size={20} /></button></div><AdminNavigation query={navSearch} onNavigate={() => setDrawerOpen(false)} counts={adminCounts.counts} countsLoading={adminCounts.loading} countsError={adminCounts.error} onRetry={adminCounts.reload} role={role} /><button type="button" onClick={signOut} className="mt-7 flex min-h-11 items-center gap-3 border-t border-border pt-4 text-sm text-muted"><LogOut size={17} />Log out</button></aside></div>}
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex min-h-[68px] items-center gap-3 border-b border-border bg-bg/95 px-3 backdrop-blur sm:px-6">
           <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text md:hidden" onClick={() => setDrawerOpen(true)} aria-label="Open admin navigation"><Menu size={19} /></button>

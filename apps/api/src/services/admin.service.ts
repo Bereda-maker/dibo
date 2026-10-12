@@ -1,10 +1,11 @@
-import { and, asc, desc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { adminAuditLogs, contactMessages, examAttempts, examQuestions, exams, learningMaterials, notes, notifications, payments, questionOptions, questions, studentAnswers, studentProfiles, subjects, subtopics, subscriptionPlans, topics, users, type Db } from "@dibora/database";
 import { diagnosticUpsertSchema, questionUpsertSchema } from "@dibora/validation";
 import { MIN_RECOMMENDATION_SAMPLE } from "@dibora/core/recommendation";
 import type { z } from "zod";
 import { rowsOf } from "../utils/rows";
 import { Errors, AppError } from "../utils/errors";
+import { calculateRevenueAllocation, FINANCE_TIME_ZONE, monthRangeEAT } from "./finance-allocation";
 
 type Actor = { userId: string; ip?: string; requestId?: string };
 type QuestionInput = z.infer<typeof questionUpsertSchema>;
@@ -346,6 +347,25 @@ export class AdminService {
       newStudents: Number(summary.new_students ?? 0), premiumStudents: Number(summary.premium_students ?? 0), activeSubscriptions: Number(summary.active_subscriptions ?? 0),
       verifiedRevenueMinor: Number(summary.verified_revenue_minor ?? 0), aiRequests: Number(summary.ai_requests ?? 0),
     }, topicsWithAccuracy };
+  }
+
+  async monthlyFinance(month: string) {
+    const { start, end } = monthRangeEAT(month);
+    const rows = await this.db.select({
+      currency: payments.currency,
+      totalMinor: sql<string>`coalesce(sum(${payments.amountMinor}), 0)::text`,
+      verifiedPaymentCount: sql<string>`count(*)::text`,
+    }).from(payments)
+      .where(and(eq(payments.status, "VERIFIED"), gte(payments.verifiedAt, start), lt(payments.verifiedAt, end)))
+      .groupBy(payments.currency).orderBy(asc(payments.currency));
+    return {
+      month,
+      timeZone: FINANCE_TIME_ZONE,
+      currencies: rows.map((row) => {
+        const grossMinor = Number(row.totalMinor);
+        return { currency: row.currency, verifiedPaymentCount: Number(row.verifiedPaymentCount), ...calculateRevenueAllocation(grossMinor) };
+      }),
+    };
   }
 
   listPlans() { return this.db.select().from(subscriptionPlans).orderBy(asc(subscriptionPlans.sortOrder), asc(subscriptionPlans.priceMinor)); }
