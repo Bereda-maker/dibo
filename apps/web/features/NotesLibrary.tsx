@@ -31,7 +31,6 @@ export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, 
   const [unitFilter, setUnitFilter] = useState("all");
   const subjectChoices = useMemo(() => Array.from(new Map(subjects.map((subject) => [subject.subjectKey, subject])).values()), [subjects]);
   const selectedSubject = subjectChoices.find((subject) => subject.subjectKey === selectedSubjectKey);
-  const availableGrades = Array.from(new Set(subjects.filter((subject) => subject.subjectKey === selectedSubjectKey).map((subject) => subject.grade))).sort((a, b) => a - b);
   const units = useMemo(() => {
     const grouped = new Map<string, { id: string; name: string; notes: NotesEntry[] }>();
     for (const note of notes) {
@@ -72,11 +71,10 @@ export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, 
           </div>
           {subjectError ? <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">{subjectError}</p> : subjectLoading ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((item) => <div key={item} className="h-24 animate-pulse rounded-2xl bg-border/50" />)}</div> : subjectChoices.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {subjectChoices.map((subject) => {
-              const grades = Array.from(new Set(subjects.filter((item) => item.subjectKey === subject.subjectKey).map((item) => item.grade))).sort((a, b) => a - b);
               const active = subject.subjectKey === selectedSubjectKey;
               return <button type="button" key={subject.subjectKey} aria-pressed={active} onClick={() => { onSelectSubject(subject.subjectKey); setSearch(""); setUnitFilter("all"); }} className={cx("group flex min-h-[92px] items-start gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2", active ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-surface hover:border-primary/50 hover:bg-bg/60")}>
                 <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-xl transition", active ? "bg-primary text-white" : "bg-primary/10 text-primary group-hover:bg-primary/15")}><BookOpen size={19} aria-hidden /></span>
-                <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{localizedName(subject.names) || subject.slug}</span><span className="mt-1 block text-xs text-muted">Grades {grades.join(" · ")}</span></span>
+                <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{localizedName(subject.names) || subject.slug}</span><span className="mt-1 block text-xs text-muted">National exam prep · Grades 9–12</span></span>
                 {active && <CheckCircle2 size={17} className="mt-1 shrink-0 text-primary" aria-label="Selected" />}
               </button>;
             })}
@@ -97,7 +95,7 @@ export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, 
             <div className="rounded-xl bg-bg/70 p-3"><p className="flex items-center gap-1.5 text-xs text-muted"><CheckCircle2 size={14} aria-hidden />Units done</p><p className="mt-1 text-lg font-bold">{doneUnits}<span className="text-sm font-medium text-muted"> / {units.length}</span></p></div>
           </div>
 
-          {!availableGrades.includes(grade) ? <div className="mt-5"><EmptyState title={`No ${localizedName(selectedSubject.names) || selectedSubject.slug} curriculum for Grade ${grade} yet`} body="Choose another grade to see the units and notes available for this subject." /></div> : <>
+          <>
             <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-1" role="group" aria-label="Filter by unit">
                 <button type="button" aria-pressed={unitFilter === "all"} onClick={() => setUnitFilter("all")} className={cx("min-h-10 shrink-0 rounded-full border px-3 text-xs font-semibold transition", unitFilter === "all" ? "border-primary bg-primary text-white" : "border-border bg-surface text-muted hover:border-primary/50")}>All units</button>
@@ -120,7 +118,7 @@ export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, 
                 </Link>;
               })}
             </div> : <div className="mt-5"><EmptyState title={search ? "No notes match your search" : "No notes published for this grade yet"} body={search ? "Try another title or unit name, or clear your search." : "When notes are added to this subject and grade, they will appear here by unit."} /></div>}
-          </>}
+          </>
         </section>}
 
         {!selectedSubjectKey && subjectChoices.length > 0 && !subjectLoading && <div className="flex items-center gap-2 rounded-xl border border-border bg-bg/60 p-3 text-sm text-muted"><GraduationCap size={17} className="shrink-0 text-primary" aria-hidden /><span>Choose a subject above to reveal grade levels and unit notes.</span></div>}

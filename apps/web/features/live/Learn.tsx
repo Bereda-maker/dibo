@@ -78,9 +78,7 @@ export function LiveNotes() {
   const [selectedSubjectKey, setSelectedSubjectKey] = useState("");
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const grade = selectedGrade ?? (profile && profile.grade >= 9 && profile.grade <= 12 ? profile.grade : 12);
-  const subjectForGrade = subjectRows.filter((subject) => subject.subjectKey === selectedSubjectKey && subject.grade === grade)
-    .sort((a, b) => Number(b.stream === profile?.stream) - Number(a.stream === profile?.stream))[0];
-  const notesQuery = useApi(() => subjectForGrade ? api<NotesEntry[]>(`/content/notes?subjectId=${encodeURIComponent(subjectForGrade.id)}&limit=50`) : Promise.resolve([] as NotesEntry[]), [subjectForGrade?.id]);
+  const notesQuery = useApi(() => selectedSubjectKey ? api<NotesEntry[]>(`/content/notes?subjectKey=${encodeURIComponent(selectedSubjectKey)}&grade=${grade}&limit=50`) : Promise.resolve([] as NotesEntry[]), [selectedSubjectKey, grade]);
   const done = useApi(() => api<{ topicId: string }[]>("/notes/completed"));
   const bookmarks = useApi(() => api<{ type: string; id: string }[]>("/bookmarks"));
   return <NotesLibrary subjects={subjectRows} subjectSource={profile?.subjectIds.length ? "profile" : "all"}

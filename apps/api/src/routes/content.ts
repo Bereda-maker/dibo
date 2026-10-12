@@ -20,6 +20,10 @@ export const contentRoutes = (db: Db) => {
   };
   const cleanName = (subject: { slug: string; names: Record<string, string> }) => (subject.names.en || subject.slug).normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
   const subjectKeyOf = (subject: { educationLevel: string; slug: string; names: Record<string, string> }) => `${subject.educationLevel}:${cleanName(subject)}`;
+  const gradeInTitle = (title: string) => {
+    const match = title.match(/\b(?:grade|gr\.?|g)\s*(9|10|11|12)\b/i);
+    return match ? Number(match[1]) : null;
+  };
 
   /** Grade 12 exam candidates can browse the same selected subjects across the Grades 9–12 curriculum. */
   const notesSubjects = async (c: unknown) => {
@@ -51,18 +55,20 @@ export const contentRoutes = (db: Db) => {
   });
   r.get("/topics", zValidator("query", z.object({ subjectId: z.string().uuid() })), async (c) =>
     ok(c, await db.select({ id: topics.id, slug: topics.slug, names: topics.names }).from(topics).where(and(eq(topics.subjectId, c.req.valid("query").subjectId), eq(topics.status, "PUBLISHED"), inArray(topics.subjectId, await selectedFor(c)))).orderBy(asc(topics.sortOrder))));
-  r.get("/notes", zValidator("query", z.object({ topicId: z.string().uuid().optional(), subjectId: z.string().uuid().optional(), q: z.string().max(80).optional(), limit: z.coerce.number().int().min(1).max(50).default(20) })), async (c) => {
-    const { topicId, subjectId, q, limit } = c.req.valid("query");
+  r.get("/notes", zValidator("query", z.object({ topicId: z.string().uuid().optional(), subjectId: z.string().uuid().optional(), subjectKey: z.string().max(240).optional(), grade: z.coerce.number().int().min(9).max(12).optional(), q: z.string().max(80).optional(), limit: z.coerce.number().int().min(1).max(50).default(20) })), async (c) => {
+    const { topicId, subjectId, subjectKey, grade, q, limit } = c.req.valid("query");
     const conds = [
       eq(learningMaterials.status, "PUBLISHED"), eq(topics.status, "PUBLISHED"), eq(subjects.status, "PUBLISHED"),
       topicId ? eq(learningMaterials.topicId, topicId) : undefined,
       subjectId ? eq(topics.subjectId, subjectId) : undefined,
       q ? or(ilike(notes.title, `%${q.replace(/[%_]/g, "")}%`), ilike(notes.summary, `%${q.replace(/[%_]/g, "")}%`)) : undefined,
     ].filter(Boolean) as never[];
-    const allowedIds = await notesSubjectIds(c);
-    return ok(c, await db.select({ id: notes.id, title: notes.title, summary: notes.summary, topicId: learningMaterials.topicId, topicName: topics.names, topicSlug: topics.slug, subjectId: topics.subjectId, grade: subjects.grade })
+    const accessibleSubjects = await notesSubjects(c);
+    const allowedIds = subjectKey ? accessibleSubjects.filter((subject) => subject.subjectKey === subjectKey).map((subject) => subject.id) : accessibleSubjects.map((subject) => subject.id);
+    const rows = await db.select({ id: notes.id, title: notes.title, summary: notes.summary, topicId: learningMaterials.topicId, topicName: topics.names, topicSlug: topics.slug, subjectId: topics.subjectId, grade: subjects.grade })
       .from(notes).innerJoin(learningMaterials, eq(learningMaterials.id, notes.materialId)).innerJoin(topics, eq(topics.id, learningMaterials.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))
-      .where(and(...conds, inArray(topics.subjectId, allowedIds))).orderBy(asc(topics.sortOrder), asc(learningMaterials.sortOrder), asc(notes.title)).limit(limit));
+      .where(and(...conds, inArray(topics.subjectId, allowedIds))).orderBy(asc(topics.sortOrder), asc(learningMaterials.sortOrder), asc(notes.title));
+    return ok(c, rows.filter((note) => grade == null || (gradeInTitle(note.title) ?? note.grade) === grade).slice(0, limit));
   });
   r.get("/notes/:id", zValidator("param", z.object({ id: z.string().uuid() })), async (c) => {
     const [n] = await db.select().from(notes).innerJoin(learningMaterials, eq(learningMaterials.id, notes.materialId)).innerJoin(topics, eq(topics.id, learningMaterials.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))

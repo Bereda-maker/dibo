@@ -32,7 +32,7 @@ const createTestApp = (chat: AiChatService) => createApp({ auth: new AuthService
   chat, admin: new AdminService(db), learning: new LearningService(db, progress), webOrigin: ORIGIN, isProd: false });
 const app = createTestApp(new AiChatService(db, new AIService({ complete: async () => ({ text: "Use F = ma.", tokens: 5 }) }, new DbRetriever(db)), progress));
 
-let subjectId = "", topicId = "", grade11SubjectId = "", grade11NoteId = "", otherSubjectId = "";
+let subjectId = "", topicId = "", grade11SubjectId = "", grade11NoteId = "", grade9NoteId = "", otherSubjectId = "";
 let ipn = 0; const ip = () => `10.1.${Math.floor(++ipn / 250)}.${ipn % 250}`; // distinct client IP per request so the rate limiter does not interfere
 const post = (path: string, body: unknown, cookie?: string, method = "POST") => app.request(path, { method, headers: { "content-type": "application/json", origin: ORIGIN, "x-forwarded-for": ip(), ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) });
 const get = (path: string, cookie?: string) => app.request(path, { headers: cookie ? { cookie } : {} });
@@ -53,6 +53,9 @@ beforeAll(async () => {
   const [t] = await raw.insert(s.topics).values({ subjectId, slug: "mech", names: { en: "Mechanics" }, status: "PUBLISHED" }).returning(); topicId = t!.id;
   const [m] = await raw.insert(s.learningMaterials).values({ topicId, status: "PUBLISHED" }).returning();
   await raw.insert(s.notes).values({ materialId: m!.id, title: "Newton's second law", summary: "Force equals mass times acceleration", content: { formulas: ["F = ma"] } });
+  const [grade9Topic] = await raw.insert(s.topics).values({ subjectId, slug: "grade-9-sets", names: { en: "Further on Sets" }, status: "PUBLISHED" }).returning();
+  const [grade9Material] = await raw.insert(s.learningMaterials).values({ topicId: grade9Topic!.id, status: "PUBLISHED" }).returning();
+  const [grade9Note] = await raw.insert(s.notes).values({ materialId: grade9Material!.id, title: "Grade 9 Unit 1: Further on Sets", summary: "Set notation and operations", content: { explanation: "Review sets and their operations." } }).returning(); grade9NoteId = grade9Note!.id;
   const [grade11] = await raw.insert(s.subjects).values({ grade: 11, slug: "physics-foundations", names: { en: "Physics" }, status: "PUBLISHED" }).returning(); grade11SubjectId = grade11!.id;
   const [grade11Topic] = await raw.insert(s.topics).values({ subjectId: grade11SubjectId, slug: "waves", names: { en: "Waves" }, status: "PUBLISHED" }).returning();
   const [grade11Material] = await raw.insert(s.learningMaterials).values({ topicId: grade11Topic!.id, status: "PUBLISHED" }).returning();
@@ -96,6 +99,13 @@ describe("student notes curriculum scope", () => {
     expect(grade11Notes.map((note) => note.id)).toContain(grade11NoteId);
     expect(grade11Notes.find((note) => note.id === grade11NoteId)?.topicName.en).toBe("Waves");
     expect((await get(`/api/content/notes/${grade11NoteId}`, cookie)).status).toBe(200);
+
+    const grade9Notes = (await (await get(`/api/content/notes?subjectKey=${encodeURIComponent(scoped.find((subject) => subject.id === subjectId)!.subjectKey)}&grade=9&limit=50`, cookie)).json()).data as { id: string; title: string; grade: number }[];
+    expect(grade9Notes.map((note) => note.id)).toContain(grade9NoteId);
+    expect(grade9Notes.every((note) => /Grade 9 Unit/i.test(note.title))).toBe(true);
+    const grade12Notes = (await (await get(`/api/content/notes?subjectKey=${encodeURIComponent(scoped.find((subject) => subject.id === subjectId)!.subjectKey)}&grade=12&limit=50`, cookie)).json()).data as { id: string; title: string }[];
+    expect(grade12Notes.map((note) => note.id)).not.toContain(grade9NoteId);
+    expect(grade12Notes.some((note) => note.title === "Newton's second law")).toBe(true);
 
     const profile = (await (await get("/api/students/me", cookie)).json()).data as { id: string };
     await raw.update(s.studentProfiles).set({ selectedSubjectIds: [] }).where(eq(s.studentProfiles.id, profile.id));

@@ -19,6 +19,8 @@ function DemoP() {
     const topic = TOPICS.find((item) => item.id === note.topicId);
     const subject = SUBJECTS.find((item) => item.id === topic?.subjectId);
     if (!topic || !subject || !allowedSubjectIds.includes(subject.id) || subject.id !== selectedSubjectKey) return [];
+    const titleGrade = note.title.match(/\b(?:grade|gr\.?|g)\s*(9|10|11|12)\b/i);
+    if (titleGrade && Number(titleGrade[1]) !== grade) return [];
     return [{ id: note.id, title: note.title, summary: note.summary, topicId: topic.id, topicName: { en: topic.name }, topicSlug: topic.id }];
   });
   const completedTopicIds = NOTES.filter((note) => state.notesDone.includes(note.id)).map((note) => note.topicId);
