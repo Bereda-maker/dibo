@@ -180,6 +180,64 @@ describe("admin API", () => {
     expect((await get("/api/admin/overview?range=14", adm)).status).toBe(400);
   });
 
+  test("action counts reflect real review queues and fall when existing workflows resolve items", async () => {
+    const stamp = Date.now();
+    const adm = await adminCookie("ADMIN", `action-count-${stamp}@x.et`);
+    const student = await signup(`action-count-student-${stamp}@x.et`);
+    expect((await get("/api/admin/action-counts")).status).toBe(401);
+    expect((await get("/api/admin/action-counts", student)).status).toBe(403);
+    const beforeResponse = await get("/api/admin/action-counts", adm);
+    expect(beforeResponse.status).toBe(200);
+    const before = (await beforeResponse.json()).data;
+    const studentRow = (await raw.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, `action-count-student-${stamp}@x.et`)))[0]!;
+
+    const contact = await post("/api/contact", { name: "Queue Test", email: `queue-${stamp}@example.et`, message: "Please review this open support request." });
+    expect(contact.status).toBe(201);
+    const contactId = (await contact.json()).data.id as string;
+    const [payment] = await raw.insert(s.payments).values({ userId: studentRow.id, amountMinor: 15000, currency: "ETB", provider: "verify-et", reference: `action-count-${stamp}`, status: "PENDING", metadata: { manualReviewStatus: "PENDING", manualReviewReason: "TEST_FIXTURE" } }).returning({ id: s.payments.id });
+    const [settledWithStaleReview] = await raw.insert(s.payments).values({ userId: studentRow.id, amountMinor: 15000, currency: "ETB", provider: "verify-et", reference: `action-count-stale-${stamp}`, status: "FAILED", metadata: { manualReviewStatus: "PENDING", manualReviewReason: "STALE_TEST_FIXTURE" } }).returning({ id: s.payments.id });
+
+    const [draftSubject] = await raw.insert(s.subjects).values({ grade: 9, slug: `queue-subject-${stamp}`, names: { en: "Queue draft subject" }, status: "DRAFT" }).returning({ id: s.subjects.id });
+    const [draftTopic] = await raw.insert(s.topics).values({ subjectId: draftSubject!.id, slug: "queue-topic", names: { en: "Queue draft topic" }, status: "DRAFT" }).returning({ id: s.topics.id });
+    const [draftMaterial] = await raw.insert(s.learningMaterials).values({ topicId: draftTopic!.id, status: "DRAFT" }).returning({ id: s.learningMaterials.id });
+    const [draftQuestion] = await raw.insert(s.questions).values({ subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: `Queue draft question ${stamp}`, explanation: "A test explanation", status: "DRAFT" }).returning({ id: s.questions.id });
+    await raw.insert(s.questionOptions).values([{ questionId: draftQuestion!.id, text: "Correct", isCorrect: true }, { questionId: draftQuestion!.id, text: "Incorrect", isCorrect: false }]);
+    const [draftExam] = await raw.insert(s.exams).values({ type: "MOCK", subjectId: grade11SubjectId, title: `Queue draft exam ${stamp}`, durationMinutes: 20, questionCount: 1, status: "DRAFT" }).returning({ id: s.exams.id });
+    await raw.insert(s.examQuestions).values({ examId: draftExam!.id, questionId: grade11QuestionId });
+    const [draftDiagnostic] = await raw.insert(s.exams).values({ type: "DIAGNOSTIC", title: `Queue diagnostic ${stamp}`, durationMinutes: 20, questionCount: 0, status: "DRAFT" }).returning({ id: s.exams.id });
+
+    const counts = (await (await get("/api/admin/action-counts", adm)).json()).data;
+    expect(counts.pendingPaymentReviews).toBe(before.pendingPaymentReviews + 1);
+    const paymentReviews = (await (await get("/api/admin/payment-reviews", adm)).json()).data as Array<{ id: string }>;
+    expect(paymentReviews.some((review) => review.id === settledWithStaleReview!.id)).toBe(false);
+    expect(counts.unresolvedContacts).toBe(before.unresolvedContacts + 1);
+    expect(counts.draftCurriculumItems).toBe(before.draftCurriculumItems + 3);
+    expect(counts.draftQuestions).toBe(before.draftQuestions + 1);
+    expect(counts.draftExams).toBe(before.draftExams + 1);
+    expect(counts.draftDiagnostics).toBe(before.draftDiagnostics + 1);
+    const openMessages = (await (await get("/api/admin/contact-messages?status=OPEN&limit=100", adm)).json()).data as Array<{ id: string; status: string }>;
+    expect(openMessages.find((message) => message.id === contactId)?.status).toBe("NEW");
+    const draftExams = (await (await get("/api/admin/exams?status=DRAFT&limit=100", adm)).json()).data.items as Array<{ id: string }>;
+    expect(draftExams.some((exam) => exam.id === draftDiagnostic!.id)).toBe(false);
+    expect((await post(`/api/admin/exams/${draftDiagnostic!.id}/status`, { status: "PUBLISHED" }, adm, "PATCH")).status).toBe(422);
+
+    expect((await post(`/api/admin/payment-reviews/${payment!.id}/reject`, {}, adm)).status).toBe(200);
+    expect((await post(`/api/admin/contact-messages/${contactId}`, { status: "RESOLVED" }, adm, "PATCH")).status).toBe(200);
+    for (const [kind, id] of [["subject", draftSubject!.id], ["topic", draftTopic!.id], ["material", draftMaterial!.id]] as const) {
+      expect((await post(`/api/admin/curriculum/${kind}/${id}/status`, { status: "PUBLISHED" }, adm, "PATCH")).status).toBe(200);
+    }
+    expect((await post(`/api/admin/questions/${draftQuestion!.id}/publish`, {}, adm)).status).toBe(200);
+    expect((await post(`/api/admin/exams/${draftExam!.id}/status`, { status: "PUBLISHED" }, adm, "PATCH")).status).toBe(200);
+
+    const resolved = (await (await get("/api/admin/action-counts", adm)).json()).data;
+    expect(resolved.pendingPaymentReviews).toBe(before.pendingPaymentReviews);
+    expect(resolved.unresolvedContacts).toBe(before.unresolvedContacts);
+    expect(resolved.draftCurriculumItems).toBe(before.draftCurriculumItems);
+    expect(resolved.draftQuestions).toBe(before.draftQuestions);
+    expect(resolved.draftExams).toBe(before.draftExams);
+    expect(resolved.draftDiagnostics).toBe(before.draftDiagnostics + 1);
+  });
+
   test("lists students without private contact details and audits suspension", async () => {
     const adm = await adminCookie("ADMIN", "admin1@x.et"); await signup("victim@x.et");
     const list = await (await get("/api/admin/students?q=Test", adm)).json(); const text = JSON.stringify(list.data);

@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
-import { adminAuditLogs, contactMessages, examAttempts, examQuestions, exams, learningMaterials, notes, notifications, questionOptions, questions, studentAnswers, studentProfiles, subjects, subtopics, subscriptionPlans, topics, users, type Db } from "@dibora/database";
+import { adminAuditLogs, contactMessages, examAttempts, examQuestions, exams, learningMaterials, notes, notifications, payments, questionOptions, questions, studentAnswers, studentProfiles, subjects, subtopics, subscriptionPlans, topics, users, type Db } from "@dibora/database";
 import { diagnosticUpsertSchema, questionUpsertSchema } from "@dibora/validation";
 import { MIN_RECOMMENDATION_SAMPLE } from "@dibora/core/recommendation";
 import type { z } from "zod";
@@ -12,6 +12,21 @@ type DiagnosticInput = z.infer<typeof diagnosticUpsertSchema>;
 
 export class AdminService {
   constructor(private db: Db) {}
+  async actionCounts() {
+    const count = (value: { count: number }[] | undefined) => Number(value?.[0]?.count ?? 0);
+    const [paymentReviews, contacts, draftSubjects, draftTopics, draftMaterials, draftQuestions, draftExams, draftDiagnostics] = await Promise.all([
+      this.db.select({ count: sql<number>`count(*)::int` }).from(payments).where(and(eq(payments.status, "PENDING"), sql`${payments.metadata}->>'manualReviewStatus' = 'PENDING'`)),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(contactMessages).where(ne(contactMessages.status, "RESOLVED")),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(subjects).where(and(eq(subjects.status, "DRAFT"), isNull(subjects.deletedAt))),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(topics).where(and(eq(topics.status, "DRAFT"), isNull(topics.deletedAt))),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(learningMaterials).where(and(eq(learningMaterials.status, "DRAFT"), isNull(learningMaterials.deletedAt))),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(questions).where(and(eq(questions.status, "DRAFT"), isNull(questions.deletedAt))),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(exams).where(and(eq(exams.status, "DRAFT"), ne(exams.type, "DIAGNOSTIC"), isNull(exams.deletedAt))),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(exams).where(and(eq(exams.status, "DRAFT"), eq(exams.type, "DIAGNOSTIC"), isNull(exams.deletedAt))),
+    ]);
+    const draftCurriculumItems = count(draftSubjects) + count(draftTopics) + count(draftMaterials);
+    return { pendingPaymentReviews: count(paymentReviews), unresolvedContacts: count(contacts), draftCurriculumItems, draftQuestions: count(draftQuestions), draftExams: count(draftExams), draftDiagnostics: count(draftDiagnostics) };
+  }
   private audit(a: Actor, action: string, targetType: string, targetId: string, metadata?: Record<string, unknown>) {
     return this.db.insert(adminAuditLogs).values({ actorId: a.userId, action, targetType, targetId, metadata, ip: a.ip, requestId: a.requestId });
   }
@@ -238,7 +253,7 @@ export class AdminService {
   }
 
   async listExams(f: { q?: string; status?: "DRAFT" | "PUBLISHED" | "ARCHIVED"; limit: number; offset: number }) {
-    const where = and(isNull(exams.deletedAt), f.status ? eq(exams.status, f.status) : undefined,
+    const where = and(isNull(exams.deletedAt), ne(exams.type, "DIAGNOSTIC"), f.status ? eq(exams.status, f.status) : undefined,
       f.q ? ilike(exams.title, `%${f.q.replace(/[%_]/g, "")}%`) : undefined);
     const [items, count] = await Promise.all([
       this.db.select({ id: exams.id, type: exams.type, subjectId: exams.subjectId, title: exams.title, description: exams.description,
@@ -274,6 +289,7 @@ export class AdminService {
   async setExamStatus(a: Actor, id: string, status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
     const [exam] = await this.db.select().from(exams).where(and(eq(exams.id, id), isNull(exams.deletedAt))).limit(1);
     if (!exam) throw Errors.notFound("Exam");
+    if (exam.type === "DIAGNOSTIC") throw new AppError(422, "DIAGNOSTIC_WORKFLOW_REQUIRED", "Manage diagnostic assessments in the Diagnostic Builder so coverage checks are enforced");
     if (exam.status !== "DRAFT" && status === "DRAFT") throw new AppError(409, "EXAM_LOCKED", "Published exams cannot be returned to draft; archive the exam instead");
     if (status === "PUBLISHED") {
       const rows = await this.db.select({ questionId: questions.id, questionStatus: questions.status, topicStatus: topics.status, subjectStatus: subjects.status })
@@ -368,9 +384,9 @@ export class AdminService {
     if (!p) throw Errors.notFound("Plan"); await this.audit(a, "PLAN_UPDATED", "plan", code, patch as Record<string, unknown>);
   }
   auditLog(limit = 100) { return this.db.select().from(adminAuditLogs).orderBy(desc(adminAuditLogs.createdAt)).limit(limit); }
-  listContactMessages(limit = 50) {
+  listContactMessages(limit = 50, offset = 0, status?: "NEW" | "READ" | "RESOLVED" | "OPEN") {
     return this.db.select({ id: contactMessages.id, name: contactMessages.name, email: contactMessages.email, message: contactMessages.message, status: contactMessages.status, createdAt: contactMessages.createdAt })
-      .from(contactMessages).orderBy(desc(contactMessages.createdAt)).limit(limit);
+      .from(contactMessages).where(status === "OPEN" ? inArray(contactMessages.status, ["NEW", "READ"]) : status ? eq(contactMessages.status, status) : undefined).orderBy(desc(contactMessages.createdAt)).limit(limit).offset(offset);
   }
   async setContactMessageStatus(a: Actor, id: string, status: "NEW" | "READ" | "RESOLVED") {
     const [updated] = await this.db.update(contactMessages).set({ status, updatedAt: new Date() }).where(eq(contactMessages.id, id)).returning({ id: contactMessages.id });

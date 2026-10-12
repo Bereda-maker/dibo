@@ -15,6 +15,7 @@ import { useStore } from "../lib/store";
 import { useT } from "../lib/i18n";
 import { useSession } from "../lib/session";
 import { DEMO } from "../lib/config";
+import { AdminActionCountsContext, useAdminActionCounts, type AdminActionCounts } from "../lib/useAdminActionCounts";
 
 const main = [["/dashboard", "dashboard", LayoutDashboard], ["/notes", "notes", BookOpen], ["/practice", "practice", Dumbbell], ["/exams", "exams", ClipboardCheck], ["/assistant", "assistant", Bot], ["/progress", "progress", TrendingUp]] as const;
 const extra = [["/bookmarks", "My Bookmarks", Bookmark], ["/mistakes", "Questions I Got Wrong", XCircle], ["/search", "Search", Search], ["/achievements", "Achievements", Medal], ["/leaderboard", "Leaderboard", Trophy], ["/notifications", "Notifications", Bell], ["/profile", "Profile", UserCircle], ["/pricing", "Plans", Crown]] as const;
@@ -28,7 +29,25 @@ const adminGroups: readonly AdminRouteGroup[] = [
   { label: "SYSTEM", items: [["/admin/audit", "Audit logs", ShieldCheck], ["/admin/settings", "Settings", Settings]] },
 ] as const;
 
-function AdminNavigation({ collapsed, onNavigate, query = "" }: { collapsed?: boolean; onNavigate?: () => void; query?: string }) {
+function actionBadge(href: string, counts: AdminActionCounts | null) {
+  if (!counts) return null;
+  if (href === "/admin/subscriptions") return { count: counts.pendingPaymentReviews, label: "manual payment reviews awaiting action" };
+  if (href === "/admin/contact") return { count: counts.unresolvedContacts, label: "unresolved contact requests" };
+  if (href === "/admin/content") return { count: counts.draftCurriculumItems, label: "draft curriculum items awaiting review" };
+  if (href === "/admin/questions") return { count: counts.draftQuestions, label: "draft questions awaiting review" };
+  if (href === "/admin/exams") return { count: counts.draftExams, label: "draft exams awaiting review" };
+  if (href === "/admin/diagnostics") return { count: counts.draftDiagnostics, label: "draft diagnostics awaiting review" };
+  return null;
+}
+
+function pendingHref(href: string, counts: AdminActionCounts | null) {
+  const badge = actionBadge(href, counts);
+  if (!badge?.count) return href;
+  if (href === "/admin/contact") return `${href}?status=OPEN`;
+  return `${href}?status=DRAFT`;
+}
+
+function AdminNavigation({ collapsed, onNavigate, query = "", counts = null, countsLoading = false, countsError = false, onRetry }: { collapsed?: boolean; onNavigate?: () => void; query?: string; counts?: AdminActionCounts | null; countsLoading?: boolean; countsError?: boolean; onRetry?: () => void }) {
   const path = usePathname();
   const normalized = query.trim().toLowerCase();
   return <nav aria-label="Admin console navigation" className="space-y-5">
@@ -39,13 +58,18 @@ function AdminNavigation({ collapsed, onNavigate, query = "" }: { collapsed?: bo
         {!collapsed && <h2 className="mb-2 px-3 text-[10px] font-bold tracking-[.14em] text-muted">{group.label}</h2>}
         <div className="space-y-1">{items.map(([href, label, Icon]) => {
           const active = href === "/admin" ? path === href : path === href || path.startsWith(href + "/");
-          return <Link key={href} href={href} title={collapsed ? label : undefined} aria-current={active ? "page" : undefined} onClick={onNavigate}
-            className={cx("group flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", active ? "bg-primary text-white shadow-sm" : "text-muted hover:bg-primary/5 hover:text-text", collapsed && "justify-center px-2")}>
-            <Icon size={17} strokeWidth={active ? 2.2 : 1.8} aria-hidden="true" />{!collapsed && <span className="truncate">{label}</span>}
+          const badge = actionBadge(href, counts); const showBadge = !!badge && badge.count > 0;
+          const hrefForAction = pendingHref(href, counts);
+          return <Link key={href} href={hrefForAction} title={collapsed ? `${label}${showBadge ? ` — ${badge.count} ${badge.label}` : ""}` : undefined} aria-label={showBadge ? `${label}, ${badge.count} ${badge.label}` : label} aria-current={active ? "page" : undefined} onClick={onNavigate}
+            className={cx("group relative flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", active ? "bg-primary text-white shadow-sm" : "text-muted hover:bg-primary/5 hover:text-text", collapsed && "justify-center px-2")}>
+            <Icon size={17} strokeWidth={active ? 2.2 : 1.8} aria-hidden="true" />{!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
+            {showBadge && <span aria-hidden="true" className={cx("inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-warning/15 px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-warning", collapsed && "absolute -right-0.5 -top-1 min-w-4 px-1 text-[9px] ring-2 ring-surface")}>{badge.count.toLocaleString()}</span>}
           </Link>;
         })}</div>
       </section>;
     })}
+    {!collapsed && countsLoading && !counts && <p role="status" className="px-3 text-xs text-muted">Loading review counts…</p>}
+    {!collapsed && countsError && <p role="status" className="mx-1 rounded-xl border border-warning/25 bg-warning/5 p-3 text-xs text-muted">Review counts may be out of date. <button type="button" className="ml-1 font-semibold text-primary underline" onClick={onRetry}>Retry</button></p>}
   </nav>;
 }
 
@@ -54,6 +78,7 @@ export function AppShell({ children, admin = false, items }: { children: React.R
   const [collapsed, setCollapsed] = useState(false); const [drawerOpen, setDrawerOpen] = useState(false); const [navSearch, setNavSearch] = useState("");
   const ready = DEMO ? demoReady : sess.ready;
   const role = DEMO ? state.user?.role ?? null : sess.role;
+  const adminCounts = useAdminActionCounts(admin && !DEMO && (role === "ADMIN" || role === "SUPER_ADMIN"));
   const u = DEMO ? state.user : role ? { name: sess.profile?.fullName ?? "Admin", role: role === "STUDENT" ? "STUDENT" : "ADMIN" } as NonNullable<typeof state.user> : null;
   const logout = () => { if (DEMO) demoLogout(); else void sess.logout(); };
   useEffect(() => { if (ready && (!u || (admin && u.role !== "ADMIN") || (!admin && !DEMO && role !== "STUDENT"))) router.replace("/login"); }, [ready, u, admin, role, router]);
@@ -65,15 +90,15 @@ export function AppShell({ children, admin = false, items }: { children: React.R
   const pageLabel = adminGroups.flatMap((g) => g.items).find(([href]) => href === path)?.[1] ?? crumbs.at(-1)?.replaceAll("-", " ") ?? "Dashboard";
   const profileName = u.name || "Administrator";
   const signOut = () => { logout(); router.push("/"); };
-  return <div className="min-h-dvh min-w-0 overflow-x-clip md:flex">
+  return <AdminActionCountsContext.Provider value={adminCounts}><div className="min-h-dvh min-w-0 overflow-x-clip md:flex">
     {admin ? <>
       <aside className={cx("relative hidden shrink-0 border-r border-border bg-surface transition-[width] duration-200 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto", collapsed ? "md:w-[76px] md:p-3" : "md:w-[264px] md:p-5")}>
         <div className={cx("flex items-center", collapsed ? "justify-center" : "justify-between")}><Link href="/admin" aria-label="Dibora Admin Console" className="min-w-0"><Logo />{!collapsed && <span className="ml-2 mt-1 block text-[10px] font-semibold uppercase tracking-[.13em] text-muted">Admin Console</span>}</Link>{!collapsed && <span className="rounded-full bg-accent/15 px-2 py-1 text-[10px] font-bold tracking-wide text-warning">ADMIN</span>}</div>
-        <div className="mt-6"><AdminNavigation collapsed={collapsed} query={navSearch} /></div>
+        <div className="mt-6"><AdminNavigation collapsed={collapsed} query={navSearch} counts={adminCounts.counts} countsLoading={adminCounts.loading} countsError={adminCounts.error} onRetry={adminCounts.reload} /></div>
         <div className={cx("mt-7 border-t border-border pt-4", collapsed && "flex justify-center")}><button type="button" onClick={signOut} title={collapsed ? "Log out" : undefined} className={cx("flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted transition hover:bg-error/5 hover:text-error", collapsed && "px-2")}><LogOut size={17} aria-hidden="true" />{!collapsed && "Log out"}</button></div>
         <button type="button" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="absolute bottom-5 ml-1 hidden h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface text-muted hover:text-text lg:flex">{collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}</button>
       </aside>
-      {drawerOpen && <div className="fixed inset-0 z-50 md:hidden"><button type="button" aria-label="Close navigation" onClick={() => setDrawerOpen(false)} className="absolute inset-0 bg-black/40" /><aside className="absolute inset-y-0 left-0 w-[min(88vw,320px)] overflow-y-auto bg-surface p-5 shadow-xl"><div className="mb-6 flex items-center justify-between"><div><Logo /><p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted">Admin Console</p></div><button onClick={() => setDrawerOpen(false)} aria-label="Close navigation" className="rounded-lg p-2 hover:bg-bg"><X size={20} /></button></div><AdminNavigation query={navSearch} onNavigate={() => setDrawerOpen(false)} /><button type="button" onClick={signOut} className="mt-7 flex min-h-11 items-center gap-3 border-t border-border pt-4 text-sm text-muted"><LogOut size={17} />Log out</button></aside></div>}
+      {drawerOpen && <div className="fixed inset-0 z-50 md:hidden"><button type="button" aria-label="Close navigation" onClick={() => setDrawerOpen(false)} className="absolute inset-0 bg-black/40" /><aside className="absolute inset-y-0 left-0 w-[min(88vw,320px)] overflow-y-auto bg-surface p-5 shadow-xl"><div className="mb-6 flex items-center justify-between"><div><Logo /><p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted">Admin Console</p></div><button onClick={() => setDrawerOpen(false)} aria-label="Close navigation" className="rounded-lg p-2 hover:bg-bg"><X size={20} /></button></div><AdminNavigation query={navSearch} onNavigate={() => setDrawerOpen(false)} counts={adminCounts.counts} countsLoading={adminCounts.loading} countsError={adminCounts.error} onRetry={adminCounts.reload} /><button type="button" onClick={signOut} className="mt-7 flex min-h-11 items-center gap-3 border-t border-border pt-4 text-sm text-muted"><LogOut size={17} />Log out</button></aside></div>}
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex min-h-[68px] items-center gap-3 border-b border-border bg-bg/95 px-3 backdrop-blur sm:px-6">
           <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text md:hidden" onClick={() => setDrawerOpen(true)} aria-label="Open admin navigation"><Menu size={19} /></button>
@@ -89,5 +114,5 @@ export function AppShell({ children, admin = false, items }: { children: React.R
       <div className="min-w-0 flex-1"><header className="sticky top-0 z-20 flex min-h-16 items-center justify-between border-b border-border bg-bg/90 px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] backdrop-blur sm:px-5"><div className="md:hidden"><Logo /></div><p className="hidden max-w-[40vw] truncate text-sm text-muted md:block">{u.name}</p><div className="flex items-center gap-1"><LocaleSwitch /><ThemeToggle /></div></header><main className="mx-auto max-w-6xl px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-5 sm:px-5 md:p-8">{children}</main></div>
       <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur md:hidden">{[...main.slice(0, 4), ["/more", "more", Menu] as const].map(([h, k, I]) => { const mobileRouteActive = main.slice(0, 4).some(([route]) => path === route || path.startsWith(route + "/")); const active = path === h || (h === "/more" && !mobileRouteActive); return <Link key={h} href={h} aria-current={active ? "page" : undefined} className={cx("flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[11px] transition-colors", active ? "font-bold text-primary" : "text-muted hover:text-primary")}><I size={20} aria-hidden />{t(k)}</Link>; })}</nav>
     </>}
-  </div>;
+  </div></AdminActionCountsContext.Provider>;
 }

@@ -1,11 +1,13 @@
 "use client";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { BookOpen, Check, CircleAlert, ClipboardCheck, Eye, Plus, Search, Sparkles } from "lucide-react";
 import { diagnosticUpsertSchema, questionUpsertSchema } from "@dibora/validation";
 import { recommend } from "@dibora/core/recommendation";
 import { Badge, Button, Card, EmptyState, ErrorState, Field, PageHeader, Skeleton, inputCls, useToast } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
 import { useApi } from "../../lib/useApi";
+import { notifyAdminActionCountsChanged } from "../../lib/useAdminActionCounts";
 
 type Names = Record<string, string>;
 type Subject = { id: string; grade: number; stream: string | null; slug: string; names: Names };
@@ -26,7 +28,8 @@ function scenario(topic: TopicCoverage, percent: number) {
   return recommend([{ topicId: topic.topicId, topicName: topic.topicName, subjectName: topic.subjectName, attempted, correct, recentAttempted: attempted, recentCorrect: correct, noteCompleted: false, daysSincePracticed: null }], 1)[0];
 }
 
-export default function AdminDiagnosticBuilder() {
+function AdminDiagnosticBuilderInner() {
+  const searchParams = useSearchParams(); const draftsOnly = searchParams.get("status") === "DRAFT";
   const data = useApi(() => api<BuilderData>("/admin/diagnostics/builder"));
   const toast = useToast();
   const [subjectFilter, setSubjectFilter] = useState("");
@@ -90,7 +93,7 @@ export default function AdminDiagnosticBuilder() {
     setBusy(true);
     try {
       await api(editingId ? `/admin/diagnostics/${editingId}` : "/admin/diagnostics", { method: editingId ? "PATCH" : "POST", body: parsed.data });
-      toast(editingId ? "Diagnostic draft updated" : "Diagnostic saved as draft");
+      toast(editingId ? "Diagnostic draft updated" : "Diagnostic saved as draft"); notifyAdminActionCountsChanged();
       clearBuilder(); data.reload();
     } catch (e) { setError(errMessage(e, "Could not save diagnostic")); }
     finally { setBusy(false); }
@@ -100,7 +103,7 @@ export default function AdminDiagnosticBuilder() {
     setBusyDiagnostic(exam.id); setError("");
     try {
       await api(`/admin/diagnostics/${exam.id}/${action}`, { method: "POST", body: {} });
-      toast(action === "publish" ? "Diagnostic published for students" : "Diagnostic unpublished"); data.reload();
+      toast(action === "publish" ? "Diagnostic published for students" : "Diagnostic unpublished"); notifyAdminActionCountsChanged(); data.reload();
     } catch (e) { setError(errMessage(e, `Could not ${action} diagnostic`)); }
     finally { setBusyDiagnostic(null); }
   };
@@ -114,14 +117,14 @@ export default function AdminDiagnosticBuilder() {
     setQuestionBusy(true);
     try {
       await api("/admin/questions", { method: "POST", body: parsed.data });
-      toast("Question saved as a draft. Review it in the bank before publishing."); setQuestionForm(emptyQuestion()); setQuestionFormOpen(false); data.reload();
+      toast("Question saved as a draft. Review it in the bank before publishing."); notifyAdminActionCountsChanged(); setQuestionForm(emptyQuestion()); setQuestionFormOpen(false); data.reload();
     } catch (e) { setQuestionError(errMessage(e, "Could not create question")); }
     finally { setQuestionBusy(false); }
   };
 
   const publishQuestion = async (question: BankQuestion) => {
     setQuestionBusy(true); setQuestionError("");
-    try { await api(`/admin/questions/${question.id}/publish`, { method: "POST", body: {} }); toast("Question published and available to the builder"); data.reload(); }
+    try { await api(`/admin/questions/${question.id}/publish`, { method: "POST", body: {} }); toast("Question published and available to the builder"); notifyAdminActionCountsChanged(); data.reload(); }
     catch (e) { setQuestionError(errMessage(e, "Could not publish question")); }
     finally { setQuestionBusy(false); }
   };
@@ -234,8 +237,8 @@ export default function AdminDiagnosticBuilder() {
     </Card>
 
     <section aria-labelledby="diagnostics-list-title" className="space-y-3">
-      <div><h2 id="diagnostics-list-title" className="text-xl font-bold">Saved diagnostics</h2><p className="mt-1 text-sm text-muted">Drafts are private to admins; students only see a published diagnostic.</p></div>
-      {d.diagnostics.length ? d.diagnostics.map((exam) => {
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 id="diagnostics-list-title" className="flex flex-wrap items-center gap-2 text-xl font-bold">{draftsOnly ? "Diagnostic drafts awaiting review" : "Saved diagnostics"}{d.diagnostics.some((exam) => exam.status === "DRAFT") && <Badge tone="warning">{d.diagnostics.filter((exam) => exam.status === "DRAFT").length} drafts</Badge>}</h2><p className="mt-1 text-sm text-muted">Drafts are private to admins; students only see a published diagnostic.</p></div>{draftsOnly && <Button variant="secondary" href="/admin/diagnostics">Show all</Button>}</div>
+      {(draftsOnly ? d.diagnostics.filter((exam) => exam.status === "DRAFT") : d.diagnostics).length ? (draftsOnly ? d.diagnostics.filter((exam) => exam.status === "DRAFT") : d.diagnostics).map((exam) => {
         const ready = exam.inactiveQuestionCount === 0 && exam.coverage.length > 0 && exam.coverage.every((x) => x.count >= minPerTopic);
         const anotherPublished = d.diagnostics.some((x) => x.id !== exam.id && x.status === "PUBLISHED");
         return <Card key={exam.id} className="!p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold">{exam.title}</h3><Badge tone={exam.status === "PUBLISHED" ? "success" : exam.status === "DRAFT" ? "warning" : "muted"}>{exam.status}</Badge>{exam.status === "PUBLISHED" && <Badge tone="info">Student live</Badge>}</div><p className="mt-1 text-sm text-muted">{exam.questionCount} questions · {exam.durationMinutes} min · {exam.coverage.length} topics · Created {new Date(exam.createdAt).toLocaleDateString()}</p></div>
@@ -245,7 +248,9 @@ export default function AdminDiagnosticBuilder() {
           {exam.status === "DRAFT" && anotherPublished && <p className="mt-2 text-xs text-muted">Unpublish the current live diagnostic before publishing this draft.</p>}
           {exam.coverage.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{exam.coverage.map((x) => <Badge key={x.topicId} tone={x.count >= minPerTopic ? "success" : "warning"}>{x.topicName}: {x.count}/{minPerTopic}</Badge>)}</div>}
         </Card>;
-      }) : <EmptyState title="No diagnostic drafts yet" body="Create a draft from published questions, review the recommendation preview, then publish when topic coverage is ready." />}
+      }) : <EmptyState title={draftsOnly ? "No diagnostic drafts need review" : "No diagnostic drafts yet"} body="Create a draft from published questions, review the recommendation preview, then publish when topic coverage is ready." />}
     </section>
   </>;
 }
+
+export default function AdminDiagnosticBuilder() { return <Suspense fallback={<Skeleton className="h-48" />}><AdminDiagnosticBuilderInner /></Suspense>; }

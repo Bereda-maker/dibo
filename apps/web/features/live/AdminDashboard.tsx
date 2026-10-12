@@ -16,9 +16,10 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { Card, ErrorState, PageHeader, Skeleton } from "../../components/ui";
+import { Badge, Card, ErrorState, PageHeader, Skeleton } from "../../components/ui";
 import { api } from "../../lib/api";
 import { useApi } from "../../lib/useApi";
+import { useAdminActionCountsContext } from "../../lib/useAdminActionCounts";
 
 type RangeDays = 7 | 30 | 90;
 type TrendPoint = {
@@ -178,6 +179,7 @@ function DashboardSkeleton() {
 export function AdminDashboard() {
   const [range, setRange] = useState<RangeDays>(30);
   const q = useApi<Overview>(() => api<Overview>(`/admin/overview?range=${range}`), [range]);
+  const actionQueue = useAdminActionCountsContext();
   const data = q.data;
   const summary = data?.summary;
   const stageTotal = data?.learningStages.reduce((total, stage) => total + stage.count, 0) ?? 0;
@@ -247,11 +249,20 @@ export function AdminDashboard() {
 
           <Card className="!p-4 sm:!p-5">
             <div className="mb-4 flex items-start justify-between gap-2"><div><h2 className="font-bold">Needs attention</h2><p className="mt-1 text-xs text-muted">Operational signals from live records</p></div><AlertTriangle size={18} className="text-warning" aria-hidden="true" /></div>
-            <div className="space-y-3">
-              <Link href="/admin/contact" className="group flex items-center justify-between gap-3 rounded-xl border border-border p-3 transition hover:border-primary/40 hover:bg-bg"><span className="flex items-center gap-3"><span className="rounded-lg bg-warning/10 p-2 text-warning"><Inbox size={17} aria-hidden="true" /></span><span><span className="block text-sm font-semibold">Open contact messages</span><span className="block text-xs text-muted">{summary.newContacts} new · {summary.unresolvedContacts} unresolved</span></span></span><ArrowRight size={16} className="shrink-0 text-muted transition group-hover:translate-x-0.5" aria-hidden="true" /></Link>
-              <Link href="/admin/students" className="group flex items-center justify-between gap-3 rounded-xl border border-border p-3 transition hover:border-primary/40 hover:bg-bg"><span className="flex items-center gap-3"><span className="rounded-lg bg-error/10 p-2 text-error"><ShieldCheck size={17} aria-hidden="true" /></span><span><span className="block text-sm font-semibold">Suspended accounts</span><span className="block text-xs text-muted">{summary.suspendedStudents} student accounts</span></span></span><ArrowRight size={16} className="shrink-0 text-muted transition group-hover:translate-x-0.5" aria-hidden="true" /></Link>
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"><span className="flex items-center gap-3"><span className="rounded-lg bg-info/10 p-2 text-info"><FileQuestion size={17} aria-hidden="true" /></span><span><span className="block text-sm font-semibold">Question bank</span><span className="block text-xs text-muted">Published / draft</span></span></span><span className="shrink-0 text-xs font-semibold">{summary.publishedQuestions} / {summary.draftQuestions}</span></div>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              {actionQueue.counts ? ([
+                ["/admin/subscriptions", "Payment reviews", actionQueue.counts.pendingPaymentReviews, "Manual receipts needing verification"],
+                ["/admin/contact?status=OPEN", "Contact inbox", actionQueue.counts.unresolvedContacts, `${summary.newContacts.toLocaleString()} new · unresolved requests`],
+                ["/admin/content?status=DRAFT", "Curriculum drafts", actionQueue.counts.draftCurriculumItems, "Subjects, topics, and learning materials"],
+                ["/admin/questions?status=DRAFT", "Question drafts", actionQueue.counts.draftQuestions, "Questions to review before publishing"],
+                ["/admin/exams?status=DRAFT", "Exam drafts", actionQueue.counts.draftExams, "Exams to review before publishing"],
+                ["/admin/diagnostics?status=DRAFT", "Diagnostic drafts", actionQueue.counts.draftDiagnostics, "Diagnostics requiring coverage review"],
+              ] as const).map(([href, label, count, detail]) => <Link key={href} href={href} aria-label={`${count} ${label} awaiting action. Open ${label}.`} className="group flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border p-3 transition hover:border-primary/40 hover:bg-bg focus-visible:outline-2 focus-visible:outline-primary">
+                <span className="flex min-w-0 items-center gap-3"><span className="rounded-lg bg-warning/10 p-2 text-warning"><Inbox size={17} aria-hidden="true" /></span><span className="min-w-0"><span className="block truncate text-sm font-semibold">{label}</span><span className="block truncate text-xs text-muted">{detail}</span></span></span>
+                <span className="flex shrink-0 items-center gap-2">{count > 0 ? <Badge tone="warning"><span aria-hidden="true">{count.toLocaleString()}</span><span className="sr-only">{count} awaiting action</span></Badge> : <span className="text-xs font-semibold text-success">Clear</span>}<ArrowRight size={16} className="text-muted transition group-hover:translate-x-0.5" aria-hidden="true" /></span>
+              </Link>) : <p role="status" className="text-sm text-muted">{actionQueue.loading ? "Loading live review counts…" : <>Review counts are unavailable. <button type="button" className="font-semibold text-primary underline" onClick={() => void actionQueue.reload()}>Retry</button></>}</p>}
             </div>
+            {actionQueue.error && actionQueue.counts && <p role="status" className="mt-3 text-xs text-muted">Counts may be out of date; an automatic retry is in progress.</p>}
           </Card>
 
           <Card className="!p-4 sm:!p-5">

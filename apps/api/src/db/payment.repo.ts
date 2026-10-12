@@ -6,7 +6,7 @@ const DAYS: Record<string, number> = { MONTHLY: 30, QUARTERLY: 90, ANNUAL: 365 }
 type PaymentMeta = { attempt?: number; manualReviewStatus?: string; manualReviewReason?: string; manualReviewSubmittedAt?: string; receiptData?: { base64: string; mime: string } };
 const meta = (v: unknown): PaymentMeta => (v && typeof v === "object" && !Array.isArray(v) ? v as PaymentMeta : {});
 const toRow = (p: typeof payments.$inferSelect): PaymentRow => ({ id: p.id, userId: p.userId, subscriptionId: p.subscriptionId, amountMinor: p.amountMinor, currency: p.currency, status: p.status, attempt: Number(meta(p.metadata).attempt ?? 1), verifyRequestId: p.verifyRequestId, manualReviewStatus: meta(p.metadata).manualReviewStatus ?? null });
-const reviewWhere = sql`${payments.metadata}->>'manualReviewStatus' = 'PENDING'`;
+const reviewWhere = and(eq(payments.status, "PENDING"), sql`${payments.metadata}->>'manualReviewStatus' = 'PENDING'`);
 
 export class DrizzlePaymentRepo implements PaymentRepo {
   constructor(private db: Db) {}
