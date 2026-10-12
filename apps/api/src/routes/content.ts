@@ -18,33 +18,36 @@ export const contentRoutes = (db: Db) => {
     const [profile] = await db.select({ ids: studentProfiles.selectedSubjectIds }).from(studentProfiles).where(eq(studentProfiles.userId, auth.userId)).limit(1);
     return profile?.ids ?? [];
   };
-  /** A selected subject represents the student's subject choice across the Grade 9–12 curriculum. */
-  const notesSubjectIds = async (c: unknown) => {
+  const cleanName = (subject: { slug: string; names: Record<string, string> }) => (subject.names.en || subject.slug).normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+  const subjectKeyOf = (subject: { educationLevel: string; slug: string; names: Record<string, string> }) => `${subject.educationLevel}:${cleanName(subject)}`;
+
+  /** Grade 12 exam candidates can browse the same selected subjects across the Grades 9–12 curriculum. */
+  const notesSubjects = async (c: unknown) => {
     const selectedIds = await selectedFor(c);
+    const columns = { id: subjects.id, educationLevel: subjects.educationLevel, slug: subjects.slug, names: subjects.names, grade: subjects.grade, stream: subjects.stream };
+    const gradeScope = and(eq(subjects.status, "PUBLISHED"), inArray(subjects.grade, [9, 10, 11, 12]));
     if (!selectedIds.length) {
-      const available = await db.select({ id: subjects.id }).from(subjects)
-        .where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.grade, [9, 10, 11, 12])));
-      return available.map((subject) => subject.id);
+      const available = await db.select(columns).from(subjects).where(gradeScope).orderBy(asc(subjects.sortOrder), asc(subjects.grade));
+      return available.map((subject) => ({ ...subject, subjectKey: subjectKeyOf(subject) }));
     }
-    const selected = await db.select({ slug: subjects.slug, educationLevel: subjects.educationLevel, stream: subjects.stream }).from(subjects)
+    const selected = await db.select({ educationLevel: subjects.educationLevel, slug: subjects.slug, names: subjects.names, stream: subjects.stream }).from(subjects)
       .where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.id, selectedIds)));
     if (!selected.length) return [];
-    const scopes = selected.map((subject) => and(
-      eq(subjects.slug, subject.slug),
-      eq(subjects.educationLevel, subject.educationLevel),
-      subject.stream ? or(eq(subjects.stream, subject.stream), isNull(subjects.stream)) : isNull(subjects.stream),
-    ));
-    const available = await db.select({ id: subjects.id }).from(subjects).where(and(
-      eq(subjects.status, "PUBLISHED"), inArray(subjects.grade, [9, 10, 11, 12]), or(...scopes),
-    ));
-    return available.map((subject) => subject.id);
+    const candidates = await db.select(columns).from(subjects).where(gradeScope).orderBy(asc(subjects.sortOrder), asc(subjects.grade));
+    return candidates.flatMap((candidate) => {
+      const match = selected.find((choice) => choice.educationLevel === candidate.educationLevel &&
+        (choice.slug === candidate.slug || cleanName(choice) === cleanName(candidate)) &&
+        (choice.stream ? candidate.stream === choice.stream || candidate.stream === null : candidate.stream === null));
+      return match ? [{ ...candidate, subjectKey: subjectKeyOf(match) }] : [];
+    });
   };
+  const notesSubjectIds = async (c: unknown) => (await notesSubjects(c)).map((subject) => subject.id);
 
   r.get("/subjects", zValidator("query", z.object({ scope: z.literal("notes").optional() })), async (c) => {
     const { scope } = c.req.valid("query");
-    const allowedIds = scope === "notes" ? await notesSubjectIds(c) : await selectedFor(c);
+    if (scope === "notes") return ok(c, await notesSubjects(c));
     return ok(c, await db.select({ id: subjects.id, slug: subjects.slug, names: subjects.names, grade: subjects.grade, stream: subjects.stream })
-      .from(subjects).where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.id, allowedIds))).orderBy(asc(subjects.sortOrder), asc(subjects.grade)));
+      .from(subjects).where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.id, await selectedFor(c)))).orderBy(asc(subjects.sortOrder), asc(subjects.grade)));
   });
   r.get("/topics", zValidator("query", z.object({ subjectId: z.string().uuid() })), async (c) =>
     ok(c, await db.select({ id: topics.id, slug: topics.slug, names: topics.names }).from(topics).where(and(eq(topics.subjectId, c.req.valid("query").subjectId), eq(topics.status, "PUBLISHED"), inArray(topics.subjectId, await selectedFor(c)))).orderBy(asc(topics.sortOrder))));

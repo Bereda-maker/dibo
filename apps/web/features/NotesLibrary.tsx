@@ -5,15 +5,15 @@ import { ArrowUpRight, BookOpen, Bookmark, CheckCircle2, GraduationCap, Layers3,
 import { Badge, Button, Card, EmptyState, PageHeader, cx, inputCls } from "../components/ui";
 import { useLocalizedName } from "../lib/i18n";
 
-export type NotesSubject = { id: string; slug: string; names: Record<string, string>; grade: number; stream?: string | null };
+export type NotesSubject = { id: string; subjectKey: string; slug: string; names: Record<string, string>; grade: number; stream?: string | null };
 export type NotesEntry = { id: string; title: string; summary: string | null; topicId: string; topicName: Record<string, string>; topicSlug: string };
 type Props = {
   subjects: NotesSubject[];
   subjectSource: "profile" | "all";
   subjectLoading?: boolean;
   subjectError?: string;
-  selectedSlug: string;
-  onSelectSubject: (slug: string) => void;
+  selectedSubjectKey: string;
+  onSelectSubject: (subjectKey: string) => void;
   grade: number;
   onSelectGrade: (grade: number) => void;
   notes: NotesEntry[];
@@ -25,13 +25,13 @@ type Props = {
 
 const GRADES = [9, 10, 11, 12];
 
-export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, subjectError, selectedSlug, onSelectSubject, grade, onSelectGrade, notes, notesLoading = false, notesError, completedTopicIds, bookmarkedNoteIds }: Props) {
+export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, subjectError, selectedSubjectKey, onSelectSubject, grade, onSelectGrade, notes, notesLoading = false, notesError, completedTopicIds, bookmarkedNoteIds }: Props) {
   const localizedName = useLocalizedName();
   const [search, setSearch] = useState("");
   const [unitFilter, setUnitFilter] = useState("all");
-  const subjectChoices = useMemo(() => Array.from(new Map(subjects.map((subject) => [subject.slug, subject])).values()), [subjects]);
-  const selectedSubject = subjectChoices.find((subject) => subject.slug === selectedSlug);
-  const availableGrades = Array.from(new Set(subjects.filter((subject) => subject.slug === selectedSlug).map((subject) => subject.grade))).sort((a, b) => a - b);
+  const subjectChoices = useMemo(() => Array.from(new Map(subjects.map((subject) => [subject.subjectKey, subject])).values()), [subjects]);
+  const selectedSubject = subjectChoices.find((subject) => subject.subjectKey === selectedSubjectKey);
+  const availableGrades = Array.from(new Set(subjects.filter((subject) => subject.subjectKey === selectedSubjectKey).map((subject) => subject.grade))).sort((a, b) => a - b);
   const units = useMemo(() => {
     const grouped = new Map<string, { id: string; name: string; notes: NotesEntry[] }>();
     for (const note of notes) {
@@ -72,9 +72,9 @@ export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, 
           </div>
           {subjectError ? <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">{subjectError}</p> : subjectLoading ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((item) => <div key={item} className="h-24 animate-pulse rounded-2xl bg-border/50" />)}</div> : subjectChoices.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {subjectChoices.map((subject) => {
-              const grades = Array.from(new Set(subjects.filter((item) => item.slug === subject.slug).map((item) => item.grade))).sort((a, b) => a - b);
-              const active = subject.slug === selectedSlug;
-              return <button type="button" key={subject.slug} aria-pressed={active} onClick={() => { onSelectSubject(subject.slug); setSearch(""); setUnitFilter("all"); }} className={cx("group flex min-h-[92px] items-start gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2", active ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-surface hover:border-primary/50 hover:bg-bg/60")}>
+              const grades = Array.from(new Set(subjects.filter((item) => item.subjectKey === subject.subjectKey).map((item) => item.grade))).sort((a, b) => a - b);
+              const active = subject.subjectKey === selectedSubjectKey;
+              return <button type="button" key={subject.subjectKey} aria-pressed={active} onClick={() => { onSelectSubject(subject.subjectKey); setSearch(""); setUnitFilter("all"); }} className={cx("group flex min-h-[92px] items-start gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2", active ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-surface hover:border-primary/50 hover:bg-bg/60")}>
                 <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-xl transition", active ? "bg-primary text-white" : "bg-primary/10 text-primary group-hover:bg-primary/15")}><BookOpen size={19} aria-hidden /></span>
                 <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{localizedName(subject.names) || subject.slug}</span><span className="mt-1 block text-xs text-muted">Grades {grades.join(" · ")}</span></span>
                 {active && <CheckCircle2 size={17} className="mt-1 shrink-0 text-primary" aria-label="Selected" />}
@@ -123,7 +123,7 @@ export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, 
           </>}
         </section>}
 
-        {!selectedSlug && subjectChoices.length > 0 && !subjectLoading && <div className="flex items-center gap-2 rounded-xl border border-border bg-bg/60 p-3 text-sm text-muted"><GraduationCap size={17} className="shrink-0 text-primary" aria-hidden /><span>Choose a subject above to reveal grade levels and unit notes.</span></div>}
+        {!selectedSubjectKey && subjectChoices.length > 0 && !subjectLoading && <div className="flex items-center gap-2 rounded-xl border border-border bg-bg/60 p-3 text-sm text-muted"><GraduationCap size={17} className="shrink-0 text-primary" aria-hidden /><span>Choose a subject above to reveal grade levels and unit notes.</span></div>}
       </div>
     </Card>
   </>;

@@ -75,17 +75,17 @@ export function LiveNotes() {
   const { profile } = useSession();
   const subjectQuery = useApi(() => api<NotesSubject[]>("/content/subjects?scope=notes"));
   const subjectRows = subjectQuery.data ?? [];
-  const [selectedSlug, setSelectedSlug] = useState("");
+  const [selectedSubjectKey, setSelectedSubjectKey] = useState("");
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const grade = selectedGrade ?? (profile && profile.grade >= 9 && profile.grade <= 12 ? profile.grade : 12);
-  const subjectForGrade = subjectRows.filter((subject) => subject.slug === selectedSlug && subject.grade === grade)
+  const subjectForGrade = subjectRows.filter((subject) => subject.subjectKey === selectedSubjectKey && subject.grade === grade)
     .sort((a, b) => Number(b.stream === profile?.stream) - Number(a.stream === profile?.stream))[0];
   const notesQuery = useApi(() => subjectForGrade ? api<NotesEntry[]>(`/content/notes?subjectId=${encodeURIComponent(subjectForGrade.id)}&limit=50`) : Promise.resolve([] as NotesEntry[]), [subjectForGrade?.id]);
   const done = useApi(() => api<{ topicId: string }[]>("/notes/completed"));
   const bookmarks = useApi(() => api<{ type: string; id: string }[]>("/bookmarks"));
   return <NotesLibrary subjects={subjectRows} subjectSource={profile?.subjectIds.length ? "profile" : "all"}
     subjectLoading={subjectQuery.loading} subjectError={subjectQuery.error?.message}
-    selectedSlug={selectedSlug} onSelectSubject={(slug) => { setSelectedSlug(slug); setSelectedGrade(profile && profile.grade >= 9 && profile.grade <= 12 ? profile.grade : 12); }}
+    selectedSubjectKey={selectedSubjectKey} onSelectSubject={(subjectKey) => { setSelectedSubjectKey(subjectKey); setSelectedGrade(profile && profile.grade >= 9 && profile.grade <= 12 ? profile.grade : 12); }}
     grade={grade} onSelectGrade={setSelectedGrade} notes={notesQuery.loading ? [] : notesQuery.data ?? []} notesLoading={notesQuery.loading}
     notesError={notesQuery.error?.message} completedTopicIds={(done.data ?? []).map((item) => item.topicId)}
     bookmarkedNoteIds={(bookmarks.data ?? []).filter((item) => item.type === "NOTE").map((item) => item.id)} />;

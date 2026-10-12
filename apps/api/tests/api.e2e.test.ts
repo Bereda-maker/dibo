@@ -53,7 +53,7 @@ beforeAll(async () => {
   const [t] = await raw.insert(s.topics).values({ subjectId, slug: "mech", names: { en: "Mechanics" }, status: "PUBLISHED" }).returning(); topicId = t!.id;
   const [m] = await raw.insert(s.learningMaterials).values({ topicId, status: "PUBLISHED" }).returning();
   await raw.insert(s.notes).values({ materialId: m!.id, title: "Newton's second law", summary: "Force equals mass times acceleration", content: { formulas: ["F = ma"] } });
-  const [grade11] = await raw.insert(s.subjects).values({ grade: 11, slug: "phy", names: { en: "Physics" }, status: "PUBLISHED" }).returning(); grade11SubjectId = grade11!.id;
+  const [grade11] = await raw.insert(s.subjects).values({ grade: 11, slug: "physics-foundations", names: { en: "Physics" }, status: "PUBLISHED" }).returning(); grade11SubjectId = grade11!.id;
   const [grade11Topic] = await raw.insert(s.topics).values({ subjectId: grade11SubjectId, slug: "waves", names: { en: "Waves" }, status: "PUBLISHED" }).returning();
   const [grade11Material] = await raw.insert(s.learningMaterials).values({ topicId: grade11Topic!.id, status: "PUBLISHED" }).returning();
   const [grade11Note] = await raw.insert(s.notes).values({ materialId: grade11Material!.id, title: "Wave motion", summary: "A wave transfers energy", content: { explanation: "Energy travels through a medium." } }).returning(); grade11NoteId = grade11Note!.id;
@@ -86,10 +86,11 @@ describe("authentication and authorization", () => {
 describe("student notes curriculum scope", () => {
   test("selected subjects carry across Grades 9–12, while an empty profile exposes all subjects", async () => {
     const cookie = await signup("notes-scope@x.et");
-    const scoped = (await (await get("/api/content/subjects?scope=notes", cookie)).json()).data as { id: string; grade: number }[];
+    const scoped = (await (await get("/api/content/subjects?scope=notes", cookie)).json()).data as { id: string; grade: number; subjectKey: string }[];
     expect(scoped.some((subject) => subject.id === subjectId && subject.grade === 12)).toBe(true);
     expect(scoped.some((subject) => subject.id === grade11SubjectId && subject.grade === 11)).toBe(true);
     expect(scoped.some((subject) => subject.id === otherSubjectId)).toBe(false);
+    expect(scoped.find((subject) => subject.id === subjectId)?.subjectKey).toBe(scoped.find((subject) => subject.id === grade11SubjectId)?.subjectKey);
 
     const grade11Notes = (await (await get(`/api/content/notes?subjectId=${grade11SubjectId}&limit=50`, cookie)).json()).data as { id: string; topicName: { en: string } }[];
     expect(grade11Notes.map((note) => note.id)).toContain(grade11NoteId);
