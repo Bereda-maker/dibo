@@ -1,5 +1,5 @@
-ALTER TYPE "public"."payment_status" ADD VALUE 'VERIFYING';--> statement-breakpoint
-ALTER TYPE "public"."payment_status" ADD VALUE 'VERIFIED';--> statement-breakpoint
+DO $$ BEGIN ALTER TYPE "public"."payment_status" ADD VALUE 'VERIFYING'; EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN ALTER TYPE "public"."payment_status" ADD VALUE 'VERIFIED'; EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "payment_webhook_events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"event_id" text NOT NULL,

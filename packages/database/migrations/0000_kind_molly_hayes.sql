@@ -1,13 +1,13 @@
-CREATE TYPE "public"."content_status" AS ENUM('DRAFT', 'PUBLISHED', 'ARCHIVED');--> statement-breakpoint
-CREATE TYPE "public"."difficulty" AS ENUM('EASY', 'MEDIUM', 'HARD');--> statement-breakpoint
-CREATE TYPE "public"."exam_type" AS ENUM('DIAGNOSTIC', 'PRACTICE', 'TOPIC', 'SUBJECT', 'MOCK');--> statement-breakpoint
-CREATE TYPE "public"."learning_status" AS ENUM('REGISTERED', 'PROFILE_INCOMPLETE', 'DIAGNOSTIC_PENDING', 'ACTIVE_LEARNER', 'EXAM_PREPARATION', 'READY_FOR_MOCK', 'COMPLETED');--> statement-breakpoint
-CREATE TYPE "public"."payment_status" AS ENUM('PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'REFUNDED');--> statement-breakpoint
-CREATE TYPE "public"."plan_interval" AS ENUM('FREE', 'MONTHLY', 'QUARTERLY', 'ANNUAL');--> statement-breakpoint
-CREATE TYPE "public"."question_type" AS ENUM('MULTIPLE_CHOICE', 'TRUE_FALSE', 'NUMERICAL');--> statement-breakpoint
-CREATE TYPE "public"."role" AS ENUM('STUDENT', 'ADMIN', 'SUPER_ADMIN');--> statement-breakpoint
-CREATE TYPE "public"."subscription_state" AS ENUM('ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING');--> statement-breakpoint
-CREATE TYPE "public"."student_subscription_status" AS ENUM('FREE', 'PREMIUM', 'EXPIRED', 'CANCELLED');--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."content_status" AS ENUM('DRAFT', 'PUBLISHED', 'ARCHIVED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."difficulty" AS ENUM('EASY', 'MEDIUM', 'HARD'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."exam_type" AS ENUM('DIAGNOSTIC', 'PRACTICE', 'TOPIC', 'SUBJECT', 'MOCK'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."learning_status" AS ENUM('REGISTERED', 'PROFILE_INCOMPLETE', 'DIAGNOSTIC_PENDING', 'ACTIVE_LEARNER', 'EXAM_PREPARATION', 'READY_FOR_MOCK', 'COMPLETED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."payment_status" AS ENUM('PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'REFUNDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."plan_interval" AS ENUM('FREE', 'MONTHLY', 'QUARTERLY', 'ANNUAL'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."question_type" AS ENUM('MULTIPLE_CHOICE', 'TRUE_FALSE', 'NUMERICAL'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."role" AS ENUM('STUDENT', 'ADMIN', 'SUPER_ADMIN'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."subscription_state" AS ENUM('ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."student_subscription_status" AS ENUM('FREE', 'PREMIUM', 'EXPIRED', 'CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "achievements" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"code" text NOT NULL,
