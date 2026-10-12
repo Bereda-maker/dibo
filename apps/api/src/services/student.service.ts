@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { achievements, aiConversations, aiMessages, bookmarks, examAttempts, notifications, sessions, studentAchievements, studentAnswers, studentProfiles, studentProgress, users, type Db } from "@dibora/database";
 import type { z } from "zod";
 import type { profileUpdateSchema } from "@dibora/validation";
@@ -20,6 +20,11 @@ export class StudentService {
     await this.db.update(studentProfiles).set(set).where(eq(studentProfiles.userId, userId)); return this.me(userId);
   }
   notifications(userId: string) { return this.db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(50); }
+  async unreadNotificationCount(userId: string) {
+    const [row] = await this.db.select({ count: sql<number>`count(*)::int` }).from(notifications)
+      .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
+    return { count: Number(row?.count ?? 0) };
+  }
   async markAllRead(userId: string) { await this.db.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.userId, userId), isNull(notifications.readAt))); }
   async achievements(studentId: string) {
     const all = await this.db.select().from(achievements); const mine = await this.db.select().from(studentAchievements).where(eq(studentAchievements.studentId, studentId));

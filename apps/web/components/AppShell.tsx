@@ -16,6 +16,8 @@ import { useT } from "../lib/i18n";
 import { useSession } from "../lib/session";
 import { DEMO } from "../lib/config";
 import { AdminActionCountsContext, useAdminActionCounts, type AdminActionCounts } from "../lib/useAdminActionCounts";
+import { StudentNotificationCountContext, useStudentNotificationCount, type StudentNotificationCountState } from "../lib/useStudentNotificationCount";
+import { demoUnreadNotificationCount } from "../lib/studentNotifications";
 
 const main = [["/dashboard", "dashboard", LayoutDashboard], ["/notes", "notes", BookOpen], ["/practice", "practice", Dumbbell], ["/exams", "exams", ClipboardCheck], ["/assistant", "assistant", Bot], ["/progress", "progress", TrendingUp]] as const;
 const extra = [["/bookmarks", "My Bookmarks", Bookmark], ["/mistakes", "Questions I Got Wrong", XCircle], ["/search", "Search", Search], ["/achievements", "Achievements", Medal], ["/leaderboard", "Leaderboard", Trophy], ["/notifications", "Notifications", Bell], ["/profile", "Profile", UserCircle], ["/pricing", "Plans", Crown]] as const;
@@ -73,24 +75,34 @@ function AdminNavigation({ collapsed, onNavigate, query = "", counts = null, cou
   </nav>;
 }
 
+function StudentNotificationCountStatus({ state }: { state: StudentNotificationCountState }) {
+  if (state.error) return <p role="status" className="mx-1 rounded-xl border border-warning/25 bg-warning/5 p-3 text-xs text-muted">Unread notification count is unavailable. <button type="button" className="ml-1 font-semibold text-primary underline" onClick={() => void state.reload()}>Retry</button></p>;
+  if (state.loading && state.count === null) return <p role="status" className="px-3 text-xs text-muted">Checking unread notifications…</p>;
+  return null;
+}
+
 export function AppShell({ children, admin = false, items }: { children: React.ReactNode; admin?: boolean; items?: readonly (readonly [string, string])[] }) {
   const { state, ready: demoReady, logout: demoLogout } = useStore(); const sess = useSession(); const path = usePathname(); const router = useRouter(); const t = useT();
   const [collapsed, setCollapsed] = useState(false); const [drawerOpen, setDrawerOpen] = useState(false); const [navSearch, setNavSearch] = useState("");
   const ready = DEMO ? demoReady : sess.ready;
   const role = DEMO ? state.user?.role ?? null : sess.role;
   const adminCounts = useAdminActionCounts(admin && !DEMO && (role === "ADMIN" || role === "SUPER_ADMIN"));
+  const liveNotificationCount = useStudentNotificationCount(!admin && !DEMO && role === "STUDENT");
+  const studentNotificationCount: StudentNotificationCountState = DEMO
+    ? { count: demoUnreadNotificationCount(state), loading: false, error: false, reload: async () => {} }
+    : liveNotificationCount;
   const u = DEMO ? state.user : role ? { name: sess.profile?.fullName ?? "Admin", role: role === "STUDENT" ? "STUDENT" : "ADMIN" } as NonNullable<typeof state.user> : null;
   const logout = () => { if (DEMO) demoLogout(); else void sess.logout(); };
   useEffect(() => { if (ready && (!u || (admin && u.role !== "ADMIN") || (!admin && !DEMO && role !== "STUDENT"))) router.replace("/login"); }, [ready, u, admin, role, router]);
   useEffect(() => { setDrawerOpen(false); }, [path]);
   if (!ready || !u || (admin && u.role !== "ADMIN") || (!admin && !DEMO && role !== "STUDENT")) return <div className="p-6 space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-40" /><Skeleton className="h-40" /></div>;
-  const unread = DEMO ? 3 - state.readNotifs.length : 0;
+  const unread = studentNotificationCount.count ?? 0;
   const nav = admin ? (items ?? []).map(([h, l]) => ({ h, l: t(l), I: null as null })) : [...main.map(([h, k, I]) => ({ h, l: t(k), I })), ...extra.map(([h, l, I]) => ({ h, l: t(l), I }))];
   const crumbs = path.split("/").filter(Boolean);
   const pageLabel = adminGroups.flatMap((g) => g.items).find(([href]) => href === path)?.[1] ?? crumbs.at(-1)?.replaceAll("-", " ") ?? "Dashboard";
   const profileName = u.name || "Administrator";
   const signOut = () => { logout(); router.push("/"); };
-  return <AdminActionCountsContext.Provider value={adminCounts}><div className="min-h-dvh min-w-0 overflow-x-clip md:flex">
+  return <AdminActionCountsContext.Provider value={adminCounts}><StudentNotificationCountContext.Provider value={studentNotificationCount}><div className="min-h-dvh min-w-0 overflow-x-clip md:flex">
     {admin ? <>
       <aside className={cx("relative hidden shrink-0 border-r border-border bg-surface transition-[width] duration-200 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto", collapsed ? "md:w-[76px] md:p-3" : "md:w-[264px] md:p-5")}>
         <div className={cx("flex items-center", collapsed ? "justify-center" : "justify-between")}><Link href="/admin" aria-label="Dibora Admin Console" className="min-w-0"><Logo />{!collapsed && <span className="ml-2 mt-1 block text-[10px] font-semibold uppercase tracking-[.13em] text-muted">Admin Console</span>}</Link>{!collapsed && <span className="rounded-full bg-accent/15 px-2 py-1 text-[10px] font-bold tracking-wide text-warning">ADMIN</span>}</div>
@@ -110,9 +122,9 @@ export function AppShell({ children, admin = false, items }: { children: React.R
         <main className="mx-auto min-h-[calc(100dvh-68px)] max-w-[1600px] px-3 pb-8 pt-5 sm:px-6 sm:pt-7 lg:px-8">{children}</main>
       </div>
     </> : <>
-      <aside aria-label="Sidebar" className="hidden w-60 shrink-0 border-r border-border bg-surface p-4 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto"><Logo /><nav className="mt-6 space-y-1">{nav.map(({ h, l, I }) => <Link key={h} href={h} aria-current={path === h ? "page" : undefined} className={cx("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium", path === h || (h !== "/admin" && path.startsWith(h + "/")) ? "bg-primary text-white" : "hover:bg-border/50")}>{I && <I size={18} aria-hidden />}{l}{h === "/notifications" && unread > 0 && <span className="ml-auto rounded-full bg-accent px-2 text-xs text-black">{unread}</span>}</Link>)}</nav><button onClick={signOut} className="mt-6 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-border/50"><LogOut size={18} aria-hidden />Log out</button></aside>
+      <aside aria-label="Sidebar" className="hidden w-60 shrink-0 border-r border-border bg-surface p-4 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto"><Logo /><nav className="mt-6 space-y-1">{nav.map(({ h, l, I }) => { const isNotifications = h === "/notifications"; const active = path === h || (h !== "/admin" && path.startsWith(h + "/")); return <Link key={h} href={h} aria-label={isNotifications && unread > 0 ? `Notifications, ${unread} unread notifications` : undefined} aria-current={path === h ? "page" : undefined} className={cx("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium", active ? "bg-primary text-white" : "hover:bg-border/50")}>{I && <I size={18} aria-hidden="true" />}{l}{isNotifications && unread > 0 && <span className="ml-auto rounded-full bg-info/15 px-2 py-0.5 text-xs font-bold tabular-nums text-info"><span aria-hidden="true">{unread.toLocaleString()}</span><span className="sr-only">{unread} unread notifications</span></span>}</Link>; })}</nav><StudentNotificationCountStatus state={studentNotificationCount} /><button onClick={signOut} className="mt-6 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-border/50"><LogOut size={18} aria-hidden="true" />Log out</button></aside>
       <div className="min-w-0 flex-1"><header className="sticky top-0 z-20 flex min-h-16 items-center justify-between border-b border-border bg-bg/90 px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] backdrop-blur sm:px-5"><div className="md:hidden"><Logo /></div><p className="hidden max-w-[40vw] truncate text-sm text-muted md:block">{u.name}</p><div className="flex items-center gap-1"><LocaleSwitch /><ThemeToggle /></div></header><main className="mx-auto max-w-6xl px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-5 sm:px-5 md:p-8">{children}</main></div>
-      <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur md:hidden">{[...main.slice(0, 4), ["/more", "more", Menu] as const].map(([h, k, I]) => { const mobileRouteActive = main.slice(0, 4).some(([route]) => path === route || path.startsWith(route + "/")); const active = path === h || (h === "/more" && !mobileRouteActive); return <Link key={h} href={h} aria-current={active ? "page" : undefined} className={cx("flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[11px] transition-colors", active ? "font-bold text-primary" : "text-muted hover:text-primary")}><I size={20} aria-hidden />{t(k)}</Link>; })}</nav>
+      <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur md:hidden">{[...main.slice(0, 4), ["/more", "more", Menu] as const].map(([h, k, I]) => { const mobileRouteActive = main.slice(0, 4).some(([route]) => path === route || path.startsWith(route + "/")); const active = path === h || (h === "/more" && !mobileRouteActive); const moreLabel = h === "/more" && unread > 0 ? `More, ${unread} unread notifications` : undefined; return <Link key={h} href={h} aria-label={moreLabel} aria-current={active ? "page" : undefined} className={cx("flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[11px] transition-colors", active ? "font-bold text-primary" : "text-muted hover:text-primary")}><span className="relative inline-flex"><I size={20} aria-hidden="true" />{h === "/more" && unread > 0 && <span aria-hidden="true" className="absolute -right-3 -top-2 rounded-full bg-info/15 px-1.5 text-[9px] font-bold tabular-nums text-info">{unread.toLocaleString()}</span>}</span>{t(k)}</Link>; })}</nav>
     </>}
-  </div></AdminActionCountsContext.Provider>;
+  </div></StudentNotificationCountContext.Provider></AdminActionCountsContext.Provider>;
 }

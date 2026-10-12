@@ -12,6 +12,7 @@ import { useLocalizedName } from "../../lib/i18n";
 import { Async, diffTone } from "./shared";
 import { MarketingPageHeader } from "../../components/MarketingPageHeader";
 import { ChatMessageContent } from "../../components/ChatMessageContent";
+import { notifyStudentUnreadNotificationsChanged, useStudentNotificationCountContext } from "../../lib/useStudentNotificationCount";
 
 type Bm = { type: "NOTE" | "QUESTION" | "TOPIC"; id: string; title: string; topicId?: string };
 export function LiveBookmarks() {
@@ -51,7 +52,18 @@ export function LiveAssistant() {
 type Notif = { id: string; title: string; body: string | null; readAt: string | null };
 export function LiveNotifications() {
   const q = useApi(() => api<Notif[]>("/notifications"));
-  return <><PageHeader title="Notifications" action={<Button variant="secondary" onClick={async () => { await api("/notifications/read-all", { method: "POST", body: {} }); q.reload(); }}>Mark all read</Button>} /><Async q={q}>{(rows) => rows.length ? <div className="space-y-2">{rows.map((n) => <Card key={n.id} className={cx("flex gap-3 !p-4", n.readAt && "opacity-60")}><Bell size={18} className="mt-0.5 text-accent" aria-hidden /><div><p className="font-semibold">{n.title}</p><p className="text-sm text-muted">{n.body}</p></div></Card>)}</div> : <EmptyState title="You're all caught up" />}</Async></>;
+  const notificationCount = useStudentNotificationCountContext(); const toast = useToast(); const [marking, setMarking] = useState(false);
+  const unread = notificationCount.count ?? 0;
+  const markAllRead = async () => {
+    setMarking(true);
+    try {
+      await api("/notifications/read-all", { method: "POST", body: {} });
+      notifyStudentUnreadNotificationsChanged(); q.reload(); toast("Notifications marked as read", "success");
+    } catch (error) {
+      toast(error instanceof ApiError ? error.message : "Could not mark notifications as read.", "error");
+    } finally { setMarking(false); }
+  };
+  return <><PageHeader title="Notifications" action={<div className="flex flex-wrap items-center gap-2">{unread > 0 && <Badge tone="info"><span aria-hidden="true">{unread.toLocaleString()}</span><span className="sr-only">{unread} unread notifications</span></Badge>}<Button variant="secondary" loading={marking} disabled={notificationCount.count === 0} onClick={() => void markAllRead()}>Mark all read</Button></div>} /><Async q={q}>{(rows) => rows.length ? <div className="space-y-2">{rows.map((n) => <Card key={n.id} className={cx("flex gap-3 !p-4", n.readAt && "opacity-60")}><Bell size={18} className="mt-0.5 text-accent" aria-hidden /><div><p className="font-semibold">{n.title}</p><p className="text-sm text-muted">{n.body}</p></div></Card>)}</div> : <EmptyState title="You're all caught up" />}</Async></>;
 }
 type Ach = { code: string; names: Record<string, string>; points: number; unlockedAt: string | null };
 export function LiveAchievements() {

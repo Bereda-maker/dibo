@@ -30,6 +30,7 @@ export const studentRoutes = (d: Deps) => {
   r.get("/progress", async (c) => ok(c, await d.progress.summary((await who(c)).studentId)));
   r.get("/recommendations", async (c) => { const w = await who(c); return ok(c, w.isPremium ? await d.progress.recommendations(w.studentId) : (await d.progress.recommendations(w.studentId, 1))); }); // free: top recommendation only
   r.get("/achievements", async (c) => ok(c, await d.students.achievements((await who(c)).studentId)));
+  r.get("/notifications/unread-count", async (c) => ok(c, await d.students.unreadNotificationCount((await who(c)).userId)));
   r.get("/notifications", async (c) => ok(c, await d.students.notifications((await who(c)).userId)));
   r.post("/notifications/read-all", async (c) => { await d.students.markAllRead((await who(c)).userId); return ok(c, { done: true }); });
 

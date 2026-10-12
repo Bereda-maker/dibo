@@ -10,6 +10,8 @@ import { useStore } from "../../../lib/store";
 import { subjectStats, topicStats, readinessFor, streak, events, unlocked } from "../../../lib/analytics";
 import { ACHIEVEMENTS } from "../../../lib/mock";
 import { explainChange } from "@dibora/core/readiness";
+import { demoNotifications, demoUnreadNotificationCount } from "../../../lib/studentNotifications";
+import { useStudentNotificationCountContext } from "../../../lib/useStudentNotificationCount";
 
 const completeness = (u: NonNullable<ReturnType<typeof useStore>["state"]["user"]>) => Math.round(([u.name, u.email, u.phone, u.school, u.region, u.city, u.stream, u.examYear, u.subjects.length].filter(Boolean).length / 9) * 100);
 function DemoP() {
@@ -18,6 +20,7 @@ function DemoP() {
   const rec = recommend(stats, 1)[0]; const r = readinessFor(state); const wk = readinessFor(state, Date.now() - 7 * 864e5); const ch = explainChange(wk, r);
   const ranked = stats.filter((t) => t.attempted >= 3).map((t) => ({ ...t, a: Math.round((t.correct / t.attempted) * 100) })).sort((a, b) => b.a - a.a);
   const done = [...unlocked(state)].length; const pc = completeness(u); const qn = events(state).length;
+  const notifications = demoNotifications(state); const unreadNotifications = demoUnreadNotificationCount(state);
   return (<div className="space-y-5">
     <div><h1 className="text-2xl font-bold">{hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"}, {u.name.split(" ")[0]} 👋</h1>
       <div className="mt-2 flex flex-wrap gap-2 text-xs"><Badge tone="info">{u.learningStatus.replaceAll("_", " ")}</Badge><Badge tone={u.plan === "PREMIUM" ? "accent" : "muted"}>{u.plan}</Badge><span className="flex items-center gap-1 font-semibold"><Flame size={14} className="text-accent" aria-hidden />{streak(state.days)} day streak</span></div></div>
@@ -31,6 +34,12 @@ function DemoP() {
       <Card><h2 className="font-bold">Weak areas</h2><p className="mt-2 text-sm text-muted">{ranked.filter((t) => t.a < 60).slice(-3).map((t) => `${t.topicName} ${t.a}%`).join(" · ") || "No weak areas flagged yet."}</p></Card></div>
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[["Questions done", qn], ["Exams taken", state.attempts.length], ["Notes read", state.notesDone.length], ["Achievements", `${done}/${ACHIEVEMENTS.length}`]].map(([l, v]) => <Card key={String(l)} className="!p-4 text-center"><p className="text-2xl font-bold text-primary">{v}</p><p className="text-xs text-muted">{l}</p></Card>)}</div>
     <div className="grid gap-4 md:grid-cols-2"><Card><h2 className="font-bold">Recent exams</h2>{state.attempts.length ? <ul className="mt-2 space-y-2 text-sm">{[...state.attempts].reverse().slice(0, 3).map((a) => <li key={a.id} className="flex justify-between"><Link href={`/results/${a.id}`} className="underline">{a.title}</Link><b>{Math.round(a.result.percentage)}%</b></li>)}</ul> : <p className="mt-2 text-sm text-muted">No exams yet.</p>}</Card>
-      <Card><h2 className="flex items-center gap-2 font-bold"><Bell size={16} aria-hidden />Notifications</h2><ul className="mt-2 space-y-1 text-sm text-muted"><li>{diag ? "Your latest results are ready." : "Diagnostic assessment available."}</li><li>Study reminder: 15 minutes today keeps your streak alive.</li></ul><Link href="/notifications" className="mt-2 inline-block text-sm text-primary underline">See all</Link></Card></div></div>); }
+      <Card><div className="flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-bold"><Bell size={16} aria-hidden="true" />Notifications</h2>{unreadNotifications > 0 && <Badge tone="info"><span aria-hidden="true">{unreadNotifications.toLocaleString()}</span><span className="sr-only">{unreadNotifications} unread notifications</span></Badge>}</div><ul className="mt-2 space-y-1 text-sm text-muted">{notifications.slice(0, 2).map((notification) => <li key={notification.id}>{notification.title}</li>)}</ul><Link href="/notifications" aria-label={unreadNotifications > 0 ? `See all notifications, ${unreadNotifications} unread` : "See all notifications"} className="mt-2 inline-block text-sm text-primary underline">See all</Link></Card></div></div>); }
 
-export default function Page() { return DEMO ? <DemoP /> : <LiveDashboard />; }
+function LiveP() {
+  const unreadState = useStudentNotificationCountContext();
+  const unread = unreadState.count ?? 0;
+  return <><LiveDashboard /><Card className="mt-4 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-info/10 text-info"><Bell size={19} aria-hidden="true" /></span><div className="min-w-0"><h2 className="font-bold">Notifications</h2><p className="text-sm text-muted">{unreadState.error ? "Unread count could not be refreshed." : unreadState.loading && unreadState.count === null ? "Checking for unread notifications…" : unread > 0 ? `${unread.toLocaleString()} unread notification${unread === 1 ? "" : "s"}` : "You’re all caught up."}</p></div></div><div className="flex items-center gap-2">{unread > 0 && <Badge tone="info"><span aria-hidden="true">{unread.toLocaleString()}</span><span className="sr-only">{unread} unread notifications</span></Badge>}<Button href="/notifications" variant="secondary">Open</Button></div>{unreadState.error && <button type="button" className="text-sm font-semibold text-primary underline" onClick={() => void unreadState.reload()}>Retry count</button>}</Card></>;
+}
+
+export default function Page() { return DEMO ? <DemoP /> : <LiveP />; }
