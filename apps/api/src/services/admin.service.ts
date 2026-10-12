@@ -1,11 +1,11 @@
 import { and, asc, desc, eq, gte, ilike, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
-import { adminAuditLogs, contactMessages, examAttempts, examQuestions, exams, learningMaterials, notes, notifications, payments, questionOptions, questions, studentAnswers, studentProfiles, subjects, subtopics, subscriptionPlans, topics, users, type Db } from "@dibora/database";
+import { adminAuditLogs, affiliateDeductions, contactMessages, examAttempts, examQuestions, exams, learningMaterials, notes, notifications, payments, questionOptions, questions, stewardshipReminders, studentAnswers, studentProfiles, subjects, subtopics, subscriptionPlans, topics, users, type Db } from "@dibora/database";
 import { diagnosticUpsertSchema, questionUpsertSchema } from "@dibora/validation";
 import { MIN_RECOMMENDATION_SAMPLE } from "@dibora/core/recommendation";
 import type { z } from "zod";
 import { rowsOf } from "../utils/rows";
 import { Errors, AppError } from "../utils/errors";
-import { calculateRevenueAllocation, FINANCE_TIME_ZONE, monthRangeEAT } from "./finance-allocation";
+import { calculateAffiliateDeduction, calculateRevenueAllocation, currentMonthEAT, FINANCE_TIME_ZONE, isLastCalendarDayEAT, monthRangeEAT } from "./finance-allocation";
 
 type Actor = { userId: string; ip?: string; requestId?: string };
 type QuestionInput = z.infer<typeof questionUpsertSchema>;
@@ -358,14 +358,73 @@ export class AdminService {
     }).from(payments)
       .where(and(eq(payments.status, "VERIFIED"), gte(payments.verifiedAt, start), lt(payments.verifiedAt, end)))
       .groupBy(payments.currency).orderBy(asc(payments.currency));
+    const deductions = await this.db.select().from(affiliateDeductions).where(eq(affiliateDeductions.month, month));
+    const currencies = new Set([...rows.map((row) => row.currency), ...deductions.map((row) => row.currency)]);
+    const resultRows = [...currencies].sort().map((currency) => {
+      const row = rows.find((item) => item.currency === currency);
+      const grossMinor = Number(row?.totalMinor ?? 0);
+      const deduction = deductions.find((item) => item.currency === currency);
+      const affiliateDeductionMinor = Number(deduction?.deductionMinor ?? 0);
+      const netMinor = grossMinor - affiliateDeductionMinor;
+      const allocation = calculateRevenueAllocation(netMinor);
+      return { ...allocation, currency, verifiedPaymentCount: Number(row?.verifiedPaymentCount ?? 0), grossMinor, affiliateCommissionPercentage: deduction ? Number(deduction.commissionPercentage) : 0, affiliateDeductionMinor, netMinor };
+    });
+    if (month !== currentMonthEAT() || isLastCalendarDayEAT()) await this.ensureStewardshipReminders(month, resultRows.map((row) => ({ currency: row.currency, baseMinor: row.netMinor })));
+    const reminders = await this.db.select().from(stewardshipReminders).where(eq(stewardshipReminders.month, month)).orderBy(asc(stewardshipReminders.currency));
     return {
       month,
       timeZone: FINANCE_TIME_ZONE,
-      currencies: rows.map((row) => {
-        const grossMinor = Number(row.totalMinor);
-        return { currency: row.currency, verifiedPaymentCount: Number(row.verifiedPaymentCount), ...calculateRevenueAllocation(grossMinor) };
-      }),
+      currencies: resultRows,
+      stewardshipReminders: reminders.map((reminder) => ({ ...reminder, percentage: Number(reminder.percentage) })),
     };
+  }
+  private async ensureStewardshipReminders(month: string, rows: { currency: string; baseMinor: number }[]) {
+    if (!rows.length) return;
+    await this.db.transaction(async (tx) => {
+      const admins = await tx.select({ id: users.id }).from(users).where(and(eq(users.role, "SUPER_ADMIN"), eq(users.isActive, true), isNull(users.deletedAt)));
+      for (const row of rows) {
+        const inserted = await tx.insert(stewardshipReminders).values({ month, currency: row.currency, calculationBaseMinor: row.baseMinor, percentage: "10.00", suggestedAmountMinor: Math.round(row.baseMinor / 10), status: "PENDING" }).onConflictDoNothing({ target: [stewardshipReminders.month, stewardshipReminders.currency] }).returning({ id: stewardshipReminders.id });
+        if (inserted.length && admins.length) await tx.insert(notifications).values(admins.map((admin) => ({ userId: admin.id, type: "STEWARDSHIP_REMINDER", channel: "IN_APP", title: "Monthly Stewardship — 10%", body: `${month}: set aside 10% of net ${row.currency} revenue (${(Math.round(row.baseMinor / 10) / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })} ${row.currency}).`, data: { reminderId: inserted[0]!.id, month, currency: row.currency } })));
+      }
+    });
+  }
+  /** Scheduler-safe entry point: the unique month/currency key makes this idempotent. */
+  async generateMonthlyStewardshipReminders(month = currentMonthEAT()) {
+    const { start, end } = monthRangeEAT(month);
+    const rows = await this.db.select({ currency: payments.currency, totalMinor: sql<string>`coalesce(sum(${payments.amountMinor}), 0)::text` }).from(payments)
+      .where(and(eq(payments.status, "VERIFIED"), gte(payments.verifiedAt, start), lt(payments.verifiedAt, end))).groupBy(payments.currency);
+    const deductions = await this.db.select({ currency: affiliateDeductions.currency, amountMinor: affiliateDeductions.deductionMinor }).from(affiliateDeductions).where(eq(affiliateDeductions.month, month));
+    await this.ensureStewardshipReminders(month, rows.map((row) => ({ currency: row.currency, baseMinor: Number(row.totalMinor) - Number(deductions.find((d) => d.currency === row.currency)?.amountMinor ?? 0) })));
+    return { month, created: rows.length };
+  }
+  async recordAffiliateDeduction(a: Actor, input: { month: string; currency: string; commissionPercentage: number; amountMinor?: number; notes?: string }) {
+    const { start, end } = monthRangeEAT(input.month);
+    const calculated = await this.db.transaction(async (tx) => {
+      const [existing] = await tx.select({ id: affiliateDeductions.id }).from(affiliateDeductions).where(and(eq(affiliateDeductions.month, input.month), eq(affiliateDeductions.currency, input.currency))).limit(1);
+      if (existing) throw Errors.conflict("An affiliate deduction already exists for this month and currency");
+      const [gross] = await tx.select({ totalMinor: sql<string>`coalesce(sum(${payments.amountMinor}), 0)::text` }).from(payments).where(and(eq(payments.status, "VERIFIED"), eq(payments.currency, input.currency), gte(payments.verifiedAt, start), lt(payments.verifiedAt, end)));
+      const baseMinor = Number(gross?.totalMinor ?? 0);
+      const deductionMinor = calculateAffiliateDeduction(baseMinor, input.commissionPercentage);
+      if (input.amountMinor !== undefined && input.amountMinor !== deductionMinor) throw Errors.badRequest("The entered affiliate amount does not match the percentage calculation");
+      if (deductionMinor > baseMinor) throw Errors.badRequest("Affiliate deduction cannot exceed verified revenue");
+      try {
+        const [saved] = await tx.insert(affiliateDeductions).values({ month: input.month, currency: input.currency, commissionBaseMinor: baseMinor, commissionPercentage: input.commissionPercentage.toFixed(2), deductionMinor, notes: input.notes?.trim() || null, actorId: a.userId }).returning();
+        return saved!;
+      } catch (error) {
+        if ((error as { code?: string }).code === "23505") throw Errors.conflict("An affiliate deduction already exists for this month and currency");
+        throw error;
+      }
+    });
+    await this.audit(a, "AFFILIATE_DEDUCTION_FINALIZED", "affiliate_deduction", calculated.id, { month: input.month, currency: input.currency, commissionPercentage: input.commissionPercentage, deductionMinor: calculated.deductionMinor });
+    return { ...calculated, commissionPercentage: Number(calculated.commissionPercentage) };
+  }
+  async updateStewardshipReminder(a: Actor, id: string, status: "ACKNOWLEDGED" | "COMPLETED") {
+    const now = new Date();
+    const patch = status === "COMPLETED" ? { status, completedAt: now, acknowledgedAt: now } : { status, acknowledgedAt: now };
+    const [updated] = await this.db.update(stewardshipReminders).set(patch).where(and(eq(stewardshipReminders.id, id), sql`${stewardshipReminders.status} <> 'COMPLETED'`)).returning();
+    if (!updated) throw Errors.notFound("Stewardship reminder");
+    await this.audit(a, `STEWARDSHIP_${status}`, "stewardship_reminder", id, { month: updated.month, currency: updated.currency });
+    return { ...updated, percentage: Number(updated.percentage) };
   }
 
   listPlans() { return this.db.select().from(subscriptionPlans).orderBy(asc(subscriptionPlans.sortOrder), asc(subscriptionPlans.priceMinor)); }

@@ -85,7 +85,7 @@ describe("monthly finance database aggregation", () => {
     const result = await new AdminService(financeDb).monthlyFinance("2026-10");
     expect(result.timeZone).toBe("Africa/Addis_Ababa");
     expect(result.currencies).toEqual([
-      { currency: "ETB", verifiedPaymentCount: 2, grossMinor: 50_000, godMinor: 5_000, ownerMinor: 45_000, ownerAllocations: [
+      { currency: "ETB", verifiedPaymentCount: 2, grossMinor: 50_000, affiliateCommissionPercentage: 0, affiliateDeductionMinor: 0, netMinor: 50_000, godMinor: 5_000, ownerMinor: 45_000, ownerAllocations: [
         { key: "essential", sharePercent: 30, amountMinor: 13_500 },
         { key: "reinvestment", sharePercent: 30, amountMinor: 13_500 },
         { key: "emergency", sharePercent: 15, amountMinor: 6_750 },
@@ -93,7 +93,7 @@ describe("monthly finance database aggregation", () => {
         { key: "learning", sharePercent: 10, amountMinor: 4_500 },
         { key: "enjoyment", sharePercent: 5, amountMinor: 2_250 },
       ] },
-      { currency: "USD", verifiedPaymentCount: 1, grossMinor: 7_500, godMinor: 750, ownerMinor: 6_750, ownerAllocations: [
+      { currency: "USD", verifiedPaymentCount: 1, grossMinor: 7_500, affiliateCommissionPercentage: 0, affiliateDeductionMinor: 0, netMinor: 7_500, godMinor: 750, ownerMinor: 6_750, ownerAllocations: [
         { key: "essential", sharePercent: 30, amountMinor: 2_025 },
         { key: "reinvestment", sharePercent: 30, amountMinor: 2_025 },
         { key: "emergency", sharePercent: 15, amountMinor: 1_013 },
@@ -102,5 +102,19 @@ describe("monthly finance database aggregation", () => {
         { key: "enjoyment", sharePercent: 5, amountMinor: 337 },
       ] },
     ]);
+  });
+
+  test("finalizes a percentage deduction once and reallocates net revenue", async () => {
+    const service = new AdminService(financeDb);
+    const saved = await service.recordAffiliateDeduction({ userId: financeUserId }, { month: "2026-10", currency: "ETB", commissionPercentage: 20, notes: "October affiliate campaign" });
+    expect(saved.commissionPercentage).toBe(20);
+    expect(saved.deductionMinor).toBe(10_000);
+    await expect(service.recordAffiliateDeduction({ userId: financeUserId }, { month: "2026-10", currency: "ETB", commissionPercentage: 10 })).rejects.toThrow("already exists");
+    const result = await service.monthlyFinance("2026-10");
+    const etb = result.currencies.find((row) => row.currency === "ETB")!;
+    expect(etb.grossMinor).toBe(50_000);
+    expect(etb.affiliateDeductionMinor).toBe(10_000);
+    expect(etb.netMinor).toBe(40_000);
+    expect(etb.godMinor + etb.ownerMinor).toBe(etb.netMinor);
   });
 });

@@ -395,6 +395,34 @@ export const paymentWebhookEvents = pgTable("payment_webhook_events", {
   createdAt: createdAt(),
 }, (t) => [uniqueIndex("payment_webhook_event_uq").on(t.eventId)]);
 
+// ---------- finance ----------
+/** One finalized affiliate deduction per reporting month and currency. Historical rows are immutable. */
+export const affiliateDeductions = pgTable("affiliate_deductions", {
+  id: id(),
+  month: text("month").notNull(),
+  currency: text("currency").notNull(),
+  commissionBaseMinor: integer("commission_base_minor").notNull(),
+  commissionPercentage: numeric("commission_percentage", { precision: 5, scale: 2 }).notNull(),
+  deductionMinor: integer("deduction_minor").notNull(),
+  notes: text("notes"),
+  actorId: uuid("actor_id").notNull().references(() => users.id),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("affiliate_deduction_month_currency_uq").on(t.month, t.currency), index("affiliate_deduction_month_idx").on(t.month)]);
+
+/** Monthly stewardship is a reminder/record only; it never transfers funds. */
+export const stewardshipReminders = pgTable("stewardship_reminders", {
+  id: id(),
+  month: text("month").notNull(),
+  currency: text("currency").notNull(),
+  calculationBaseMinor: integer("calculation_base_minor").notNull(),
+  percentage: numeric("percentage", { precision: 5, scale: 2 }).notNull().default("10.00"),
+  suggestedAmountMinor: integer("suggested_amount_minor").notNull(),
+  status: text("status").notNull().default("PENDING"),
+  acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("stewardship_reminder_month_currency_uq").on(t.month, t.currency), index("stewardship_reminder_status_idx").on(t.status)]);
+
 // ---------- admin ----------
 export const adminAuditLogs = pgTable("admin_audit_logs", {
   id: id(),

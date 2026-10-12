@@ -22,6 +22,25 @@ export function monthRangeEAT(month: string) {
   return { start, end };
 }
 
+export function currentMonthEAT(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: FINANCE_TIME_ZONE, year: "numeric", month: "2-digit" }).formatToParts(now);
+  return `${parts.find((p) => p.type === "year")?.value}-${parts.find((p) => p.type === "month")?.value}`;
+}
+
+export function isLastCalendarDayEAT(now = new Date()) {
+  const month = currentMonthEAT(now);
+  const { end } = monthRangeEAT(month);
+  const localToday = new Intl.DateTimeFormat("en-CA", { timeZone: FINANCE_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  const lastDay = new Intl.DateTimeFormat("en-CA", { timeZone: FINANCE_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(end.getTime() - 86400000));
+  return localToday === lastDay;
+}
+
+export function calculateAffiliateDeduction(baseMinor: number, percentage: number) {
+  if (!Number.isSafeInteger(baseMinor) || baseMinor < 0) throw new RangeError("Commission base must be a non-negative safe integer in minor units");
+  if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) throw new RangeError("Commission percentage must be between 0 and 100");
+  return Math.round(baseMinor * percentage / 100);
+}
+
 /** Split verified gross revenue into integer minor units, preserving every minor unit. */
 export function calculateRevenueAllocation(grossMinor: number) {
   if (!Number.isSafeInteger(grossMinor) || grossMinor < 0) {
