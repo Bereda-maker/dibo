@@ -9,6 +9,7 @@ import { useStore } from "../../../../lib/store";
 function DemoP() {
   const { id } = useParams<{ id: string }>(); const { state, update, markActive } = useStore(); const toast = useToast(); const n = NOTES.find((x) => x.id === id);
   if (!n) return <EmptyState title="Note not found" action={<Button href="/notes">All notes</Button>} />;
+  const gradeTag = n.title.match(/\b(?:grade|gr\.?|g)\s*(9|10|11|12)\b/i); const grade = Number(gradeTag?.[1] ?? state.user?.grade ?? 12); const unitName = topicName(n.topicId);
   const done = state.notesDone.includes(n.id), marked = state.bookmarks.some((b) => b.type === "NOTE" && b.id === n.id), later = state.bookmarks.some((b) => b.type === "TOPIC" && b.id === n.topicId);
   const Sec = ({ t, items }: { t: string; items: string[] }) => items.length ? <Card className="mt-4"><h2 className="font-bold">{t}</h2><ul className="mt-2 list-disc space-y-1 pl-5 text-sm">{items.map((i) => <li key={i}>{i}</li>)}</ul></Card> : null;
   return <><PageHeader title={n.title} sub={n.summary} action={<div className="flex gap-2"><Button variant="secondary" aria-pressed={marked} onClick={() => update((s) => ({ ...s, bookmarks: marked ? s.bookmarks.filter((b) => !(b.type === "NOTE" && b.id === n.id)) : [...s.bookmarks, { type: "NOTE", id: n.id }] }))}><Bookmark size={16} className={marked ? "fill-accent" : ""} />{marked ? "Saved" : "Bookmark"}</Button></div>} />
@@ -17,6 +18,6 @@ function DemoP() {
     {n.formulas.length > 0 && <Card className="mt-4"><h2 className="font-bold">Formulas</h2><ul className="mt-2 space-y-1 font-mono text-sm">{n.formulas.map((f) => <li key={f} className="rounded-lg bg-border/40 px-3 py-2">{f}</li>)}</ul></Card>}
     <Sec t="Key points" items={n.keyPoints} /><Sec t="Common mistakes" items={n.mistakes} /><Sec t="Exam tips" items={n.tips} />
     <div className="mt-6 flex flex-wrap gap-2"><Button onClick={() => { if (!done) { update((s) => ({ ...s, notesDone: [...s.notesDone, n.id] })); markActive(); } toast("Marked as completed"); }} disabled={done}><CheckCircle2 size={16} />{done ? "Completed" : "Mark completed"}</Button>
-      <Button variant="secondary" onClick={() => { update((s) => ({ ...s, bookmarks: later ? s.bookmarks : [...s.bookmarks, { type: "TOPIC", id: n.topicId }] })); toast("Added to review later", "info"); }}><Clock size={16} />Review later</Button><Button href={`/practice?topic=${n.topicId}`} variant="secondary">Practice this topic</Button><Button href="/assistant" variant="ghost">Ask the AI</Button></div></>; }
+      <Button variant="secondary" onClick={() => { update((s) => ({ ...s, bookmarks: later ? s.bookmarks : [...s.bookmarks, { type: "TOPIC", id: n.topicId }] })); toast("Added to review later", "info"); }}><Clock size={16} />Review later</Button><Button href={`/practice?mode=topic&topic=${n.topicId}&grade=${grade}&topicName=${encodeURIComponent(unitName)}&autoStart=1`} variant="secondary">Practice this topic</Button><Button href={`/assistant?topicId=${n.topicId}&topicName=${encodeURIComponent(unitName)}&grade=${grade}`} variant="ghost">Ask the AI</Button></div></>; }
 
 export default function Page() { return DEMO ? <DemoP /> : <LiveNoteRoute />; }

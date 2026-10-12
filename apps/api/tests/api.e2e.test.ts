@@ -32,7 +32,7 @@ const createTestApp = (chat: AiChatService) => createApp({ auth: new AuthService
   chat, admin: new AdminService(db), learning: new LearningService(db, progress), webOrigin: ORIGIN, isProd: false });
 const app = createTestApp(new AiChatService(db, new AIService({ complete: async () => ({ text: "Use F = ma.", tokens: 5 }) }, new DbRetriever(db)), progress));
 
-let subjectId = "", topicId = "", grade11SubjectId = "", grade11NoteId = "", grade9NoteId = "", otherSubjectId = "";
+let subjectId = "", topicId = "", grade11SubjectId = "", grade11TopicId = "", grade11NoteId = "", grade11QuestionId = "", grade9NoteId = "", otherSubjectId = "";
 let ipn = 0; const ip = () => `10.1.${Math.floor(++ipn / 250)}.${ipn % 250}`; // distinct client IP per request so the rate limiter does not interfere
 const post = (path: string, body: unknown, cookie?: string, method = "POST") => app.request(path, { method, headers: { "content-type": "application/json", origin: ORIGIN, "x-forwarded-for": ip(), ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) });
 const get = (path: string, cookie?: string) => app.request(path, { headers: cookie ? { cookie } : {} });
@@ -57,9 +57,11 @@ beforeAll(async () => {
   const [grade9Material] = await raw.insert(s.learningMaterials).values({ topicId: grade9Topic!.id, status: "PUBLISHED" }).returning();
   const [grade9Note] = await raw.insert(s.notes).values({ materialId: grade9Material!.id, title: "Grade 9 Unit 1: Further on Sets", summary: "Set notation and operations", content: { explanation: "Review sets and their operations." } }).returning(); grade9NoteId = grade9Note!.id;
   const [grade11] = await raw.insert(s.subjects).values({ grade: 11, slug: "physics-foundations", names: { en: "Physics" }, status: "PUBLISHED" }).returning(); grade11SubjectId = grade11!.id;
-  const [grade11Topic] = await raw.insert(s.topics).values({ subjectId: grade11SubjectId, slug: "waves", names: { en: "Waves" }, status: "PUBLISHED" }).returning();
-  const [grade11Material] = await raw.insert(s.learningMaterials).values({ topicId: grade11Topic!.id, status: "PUBLISHED" }).returning();
+  const [grade11Topic] = await raw.insert(s.topics).values({ subjectId: grade11SubjectId, slug: "waves", names: { en: "Waves" }, status: "PUBLISHED" }).returning(); grade11TopicId = grade11Topic!.id;
+  const [grade11Material] = await raw.insert(s.learningMaterials).values({ topicId: grade11TopicId, status: "PUBLISHED" }).returning();
   const [grade11Note] = await raw.insert(s.notes).values({ materialId: grade11Material!.id, title: "Wave motion", summary: "A wave transfers energy", content: { explanation: "Energy travels through a medium." } }).returning(); grade11NoteId = grade11Note!.id;
+  const [grade11Question] = await raw.insert(s.questions).values({ subjectId: grade11SubjectId, topicId: grade11TopicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "Which property does a wave transfer?", explanation: "Waves transfer energy.", status: "PUBLISHED" }).returning(); grade11QuestionId = grade11Question!.id;
+  await raw.insert(s.questionOptions).values([{ questionId: grade11QuestionId, text: "Energy", isCorrect: true }, { questionId: grade11QuestionId, text: "Matter only", isCorrect: false }]);
   const [other] = await raw.insert(s.subjects).values({ grade: 10, slug: "chem", names: { en: "Chemistry" }, status: "PUBLISHED" }).returning(); otherSubjectId = other!.id;
 });
 
@@ -99,6 +101,8 @@ describe("student notes curriculum scope", () => {
     expect(grade11Notes.map((note) => note.id)).toContain(grade11NoteId);
     expect(grade11Notes.find((note) => note.id === grade11NoteId)?.topicName.en).toBe("Waves");
     expect((await get(`/api/content/notes/${grade11NoteId}`, cookie)).status).toBe(200);
+    const grade11Practice = (await (await get(`/api/practice/questions?topicId=${grade11TopicId}&limit=10`, cookie)).json()).data as { id: string; topicId: string }[];
+    expect(grade11Practice.map((question) => question.id)).toContain(grade11QuestionId);
 
     const grade9Notes = (await (await get(`/api/content/notes?subjectKey=${encodeURIComponent(scoped.find((subject) => subject.id === subjectId)!.subjectKey)}&grade=9&limit=50`, cookie)).json()).data as { id: string; title: string; grade: number }[];
     expect(grade9Notes.map((note) => note.id)).toContain(grade9NoteId);
@@ -199,10 +203,11 @@ describe("admin API", () => {
     const bad = await post("/api/admin/questions", { subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "What is 2+2?", explanation: "Basic addition", options: [{ text: "4", isCorrect: true }, { text: "5", isCorrect: true }] }, adm); expect(bad.status).toBe(400);
     const made = await post("/api/admin/questions", { subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "What is 2+2?", explanation: "Basic addition", options: [{ text: "4", isCorrect: true }, { text: "5", isCorrect: false }] }, adm); expect(made.status).toBe(201);
     const id = (await made.json()).data.id;
-    expect(((await (await get("/api/practice/questions?limit=5", stu)).json()).data as unknown[]).length).toBe(0); // drafts invisible
+    const beforePublish = ((await (await get(`/api/practice/questions?topicId=${topicId}&limit=5`, stu)).json()).data as { id: string }[]);
+    expect(beforePublish.some((question) => question.id === id)).toBe(false); // drafts invisible
     expect((await post(`/api/admin/questions/${id}/publish`, {}, adm)).status).toBe(200);
-    const served = (await (await get("/api/practice/questions?limit=5", stu)).json()).data; expect(served.length).toBe(1);
-    const ans = await (await post("/api/practice/answer", { questionId: id, selectedOptionId: served[0].options.find((o: { text: string }) => o.text === "4").id }, stu)).json(); expect(ans.data.correct).toBe(true);
+    const served = (await (await get(`/api/practice/questions?topicId=${topicId}&limit=5`, stu)).json()).data; const servedQuestion = served.find((question: { id: string }) => question.id === id); expect(servedQuestion).toBeDefined();
+    const ans = await (await post("/api/practice/answer", { questionId: id, selectedOptionId: servedQuestion.options.find((o: { text: string }) => o.text === "4").id }, stu)).json(); expect(ans.data.correct).toBe(true);
     const prog = (await (await get("/api/progress", stu)).json()).data; expect(prog.questionsAttempted).toBe(1);
     // an incomplete draft (single option set via DB) must be rejected at publish time
     const [q2] = await raw.insert(s.questions).values({ subjectId, topicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "Incomplete question", explanation: "x" }).returning();
