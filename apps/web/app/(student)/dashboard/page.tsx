@@ -22,7 +22,7 @@ function DemoP() {
   const done = [...unlocked(state)].length; const pc = completeness(u); const qn = events(state).length;
   const notifications = demoNotifications(state); const unreadNotifications = demoUnreadNotificationCount(state);
   return (<div className="space-y-5">
-    <div><h1 className="text-2xl font-bold">{hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"}, {u.name.split(" ")[0]} 👋</h1>
+    <div><h1 className="text-2xl font-bold">{hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"}, {u.name.split(" ")[0]} </h1>
       <div className="mt-2 flex flex-wrap gap-2 text-xs"><Badge tone="info">{u.learningStatus.replaceAll("_", " ")}</Badge><Badge tone={u.plan === "PREMIUM" ? "accent" : "muted"}>{u.plan}</Badge><span className="flex items-center gap-1 font-semibold"><Flame size={14} className="text-accent" aria-hidden />{streak(state.days)} day streak</span></div></div>
     {pc < 100 && <Card className="flex items-center justify-between gap-3 !p-4"><div className="flex-1"><p className="text-sm font-semibold">Profile {pc}% complete</p><Progress value={pc} label="Profile completion" /></div><Button href="/profile" variant="secondary">Complete</Button></Card>}
     {!diag ? <Card className="border-accent bg-accent/10"><h2 className="font-bold">Take your diagnostic assessment</h2><p className="mt-1 text-sm text-muted">12 questions, about 20 minutes. We will find your strong and weak topics and build your first study plan.</p><Button href="/diagnostic" className="mt-3">Start assessment <ArrowRight size={16} /></Button></Card> :
