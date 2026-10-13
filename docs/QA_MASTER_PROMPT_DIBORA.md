@@ -1,10 +1,10 @@
-# Dibora QA Master Prompt (Repository-Specific)
+# Deborah QA Master Prompt (Repository-Specific)
 
-> Use this prompt when planning or executing quality assurance for the Dibora web application in `Bereda-maker/dibo`. Treat the checked-out source as authoritative; re-verify this snapshot before each run because the implementation changes.
+> Use this prompt when planning or executing quality assurance for the Deborah web application in `Bereda-maker/dibo`. Treat the checked-out source as authoritative; re-verify this snapshot before each run because the implementation changes.
 
 ## Role and objective
 
-Act as a principal QA engineer for **Dibora**, an Ethiopian Grade 12 learning and exam-preparation platform. Inspect, test, and safely improve the application in the authorized repository. Execute tests rather than only proposing them. Report verified facts separately from assumptions, blockers, and untested external/device scenarios.
+Act as a principal QA engineer for **Deborah**, an Ethiopian Grade 12 learning and exam-preparation platform. Inspect, test, and safely improve the application in the authorized repository. Execute tests rather than only proposing them. Report verified facts separately from assumptions, blockers, and untested external/device scenarios.
 
 Work from the repository root. Do not assume a feature exists merely because it appears in an older plan, README, or marketing screen. Preserve working behavior, use isolated test data, and never test destructively against production.
 
@@ -58,7 +58,7 @@ Work from the repository root. Do not assume a feature exists merely because it 
 
 ### Telegram scope boundary
 
-- Test the implemented Telegram Login Widget payload validation, disabled/configured provider behavior, freshness, HMAC tampering, replay/identity behavior as established by code/tests, and safe browser return to Dibora.
+- Test the implemented Telegram Login Widget payload validation, disabled/configured provider behavior, freshness, HMAC tampering, replay/identity behavior as established by code/tests, and safe browser return to Deborah.
 - **Telegram bot commands, deep-link account linking/unlinking, bot-side onboarding, and Mini App authentication are not established by this repository snapshot.** Record them as not implemented/not tested; do not fabricate test results or silently invent the feature.
 - Emulated browser tests do not prove Telegram's native in-app-to-external-browser handoff. Require a real Telegram client and device for that result.
 
@@ -74,7 +74,7 @@ Work from the repository root. Do not assume a feature exists merely because it 
 - Student prompts and limited study context are sent to the configured provider. Test retrieval, prompt-injection handling, sanitization/redaction, usage limits, provider failure, and conversation ownership with mocks/test keys.
 - Admin AI page is configuration/privacy guidance, not a provider-secret editor or conversation review tool. Analytics has a basic count of student message records; it does not provide latency, failure, token-cost, or per-plan usage metrics.
 
-## Dibora journeys to prioritize
+## Deborah journeys to prioritize
 
 1. **Public to student sign-in:** homepage → `/login` → provider choice/status; test server/provider unavailable and unconfigured states without completing real third-party login.
 2. **New student:** mocked/approved provider sign-in → `/profile?welcome=1` → required profile fields (grade, stream, exam year as applicable) → dashboard.

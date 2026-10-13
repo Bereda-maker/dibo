@@ -4,7 +4,7 @@ import { MarketingPageHeader } from "../../../components/MarketingPageHeader";
 
 export const metadata = { title: "How it works" };
 const steps = [
-  { title: "Sign in and set your goal", body: "Continue securely with Google or Telegram. New students create their Dibora account during sign-in, then fill in their learning profile.", Icon: GraduationCap, tag: "Start with you" },
+  { title: "Sign in and set your goal", body: "Continue securely with Google or Telegram. New students create their Deborah account during sign-in, then fill in their learning profile.", Icon: GraduationCap, tag: "Start with you" },
   { title: "Discover your starting point", body: "Use a diagnostic to see which subjects and topics already feel solid—and which ones deserve more attention.", Icon: Compass, tag: "Find your focus" },
   { title: "Learn in small, focused sessions", body: "Review structured notes, examples, formulas and exam tips at a pace that fits your day.", Icon: NotebookPen, tag: "Build understanding" },
   { title: "Practise and test your progress", body: "Answer topic questions, revisit mistakes and use timed mock exams to get comfortable with the exam format.", Icon: ClipboardCheck, tag: "Put it into practice" },
@@ -13,7 +13,7 @@ const steps = [
 export default function HowItWorksPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12">
-      <MarketingPageHeader eyebrow="A simple study rhythm" title="A clear path from where you are to what is next." description="Dibora turns preparation into a repeatable cycle: understand your starting point, work on the right things and use your results to guide the next session." />
+      <MarketingPageHeader eyebrow="A simple study rhythm" title="A clear path from where you are to what is next." description="Deborah turns preparation into a repeatable cycle: understand your starting point, work on the right things and use your results to guide the next session." />
       <ol className="relative space-y-4 before:absolute before:bottom-8 before:left-[1.35rem] before:top-8 before:w-px before:bg-border sm:space-y-5 sm:before:left-[1.55rem]">
         {steps.map(({ title, body, Icon, tag }, index) => (
           <li key={title} className="relative grid gap-4 rounded-3xl border border-border bg-surface p-4 shadow-sm sm:grid-cols-[64px_1fr_auto] sm:items-center sm:gap-6 sm:p-6">

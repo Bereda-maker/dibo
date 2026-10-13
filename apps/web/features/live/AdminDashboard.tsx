@@ -202,7 +202,7 @@ export function AdminDashboard() {
 
   return (
     <>
-      <PageHeader title="Admin overview" sub="A live pulse on Dibora’s learning community and platform activity." action={controls} />
+      <PageHeader title="Admin overview" sub="A live pulse on Deborah’s learning community and platform activity." action={controls} />
       {q.error && data && <p role="status" className="mb-4 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-muted">Refresh failed. Showing the last loaded dashboard data.</p>}
       {q.loading && !data ? <DashboardSkeleton /> : q.error && !data ? <ErrorState message={q.error.message || "Could not load dashboard metrics."} onRetry={q.reload} /> : data && summary ? <>
         <p className="mb-3 text-right text-xs text-muted">Updated {new Date(data.generatedAt).toLocaleString()}</p>

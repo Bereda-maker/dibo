@@ -1,4 +1,4 @@
-# Dibora QA Test Plan
+# Deborah QA Test Plan
 
 **Target:** `Bereda-maker/dibo`  
 **Last execution:** 2026-10-11  
@@ -14,7 +14,7 @@
 | Browser smoke | `tests/e2e/*.pw.ts` | Public route delivery, legacy auth URL behavior, home navigation, responsive overflow, demo admin mobile navigation | `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium bun run test:e2e` |
 | Static/build | app TypeScript configs and Next production build | API/web type integrity and production compilation | Commands below |
 
-## Prioritized Dibora journeys
+## Prioritized Deborah journeys
 
 | Journey | Automated coverage | Remaining coverage |
 |---|---|---|

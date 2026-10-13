@@ -101,7 +101,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
       <div>{children}</div>
       <footer className="mt-20 border-t border-border bg-surface/45 py-8 text-sm text-muted">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4">
-          <p>© {new Date().getFullYear()} Dibora. {t("Exam Readiness is an internal learning metric, not an official prediction.")}</p>
+          <p>© {new Date().getFullYear()} Deborah. {t("Exam Readiness is an internal learning metric, not an official prediction.")}</p>
           <p className="flex gap-4"><Link href="/privacy">{t("Privacy")}</Link><Link href="/contact">{t("Contact")}</Link></p>
         </div>
       </footer>

@@ -14,4 +14,4 @@ export function LocaleSwitch() {
   return <select aria-label="Language" value={state.settings.locale} onChange={(e) => update((s) => ({ ...s, settings: { ...s.settings, locale: e.target.value as "en" | "am" | "om" } }))} className="min-h-[44px] w-[116px] shrink-0 rounded-xl border border-border bg-surface px-2 py-2 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary sm:w-auto">
     <option value="en">English</option><option value="am">አማርኛ</option><option value="om">Afaan Oromoo</option></select>;
 }
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Dibora";
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Deborah";

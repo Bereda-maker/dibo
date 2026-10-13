@@ -4,7 +4,7 @@ const publicRoutes = [
   "/", "/about", "/features", "/how-it-works", "/pricing", "/faq", "/contact", "/privacy",
   "/login", "/payment/return",
 ];
-test.describe("Dibora public route smoke tests (browser-emulated, demo build)", () => {
+test.describe("Deborah public route smoke tests (browser-emulated, demo build)", () => {
   test("public and legacy auth URLs load or resolve to their documented destination", async ({ page }) => {
     test.setTimeout(120_000);
     for (const path of publicRoutes) {
@@ -23,7 +23,7 @@ test.describe("Dibora public route smoke tests (browser-emulated, demo build)", 
     await expect(page.getByText(/email and password sign-in are not offered/i)).toBeVisible();
   });
 
-  test("home page exposes Dibora learning journeys and safe login navigation", async ({ page }) => {
+  test("home page exposes Deborah learning journeys and safe login navigation", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByText("Question bank & practice")).toBeVisible();
@@ -42,7 +42,7 @@ test.describe("Dibora public route smoke tests (browser-emulated, demo build)", 
   });
 });
 
-test.describe("Dibora responsive smoke tests (viewport emulation only)", () => {
+test.describe("Deborah responsive smoke tests (viewport emulation only)", () => {
   for (const width of [320, 360, 390, 414, 600, 768, 820, 1024, 1280, 1440, 1920]) {
     test(`home has no horizontal document overflow at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -54,7 +54,7 @@ test.describe("Dibora responsive smoke tests (viewport emulation only)", () => {
   }
 });
 
-test.describe("Dibora admin navigation smoke (demo data only)", () => {
+test.describe("Deborah admin navigation smoke (demo data only)", () => {
   test.use({ viewport: { width: 375, height: 812 } });
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {

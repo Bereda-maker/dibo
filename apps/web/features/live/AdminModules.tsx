@@ -155,7 +155,7 @@ export function LiveAdminAnalytics() {
   const data = query.data; const stats = data?.summary;
   if (query.error && !data) return <ErrorState message={query.error.message} onRetry={query.reload} />;
   return <>
-    <PageHeader title="Analytics" sub="Operational and learning metrics queried from Dibora records. Every figure below reflects the selected period or current database state." action={<div className="flex gap-1 rounded-xl border border-border bg-surface p-1">{([7, 30, 90] as const).map((days) => <button key={days} aria-pressed={range === days} onClick={() => setRange(days)} className={`rounded-lg px-3 py-2 text-xs font-semibold ${range === days ? "bg-primary text-white" : "text-muted"}`}>{days} days</button>)}</div>} />
+    <PageHeader title="Analytics" sub="Operational and learning metrics queried from Deborah records. Every figure below reflects the selected period or current database state." action={<div className="flex gap-1 rounded-xl border border-border bg-surface p-1">{([7, 30, 90] as const).map((days) => <button key={days} aria-pressed={range === days} onClick={() => setRange(days)} className={`rounded-lg px-3 py-2 text-xs font-semibold ${range === days ? "bg-primary text-white" : "text-muted"}`}>{days} days</button>)}</div>} />
     {query.loading && !data ? <Skeleton className="h-72" /> : stats && <>
       <p className="mb-3 text-right text-xs text-muted">Updated {new Date(data.generatedAt).toLocaleString()}</p>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Live platform analytics">

@@ -1,4 +1,4 @@
-# Dibora Device and Browser Compatibility Matrix
+# Deborah Device and Browser Compatibility Matrix
 
 **Repository:** `Bereda-maker/dibo`  
 **Rule:** A viewport profile is browser emulation, not proof of a physical device or operating-system/browser combination. Update this matrix only from recorded test runs.
@@ -8,7 +8,7 @@
 | Coverage | Environment | Evidence | Result |
 |---|---|---|---|
 | Chromium | Local system Chromium launched by Playwright | `bun run test:e2e` | 15/15 smoke tests passed (route/navigation and responsive suite) |
-| Responsive widths | Chromium viewport emulation at 320, 360, 390, 414, 600, 768, 820, 1024, 1280, 1440, 1920 px | Document/body scroll-width assertions on Dibora homepage; mobile admin drawer navigation at 375 px | Passed in the executed suite; emulation only |
+| Responsive widths | Chromium viewport emulation at 320, 360, 390, 414, 600, 768, 820, 1024, 1280, 1440, 1920 px | Document/body scroll-width assertions on Deborah homepage; mobile admin drawer navigation at 375 px | Passed in the executed suite; emulation only |
 | Public routes | Chromium against local Next.js with `NEXT_PUBLIC_DEMO_MODE=true` | Direct navigation of existing pages and legacy auth URLs | Passed; does not exercise live provider sign-in or backend persistence |
 | Admin route navigation | Chromium at 375 × 812 with a browser-local demo `ADMIN` fixture | Open drawer → Question bank | Passed; fixture is local demo data, not a real admin session |
 

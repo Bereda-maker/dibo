@@ -25,13 +25,13 @@ export class ManualReviewNotifier {
     const ids = this.config.telegramAdminChatIds ?? [];
     if (!this.config.telegramBotToken || !ids.length) return;
     const text = [
-      "<b>Dibora payment review required</b>",
+      "<b>Deborah payment review required</b>",
       `Student: ${escapeHtml(review.studentName)}`,
       `Amount: ${escapeHtml(review.currency)} ${(review.amountMinor / 100).toLocaleString("en-US")}`,
       `Method: ${escapeHtml(review.paymentMethod ?? "Unknown")}`,
       review.transactionReference ? `Reference: ${escapeHtml(review.transactionReference)}` : null,
       `Payment: <code>${escapeHtml(review.reference)}</code>`,
-      "Open the Dibora admin dashboard to view the private receipt and review it.",
+      "Open the Deborah admin dashboard to view the private receipt and review it.",
     ].filter(Boolean).join("\n");
     for (const chatId of ids) {
       const response = await fetch(`https://api.telegram.org/bot${this.config.telegramBotToken}/sendMessage`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true }) });

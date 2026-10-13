@@ -6,7 +6,7 @@ export function Logo() {
   return (
     <Link
       href="/"
-      aria-label="Dibora home"
+      aria-label="Deborah home"
       className="group flex min-w-[132px] shrink-0 items-center gap-2.5 rounded-2xl"
     >
       <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-accent/25 bg-white shadow-sm transition-all duration-300 group-hover:-rotate-2 group-hover:shadow-md group-hover:ring-2 group-hover:ring-accent/20">

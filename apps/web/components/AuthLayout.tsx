@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BookOpenCheck, Check, GraduationCap, Sparkles, Target } from "lucide-react";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Dibora";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Deborah";
 
 export function AuthLayout({ children, mode }: { children: React.ReactNode; mode: "login" | "register" }) {
   const isRegister = mode === "register";
@@ -47,7 +47,7 @@ export function AuthLayout({ children, mode }: { children: React.ReactNode; mode
                 <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/10"><BookOpenCheck className="h-5 w-5 text-[#f5cb55]" aria-hidden /></span>
                 <div><p className="text-sm font-bold">Your learning, in focus</p><p className="mt-0.5 text-xs text-white/60">Small steps add up.</p></div>
               </div>
-              <span className="rounded-full bg-[#f5cb55]/15 px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-[#f5cb55]">Dibora</span>
+              <span className="rounded-full bg-[#f5cb55]/15 px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-[#f5cb55]">Deborah</span>
             </div>
             <div className="space-y-3">
               <div className="flex items-center gap-3 rounded-2xl bg-white/[0.08] px-3.5 py-3"><span className="grid h-8 w-8 place-items-center rounded-lg bg-white/10"><Target className="h-4 w-4 text-white/85" aria-hidden /></span><span className="flex-1 text-sm text-white/85">Know what to work on next</span><Check className="h-4 w-4 text-[#f5cb55]" aria-hidden /></div>
@@ -59,7 +59,7 @@ export function AuthLayout({ children, mode }: { children: React.ReactNode; mode
 
         <section className="min-w-0 px-5 py-7 sm:px-9 sm:py-10 lg:px-12 lg:py-12 xl:px-14">
           <div className="mb-8 flex items-center lg:hidden">
-            <Link href="/" aria-label="Dibora home" className="inline-flex items-center gap-2.5 rounded-xl">
+            <Link href="/" aria-label="Deborah home" className="inline-flex items-center gap-2.5 rounded-xl">
               <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-2xl border border-accent/25 bg-white p-1 shadow-sm"><Image src="/images/dibora-logo.png" alt="" aria-hidden width={44} height={44} className="h-full w-full object-contain" priority /></span>
               <span><span className="block text-lg font-extrabold tracking-tight text-primary">{APP_NAME}</span><span className="block text-[0.55rem] font-bold uppercase tracking-[0.14em] text-muted">Learn · Grow · Achieve</span></span>
             </Link>
@@ -67,7 +67,7 @@ export function AuthLayout({ children, mode }: { children: React.ReactNode; mode
           {children}
         </section>
       </div>
-      <p className="relative mt-5 text-center text-xs text-muted">By continuing, you agree to Dibora’s <Link href="/privacy" className="font-semibold text-primary underline-offset-4 hover:underline">privacy terms</Link>.</p>
+      <p className="relative mt-5 text-center text-xs text-muted">By continuing, you agree to Deborah’s <Link href="/privacy" className="font-semibold text-primary underline-offset-4 hover:underline">privacy terms</Link>.</p>
     </div>
   );
 }

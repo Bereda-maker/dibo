@@ -7,8 +7,8 @@ export const metadata = { title: "Features" };
 export default function FeaturesPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12">
-      <MarketingPageHeader eyebrow="Your study toolkit" title="Every part of preparation, working together." description="From the first diagnostic to your final review, Dibora gives you a structured way to learn, practise and understand your progress." />
-      <section aria-label="Dibora features" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <MarketingPageHeader eyebrow="Your study toolkit" title="Every part of preparation, working together." description="From the first diagnostic to your final review, Deborah gives you a structured way to learn, practise and understand your progress." />
+      <section aria-label="Deborah features" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {features.map(([Icon, title, body], index) => (
           <article key={title} className="group rounded-3xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-card sm:p-6">
             <div className="flex items-center justify-between"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white"><Icon size={22} aria-hidden="true" /></span><span className="text-xs font-extrabold tracking-widest text-accent">0{index + 1}</span></div>

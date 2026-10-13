@@ -1,4 +1,4 @@
-# Dibora — Ethiopian Grade 12 AI Learning & Exam Platform
+# Deborah — Ethiopian Grade 12 AI Learning & Exam Platform
 
 The product name is configurable via `APP_NAME` / `NEXT_PUBLIC_APP_NAME`.
 
