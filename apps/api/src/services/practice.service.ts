@@ -1,27 +1,15 @@
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
-import { questions, questionOptions, studentAnswers, notes, learningMaterials, studentProfiles, subjects, type Db } from "@dibora/database";
+import { questions, questionOptions, studentAnswers, notes, learningMaterials, type Db } from "@dibora/database";
 import { isCorrect } from "@dibora/core/exam-scoring";
 import { DEFAULT_FREE, DEFAULT_PREMIUM, withinDailyLimit } from "@dibora/core/entitlement";
 import { rowsOf } from "../utils/rows";
 import { AppError, Errors } from "../utils/errors";
 import type { ProgressService } from "./progress.service";
+import { studentCurriculumSubjectIds } from "./student-curriculum";
 
 export class PracticeService {
   constructor(private db: Db, private progress: ProgressService) {}
-  private async selectedSubjects(studentId: string) {
-    const [profile] = await this.db.select({ ids: studentProfiles.selectedSubjectIds }).from(studentProfiles).where(eq(studentProfiles.id, studentId)).limit(1);
-    const selectedIds = profile?.ids ?? [];
-    if (!selectedIds.length) return [];
-    const selected = await this.db.select({ educationLevel: subjects.educationLevel, slug: subjects.slug, names: subjects.names, stream: subjects.stream }).from(subjects)
-      .where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.id, selectedIds)));
-    if (!selected.length) return [];
-    const candidates = await this.db.select({ id: subjects.id, educationLevel: subjects.educationLevel, slug: subjects.slug, names: subjects.names, grade: subjects.grade, stream: subjects.stream }).from(subjects)
-      .where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.grade, [9, 10, 11, 12])));
-    const cleanName = (s: { slug: string; names: Record<string, string> }) => (s.names.en || s.slug).normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
-    return candidates.filter((candidate) => selected.some((choice) => choice.educationLevel === candidate.educationLevel &&
-      (choice.slug === candidate.slug || cleanName(choice) === cleanName(candidate)) &&
-      (choice.stream ? candidate.stream === choice.stream || candidate.stream === null : candidate.stream === null))).map((candidate) => candidate.id);
-  }
+  private async selectedSubjects(studentId: string) { return studentCurriculumSubjectIds(this.db, { profileId: studentId }); }
 
   async answer(studentId: string, userId: string, isPremium: boolean, input: { questionId: string; selectedOptionId?: string | null; numericAnswer?: number | null; timeSpentSeconds?: number }) {
     const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0);

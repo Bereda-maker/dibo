@@ -8,9 +8,10 @@ import { BarChart } from "../../components/Charts";
 import { api, ApiError, isOfflineQueued } from "../../lib/api";
 import { useApi } from "../../lib/useApi";
 import { fmtTime } from "../../lib/exam";
+import { useSession } from "../../lib/session";
 import { Async, diffTone } from "./shared";
 
-type ExamRow = { id: string; type: string; title: string; description: string | null; minutes: number; questionCount: number; passingScore: number; locked: boolean; bestPercentage: number | null; inProgressAttemptId: string | null; subjectId?: string | null; subjectName?: string | null };
+type ExamRow = { id: string; type: string; title: string; description: string | null; minutes: number; questionCount: number; passingScore: number; locked: boolean; bestPercentage: number | null; inProgressAttemptId: string | null; subjectId?: string | null; subjectName?: string | null; subjectGrade?: number | null; subjectStream?: string | null };
 
 type CatalogExam = ExamRow & { subjectKey: string; subjectLabel: string };
 
@@ -23,13 +24,13 @@ const subjectPalette = [
 ];
 
 function catalogSubject(e: ExamRow) {
-  if (e.subjectId || e.subjectName) return { key: e.subjectId ?? e.subjectName!, label: e.subjectName ?? "Subject" };
+  if (e.subjectId || e.subjectName) return { key: e.subjectId ?? e.subjectName!, label: `${e.subjectName ?? "Subject"}${e.subjectGrade ? ` · Grade ${e.subjectGrade}` : ""}` };
   if (e.type === "DIAGNOSTIC") return { key: "all-subjects", label: "All subjects" };
   if (e.type === "MOCK") return { key: "all-subjects", label: "All subjects" };
   return { key: "other", label: "Other exams" };
 }
 
-export function ExamCatalog({ rows }: { rows: ExamRow[] }) {
+export function ExamCatalog({ rows, hasSelectedSubjects }: { rows: ExamRow[]; hasSelectedSubjects?: boolean }) {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const catalog = rows.map((e) => ({ ...e, ...catalogSubject(e) })).map((e) => ({ ...e, subjectKey: e.key, subjectLabel: e.label }));
   const subjects = Array.from(new Map(catalog.map((e) => [e.subjectKey, e])).values()).map((first, index) => {
@@ -38,7 +39,7 @@ export function ExamCatalog({ rows }: { rows: ExamRow[] }) {
   });
   const selected = subjects.find((x) => x.key === selectedSubject);
 
-  if (!rows.length) return <EmptyState title="No exams published yet" body="Check back soon." />;
+  if (!rows.length) return <EmptyState title={hasSelectedSubjects ? "No exams match your selected subjects" : hasSelectedSubjects === false ? "No Grades 9–12 exams published yet" : "No exams published yet"} body={hasSelectedSubjects ? "Published exams for your selected subjects appear here across Grades 9–12. Try updating your subject choices or ask an admin whether exams are published." : "Check back soon, or continue preparing with published notes and practice questions."} action={<div className="flex flex-wrap justify-center gap-2"><Button href="/profile" variant="secondary">Review subjects</Button><Button href="/practice">Open practice</Button></div>} />;
   return <div className="space-y-6">
     <div className="relative overflow-hidden rounded-[1.5rem] border border-primary/15 bg-gradient-to-br from-primary to-secondary p-5 text-white shadow-card sm:p-7">
       <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-accent/20 blur-2xl" aria-hidden />
@@ -52,12 +53,12 @@ export function ExamCatalog({ rows }: { rows: ExamRow[] }) {
 }
 
 function ExamCard({ exam: e }: { exam: CatalogExam }) {
-  return <Card className="group relative overflow-hidden !p-0 transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"><div className="h-1.5 bg-gradient-to-r from-primary via-primary-light to-accent" /><div className="p-5"><div className="flex items-center justify-between gap-3"><Badge tone={e.type === "MOCK" ? "accent" : e.type === "DIAGNOSTIC" ? "info" : "muted"}>{e.type === "DIAGNOSTIC" ? "ASSESSMENT" : e.type}</Badge>{e.locked && <Lock size={17} className="text-accent" aria-label="Premium" />}</div><h3 className="mt-3 text-lg font-bold leading-snug">{e.title}</h3>{e.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{e.description}</p>}<div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-muted"><span className="rounded-full bg-border/45 px-2.5 py-1.5">{e.questionCount} questions</span><span className="rounded-full bg-border/45 px-2.5 py-1.5"><Clock size={13} className="mr-1 inline" />{e.minutes} min</span>{e.bestPercentage != null && <span className="rounded-full bg-success/10 px-2.5 py-1.5 text-success">Best {Math.round(e.bestPercentage)}%</span>}</div><Button href={e.locked ? "/pricing" : `/exams/${e.id}${e.inProgressAttemptId ? `?attempt=${e.inProgressAttemptId}` : ""}`} variant={e.locked ? "secondary" : "primary"} className="mt-5 w-full sm:w-auto">{e.locked ? "View premium" : e.inProgressAttemptId ? "Continue exam" : "Start exam"}</Button></div></Card>;
+  return <Card className="group relative overflow-hidden !p-0 transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"><div className="h-1.5 bg-gradient-to-r from-primary via-primary-light to-accent" /><div className="p-5"><div className="flex items-center justify-between gap-3"><div className="flex flex-wrap gap-2"><Badge tone={e.type === "MOCK" ? "accent" : e.type === "DIAGNOSTIC" ? "info" : "muted"}>{e.type === "DIAGNOSTIC" ? "ASSESSMENT" : e.type}</Badge>{e.subjectGrade && <Badge tone="info">Grade {e.subjectGrade}</Badge>}</div>{e.locked && <Lock size={17} className="text-accent" aria-label="Premium" />}</div><h3 className="mt-3 text-lg font-bold leading-snug">{e.title}</h3>{e.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{e.description}</p>}<div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-muted"><span className="rounded-full bg-border/45 px-2.5 py-1.5">{e.questionCount} questions</span><span className="rounded-full bg-border/45 px-2.5 py-1.5"><Clock size={13} className="mr-1 inline" />{e.minutes} min</span>{e.bestPercentage != null && <span className="rounded-full bg-success/10 px-2.5 py-1.5 text-success">Best {Math.round(e.bestPercentage)}%</span>}</div><Button href={e.locked ? "/pricing" : `/exams/${e.id}${e.inProgressAttemptId ? `?attempt=${e.inProgressAttemptId}` : ""}`} variant={e.locked ? "secondary" : "primary"} className="mt-5 w-full sm:w-auto">{e.locked ? "View premium" : e.inProgressAttemptId ? "Continue exam" : "Start exam"}</Button></div></Card>;
 }
 
 export function LiveExams() {
-  const q = useApi(() => api<ExamRow[]>("/exams"));
-  return <><PageHeader title="Exams" sub="A calmer way to move from subject practice to confident exam day." /><Async q={q}>{(rows) => <ExamCatalog rows={rows} />}</Async></>;
+  const q = useApi(() => api<ExamRow[]>("/exams")); const { profile } = useSession();
+  return <><PageHeader title="Exams" sub="A calmer way to move from subject practice to confident exam day." /><Async q={q}>{(rows) => <ExamCatalog rows={rows} hasSelectedSubjects={!!profile?.subjectIds.length} />}</Async></>;
 }
 
 type QItem = { id: string; text: string; type: string; difficulty: string; topicId: string; topicName: string; options: { id: string; text: string }[]; yourOptionId: string | null; yourNumeric: number | null; correctOptionId?: string | null; correctNumeric?: number | null; explanation?: string; isCorrect?: boolean | null };

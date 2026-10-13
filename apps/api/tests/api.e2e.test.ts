@@ -32,7 +32,7 @@ const createTestApp = (chat: AiChatService) => createApp({ auth: new AuthService
   chat, admin: new AdminService(db), learning: new LearningService(db, progress), webOrigin: ORIGIN, isProd: false });
 const app = createTestApp(new AiChatService(db, new AIService({ complete: async () => ({ text: "Use F = ma.", tokens: 5 }) }, new DbRetriever(db)), progress));
 
-let subjectId = "", topicId = "", grade11SubjectId = "", grade11TopicId = "", grade11NoteId = "", grade11QuestionId = "", grade9NoteId = "", otherSubjectId = "";
+let subjectId = "", topicId = "", grade11SubjectId = "", grade11TopicId = "", grade11NoteId = "", grade11QuestionId = "", grade9NoteId = "", otherSubjectId = "", otherTopicId = "";
 let ipn = 0; const ip = () => `10.1.${Math.floor(++ipn / 250)}.${ipn % 250}`; // distinct client IP per request so the rate limiter does not interfere
 const post = (path: string, body: unknown, cookie?: string, method = "POST") => app.request(path, { method, headers: { "content-type": "application/json", origin: ORIGIN, "x-forwarded-for": ip(), ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) });
 const get = (path: string, cookie?: string) => app.request(path, { headers: cookie ? { cookie } : {} });
@@ -63,6 +63,7 @@ beforeAll(async () => {
   const [grade11Question] = await raw.insert(s.questions).values({ subjectId: grade11SubjectId, topicId: grade11TopicId, difficulty: "EASY", type: "MULTIPLE_CHOICE", text: "Which property does a wave transfer?", explanation: "Waves transfer energy.", status: "PUBLISHED" }).returning(); grade11QuestionId = grade11Question!.id;
   await raw.insert(s.questionOptions).values([{ questionId: grade11QuestionId, text: "Energy", isCorrect: true }, { questionId: grade11QuestionId, text: "Matter only", isCorrect: false }]);
   const [other] = await raw.insert(s.subjects).values({ grade: 10, slug: "chem", names: { en: "Chemistry" }, status: "PUBLISHED" }).returning(); otherSubjectId = other!.id;
+  const [otherTopic] = await raw.insert(s.topics).values({ subjectId: otherSubjectId, slug: "bonding", names: { en: "Chemical Bonding" }, status: "PUBLISHED" }).returning(); otherTopicId = otherTopic!.id;
 });
 
 describe("authentication and authorization", () => {
@@ -89,8 +90,21 @@ describe("authentication and authorization", () => {
 });
 
 describe("student notes curriculum scope", () => {
-  test("selected subjects carry across Grades 9–12, while an empty profile exposes all subjects", async () => {
+  test("profile subjects carry across Grades 9–12 for subjects, topics, practice and exams", async () => {
     const cookie = await signup("notes-scope@x.et");
+    const practiceSubjects = (await (await get("/api/content/subjects", cookie)).json()).data as { id: string; grade: number }[];
+    expect(practiceSubjects.some((subject) => subject.id === subjectId && subject.grade === 12)).toBe(true);
+    expect(practiceSubjects.some((subject) => subject.id === grade11SubjectId && subject.grade === 11)).toBe(true);
+    expect(practiceSubjects.some((subject) => subject.id === otherSubjectId)).toBe(false);
+    const grade11Topics = (await (await get(`/api/content/topics?subjectId=${grade11SubjectId}`, cookie)).json()).data as { id: string }[];
+    expect(grade11Topics.map((topic) => topic.id)).toContain(grade11TopicId);
+
+    const [grade11Exam] = await raw.insert(s.exams).values({ type: "SUBJECT", subjectId: grade11SubjectId, title: "Grade 11 Physics review", durationMinutes: 30, questionCount: 1, passingScore: 50, status: "PUBLISHED" }).returning();
+    const [chemistryExam] = await raw.insert(s.exams).values({ type: "SUBJECT", subjectId: otherSubjectId, title: "Grade 10 Chemistry review", durationMinutes: 30, questionCount: 1, passingScore: 50, status: "PUBLISHED" }).returning();
+    const scopedExams = (await (await get("/api/exams", cookie)).json()).data as { id: string; subjectGrade: number | null }[];
+    expect(scopedExams.find((exam) => exam.id === grade11Exam!.id)?.subjectGrade).toBe(11);
+    expect(scopedExams.some((exam) => exam.id === chemistryExam!.id)).toBe(false);
+
     const scoped = (await (await get("/api/content/subjects?scope=notes", cookie)).json()).data as { id: string; grade: number; subjectKey: string }[];
     expect(scoped.some((subject) => subject.id === subjectId && subject.grade === 12)).toBe(true);
     expect(scoped.some((subject) => subject.id === grade11SubjectId && subject.grade === 11)).toBe(true);
@@ -113,8 +127,18 @@ describe("student notes curriculum scope", () => {
 
     const profile = (await (await get("/api/students/me", cookie)).json()).data as { id: string };
     await raw.update(s.studentProfiles).set({ selectedSubjectIds: [] }).where(eq(s.studentProfiles.id, profile.id));
-    const unrestricted = (await (await get("/api/content/subjects?scope=notes", cookie)).json()).data as { id: string }[];
+    const unrestricted = (await (await get("/api/content/subjects", cookie)).json()).data as { id: string }[];
     expect(unrestricted.some((subject) => subject.id === otherSubjectId)).toBe(true);
+    const unrestrictedTopics = (await (await get(`/api/content/topics?subjectId=${otherSubjectId}`, cookie)).json()).data as { id: string }[];
+    expect(unrestrictedTopics.map((topic) => topic.id)).toContain(otherTopicId);
+    const unrestrictedPractice = (await (await get(`/api/practice/questions?topicId=${grade11TopicId}&limit=10`, cookie)).json()).data as { id: string }[];
+    expect(unrestrictedPractice.map((question) => question.id)).toContain(grade11QuestionId);
+    const unrestrictedExams = (await (await get("/api/exams", cookie)).json()).data as { id: string }[];
+    expect(unrestrictedExams.some((exam) => exam.id === chemistryExam!.id)).toBe(true);
+
+    await raw.update(s.studentProfiles).set({ selectedSubjectIds: ["40000000-0000-4000-8000-000000000001"] }).where(eq(s.studentProfiles.id, profile.id));
+    const staleFallback = (await (await get("/api/content/subjects", cookie)).json()).data as { id: string }[];
+    expect(staleFallback.some((subject) => subject.id === otherSubjectId)).toBe(true);
   });
 });
 

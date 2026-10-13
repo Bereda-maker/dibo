@@ -1,11 +1,12 @@
 import { Hono } from "hono";
-import { and, asc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 import { v as zValidator } from "../utils/validate";
-import { subjects, topics, learningMaterials, notes, studentProfiles, type Db } from "@dibora/database";
+import { subjects, topics, learningMaterials, notes, type Db } from "@dibora/database";
 import type { AuthContext } from "../middleware/auth";
 import { ok } from "../utils/response";
 import { Errors } from "../utils/errors";
+import { studentCurriculumSubjects } from "../services/student-curriculum";
 
 /** Read-only published curriculum for signed-in students. Drafts and archived items are never returned. */
 /** Public (no login): needed by the registration form. */
@@ -13,48 +14,25 @@ export const publicContentRoutes = (db: Db) => new Hono().get("/subjects", async
 
 export const contentRoutes = (db: Db) => {
   const r = new Hono();
-  const selectedFor = async (c: unknown) => {
+  const currentSubjects = async (c: unknown) => {
     const auth = (c as { get: (key: string) => unknown }).get("auth") as AuthContext;
-    const [profile] = await db.select({ ids: studentProfiles.selectedSubjectIds }).from(studentProfiles).where(eq(studentProfiles.userId, auth.userId)).limit(1);
-    return profile?.ids ?? [];
+    return studentCurriculumSubjects(db, { userId: auth.userId });
   };
-  const cleanName = (subject: { slug: string; names: Record<string, string> }) => (subject.names.en || subject.slug).normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
-  const subjectKeyOf = (subject: { educationLevel: string; slug: string; names: Record<string, string> }) => `${subject.educationLevel}:${cleanName(subject)}`;
   const gradeInTitle = (title: string) => {
     const match = title.match(/\b(?:grade|gr\.?|g)\s*(9|10|11|12)\b/i);
     return match ? Number(match[1]) : null;
   };
-
-  /** Grade 12 exam candidates can browse the same selected subjects across the Grades 9–12 curriculum. */
-  const notesSubjects = async (c: unknown) => {
-    const selectedIds = await selectedFor(c);
-    const columns = { id: subjects.id, educationLevel: subjects.educationLevel, slug: subjects.slug, names: subjects.names, grade: subjects.grade, stream: subjects.stream };
-    const gradeScope = and(eq(subjects.status, "PUBLISHED"), inArray(subjects.grade, [9, 10, 11, 12]));
-    if (!selectedIds.length) {
-      const available = await db.select(columns).from(subjects).where(gradeScope).orderBy(asc(subjects.sortOrder), asc(subjects.grade));
-      return available.map((subject) => ({ ...subject, subjectKey: subjectKeyOf(subject) }));
-    }
-    const selected = await db.select({ educationLevel: subjects.educationLevel, slug: subjects.slug, names: subjects.names, stream: subjects.stream }).from(subjects)
-      .where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.id, selectedIds)));
-    if (!selected.length) return [];
-    const candidates = await db.select(columns).from(subjects).where(gradeScope).orderBy(asc(subjects.sortOrder), asc(subjects.grade));
-    return candidates.flatMap((candidate) => {
-      const match = selected.find((choice) => choice.educationLevel === candidate.educationLevel &&
-        (choice.slug === candidate.slug || cleanName(choice) === cleanName(candidate)) &&
-        (choice.stream ? candidate.stream === choice.stream || candidate.stream === null : candidate.stream === null));
-      return match ? [{ ...candidate, subjectKey: subjectKeyOf(match) }] : [];
-    });
-  };
+  const notesSubjects = async (c: unknown) => currentSubjects(c);
   const notesSubjectIds = async (c: unknown) => (await notesSubjects(c)).map((subject) => subject.id);
 
   r.get("/subjects", zValidator("query", z.object({ scope: z.literal("notes").optional() })), async (c) => {
     const { scope } = c.req.valid("query");
-    if (scope === "notes") return ok(c, await notesSubjects(c));
-    return ok(c, await db.select({ id: subjects.id, slug: subjects.slug, names: subjects.names, grade: subjects.grade, stream: subjects.stream })
-      .from(subjects).where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.id, await selectedFor(c)))).orderBy(asc(subjects.sortOrder), asc(subjects.grade)));
+    const available = await notesSubjects(c);
+    if (scope === "notes") return ok(c, available);
+    return ok(c, available.map(({ id, slug, names, grade, stream }) => ({ id, slug, names, grade, stream })));
   });
   r.get("/topics", zValidator("query", z.object({ subjectId: z.string().uuid() })), async (c) =>
-    ok(c, await db.select({ id: topics.id, slug: topics.slug, names: topics.names }).from(topics).where(and(eq(topics.subjectId, c.req.valid("query").subjectId), eq(topics.status, "PUBLISHED"), inArray(topics.subjectId, await selectedFor(c)))).orderBy(asc(topics.sortOrder))));
+    ok(c, await db.select({ id: topics.id, slug: topics.slug, names: topics.names }).from(topics).where(and(eq(topics.subjectId, c.req.valid("query").subjectId), eq(topics.status, "PUBLISHED"), inArray(topics.subjectId, await notesSubjectIds(c)))).orderBy(asc(topics.sortOrder))));
   r.get("/notes", zValidator("query", z.object({ topicId: z.string().uuid().optional(), subjectId: z.string().uuid().optional(), subjectKey: z.string().max(240).optional(), grade: z.coerce.number().int().min(9).max(12).optional(), q: z.string().max(80).optional(), limit: z.coerce.number().int().min(1).max(50).default(20) })), async (c) => {
     const { topicId, subjectId, subjectKey, grade, q, limit } = c.req.valid("query");
     const conds = [
