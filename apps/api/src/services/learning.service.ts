@@ -2,7 +2,6 @@ import { and, desc, eq, gte, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { bookmarks, exams, examAttempts, examQuestions, learningMaterials, notes, questionOptions, questions, studentAnswers, studentProfiles, studentProgress, subjects, topics, topicProgress, type Db } from "@dibora/database";
 import type { ProgressService } from "./progress.service";
 import { Errors } from "../utils/errors";
-import { studentCurriculumSubjectIds, studentCurriculumSubjects } from "./student-curriculum";
 
 const like = (q: string) => `%${q.replace(/[%_\\]/g, "")}%`;
 const displayExamDescription = (description: string | null) => description?.replace(/https:\/\/www\.ethiobookreview\.com\/national-[^\s)]+/g, "EAES") ?? null;
@@ -11,15 +10,14 @@ export class LearningService {
   constructor(private db: Db, private progress: ProgressService) {}
 
   async exams(studentId: string, isPremium: boolean) {
-    const visibleSubjects = await studentCurriculumSubjects(this.db, { profileId: studentId });
-    const selected = new Set(visibleSubjects.map((subject) => subject.id));
-    if (!selected.size) return [];
-    const list = await this.db.select({ exam: exams, subjectName: subjects.names, subjectGrade: subjects.grade, subjectStream: subjects.stream }).from(exams).leftJoin(subjects, eq(exams.subjectId, subjects.id)).where(and(eq(exams.status, "PUBLISHED"), isNull(exams.deletedAt))).orderBy(exams.type, exams.title);
-    const questionSubjects = await this.db.select({ examId: examQuestions.examId }).from(examQuestions).innerJoin(questions, eq(questions.id, examQuestions.questionId)).where(and(inArray(questions.subjectId, [...selected]), eq(questions.status, "PUBLISHED"), isNull(questions.deletedAt)));
+    const [profile] = await this.db.select({ ids: studentProfiles.selectedSubjectIds }).from(studentProfiles).where(eq(studentProfiles.id, studentId)).limit(1);
+    const selected = new Set(profile?.ids ?? []);
+    const list = await this.db.select({ exam: exams, subjectName: subjects.names }).from(exams).leftJoin(subjects, eq(exams.subjectId, subjects.id)).where(and(eq(exams.status, "PUBLISHED"), isNull(exams.deletedAt))).orderBy(exams.type, exams.title);
+    const questionSubjects = await this.db.select({ examId: examQuestions.examId }).from(examQuestions).innerJoin(questions, eq(questions.id, examQuestions.questionId)).where(inArray(questions.subjectId, [...selected]));
     const matching = new Set(questionSubjects.map((x) => x.examId));
     const mine = await this.db.select({ examId: examAttempts.examId, id: examAttempts.id, status: examAttempts.status, pct: examAttempts.percentage }).from(examAttempts).where(eq(examAttempts.studentId, studentId));
-    return list.filter(({ exam: e }) => e.subjectId ? selected.has(e.subjectId) : matching.has(e.id)).map(({ exam: e, subjectName, subjectGrade, subjectStream }) => { const a = mine.filter((m) => m.examId === e.id);
-      return { id: e.id, type: e.type, title: e.title, description: displayExamDescription(e.description), minutes: e.durationMinutes, questionCount: e.questionCount, passingScore: e.passingScore, subjectId: e.subjectId, subjectName: subjectName?.en ?? null, subjectGrade: subjectGrade ?? null, subjectStream: subjectStream ?? null, locked: e.requiresPremium && !isPremium,
+    return list.filter(({ exam: e }) => e.subjectId ? selected.has(e.subjectId) : matching.has(e.id)).map(({ exam: e, subjectName }) => { const a = mine.filter((m) => m.examId === e.id);
+      return { id: e.id, type: e.type, title: e.title, description: displayExamDescription(e.description), minutes: e.durationMinutes, questionCount: e.questionCount, passingScore: e.passingScore, subjectId: e.subjectId, subjectName: subjectName?.en ?? null, locked: e.requiresPremium && !isPremium,
         bestPercentage: a.filter((x) => x.status !== "IN_PROGRESS").reduce<number | null>((b, x) => Math.max(b ?? 0, Number(x.pct ?? 0)), null), inProgressAttemptId: a.find((x) => x.status === "IN_PROGRESS")?.id ?? null }; });
   }
 
@@ -72,7 +70,8 @@ export class LearningService {
   }
 
   async search(studentId: string, q: string, kinds: string[] | undefined, limit = 20) {
-    const selected = await studentCurriculumSubjectIds(this.db, { profileId: studentId });
+    const [profile] = await this.db.select({ ids: studentProfiles.selectedSubjectIds }).from(studentProfiles).where(eq(studentProfiles.id, studentId)).limit(1);
+    const selected = profile?.ids ?? [];
     const want = (k: string) => !kinds?.length || kinds.includes(k); const out: { kind: string; id: string; title: string; sub?: string | null }[] = [];
     if (want("subject")) out.push(...(await this.db.select({ id: subjects.id, n: subjects.names }).from(subjects).where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.id, selected), sql`cast(${subjects.names} as text) ilike ${like(q)}`)).limit(limit)).map((r) => ({ kind: "subject", id: r.id, title: r.n.en ?? "Subject" })));
     if (want("topic")) out.push(...(await this.db.select({ id: topics.id, n: topics.names }).from(topics).innerJoin(subjects, eq(subjects.id, topics.subjectId)).where(and(eq(topics.status, "PUBLISHED"), inArray(topics.subjectId, selected), sql`cast(${topics.names} as text) ilike ${like(q)}`)).limit(limit)).map((r) => ({ kind: "topic", id: r.id, title: r.n.en ?? "Topic" })));
