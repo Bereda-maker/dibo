@@ -79,6 +79,10 @@ describe("Google sign-in", () => {
     await raw.update(s.users).set({ isActive: true }).where(eq(s.users.email, "ana@example.com"));
   });
   test("Google public keys are cached between sign-ins", async () => { const n = fetches; await social.loginWithGoogle(await idToken()); await social.loginWithGoogle(await idToken()); expect(fetches).toBe(n); });
+  test("Google key-service outage is reported as temporarily unavailable", async () => {
+    const unavailable = new GoogleIdTokenVerifier({ clientId: CLIENT, fetchImpl: (async () => { throw new Error("network offline"); }) as unknown as typeof fetch });
+    await expect(unavailable.verify(await idToken())).rejects.toThrow("temporarily unavailable");
+  });
 });
 
 describe("Telegram sign-in", () => {
@@ -130,5 +134,20 @@ describe("routes + cookie", () => {
     expect(JSON.stringify(p)).not.toContain(BOT);
     expect(((await (await mk(true, undefined, false).request("/api/auth/providers")).json()) as { data: unknown }).data).toEqual({ google: null, telegram: null });
     expect((await post(mk(true, undefined, false), "google", { credential: "x".repeat(40) })).status).toBe(404);
+  });
+  test("Google key-service outage returns 503 and no session cookie", async () => {
+    const unavailable = new GoogleIdTokenVerifier({ clientId: CLIENT, fetchImpl: (async () => { throw new Error("network offline"); }) as unknown as typeof fetch });
+    const unavailableSocial = new SocialAuthService(db, auth, { google: unavailable, telegram: { botToken: BOT, botUsername: "DiboraBot" } });
+    const app = new Hono(); app.route("/api/auth", authRoutes(auth, true, { social: unavailableSocial })); app.onError(errorHandler);
+    const r = await post(app, "google", { credential: await idToken() });
+    expect(r.status).toBe(503); expect(r.headers.get("set-cookie")).toBeNull();
+  });
+  test("session creation failure returns an error and never sets a session cookie", async () => {
+    const brokenAuth = Object.create(auth) as AuthService;
+    brokenAuth.createSession = async () => { throw new Error("session store unavailable"); };
+    const brokenSocial = new SocialAuthService(db, brokenAuth, { google, telegram: { botToken: BOT, botUsername: "DiboraBot" } });
+    const app = new Hono(); app.route("/api/auth", authRoutes(brokenAuth, true, { social: brokenSocial })); app.onError(errorHandler);
+    const r = await post(app, "telegram", tg({ id: 555007 }));
+    expect(r.status).toBe(500); expect(r.headers.get("set-cookie")).toBeNull();
   });
 });
