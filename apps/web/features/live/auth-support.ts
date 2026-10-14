@@ -7,6 +7,11 @@ export function isTelegramWebView(userAgent: string): boolean {
   return /Telegram/i.test(userAgent);
 }
 
+/** Telegram on iOS can use the same user-agent as Safari, so detect iOS for an explicit browser-choice gate instead. */
+export function isIOSBrowser(userAgent: string, platform = "", maxTouchPoints = 0): boolean {
+  return /iPhone|iPad|iPod/i.test(userAgent) || (platform === "MacIntel" && maxTouchPoints > 1);
+}
+
 export function providerDiscoveryError(cause: unknown): string {
   if (cause instanceof ApiError && cause.status === 0) {
     return "Deborah’s sign-in service could not be reached. Check your connection and try again.";

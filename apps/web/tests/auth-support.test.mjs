@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { ApiError } from "../lib/api";
-import { authFailureMessage, isProviderCancellation, isTelegramWebView, providerDiscoveryError } from "../features/live/auth-support";
+import { authFailureMessage, isIOSBrowser, isProviderCancellation, isTelegramWebView, providerDiscoveryError } from "../features/live/auth-support";
 
 describe("social auth recovery messaging", () => {
   test("explains a network-level provider-discovery outage and offers neutral API wording", () => {
@@ -25,5 +25,16 @@ describe("social auth recovery messaging", () => {
   test("identifies Telegram's embedded browser to avoid starting Google sign-in there", () => {
     expect(isTelegramWebView("Mozilla/5.0 (iPhone) Telegram-iOS/11.0")).toBe(true);
     expect(isTelegramWebView("Mozilla/5.0 (iPhone) Version/17.0 Mobile/15E148 Safari/604.1")).toBe(false);
+  });
+
+  test("gates Google behind Safari confirmation on iOS when Telegram uses a Safari-like user agent", () => {
+    const iosSafariLike = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+    expect(isTelegramWebView(iosSafariLike)).toBe(false);
+    expect(isIOSBrowser(iosSafariLike)).toBe(true);
+    expect(isIOSBrowser("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Safari/605.1.15")).toBe(false);
+  });
+
+  test("recognizes iPadOS desktop-mode Safari using touch points", () => {
+    expect(isIOSBrowser("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)", "MacIntel", 5)).toBe(true);
   });
 });
