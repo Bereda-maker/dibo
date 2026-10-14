@@ -30,7 +30,7 @@ function ProviderTabs({ value, onChange }: { value: Provider; onChange: (provide
 
 function SocialLogin({ provider }: { provider: Provider }) {
   const { refresh } = useSession(); const router = useRouter(); const [providers, setProviders] = useState<Providers | null>(null);
-  const [error, setError] = useState(""); const [providerLoadError, setProviderLoadError] = useState(false); const [submitting, setSubmitting] = useState(false); const [iosGoogleConfirmed, setIosGoogleConfirmed] = useState(false); const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [error, setError] = useState(""); const [providerLoadError, setProviderLoadError] = useState(false); const [submitting, setSubmitting] = useState(false); const [iosGoogleConfirmed, setIosGoogleConfirmed] = useState(false); const [isIOSDevice, setIsIOSDevice] = useState<boolean | null>(null);
   const [providerRequest, setProviderRequest] = useState(0);
   const inTelegramWebView = typeof navigator !== "undefined" && isTelegramWebView(navigator.userAgent);
   const googleHost = useRef<HTMLDivElement>(null); const telegramHost = useRef<HTMLDivElement>(null); const submittingRef = useRef(false);
@@ -51,7 +51,8 @@ function SocialLogin({ provider }: { provider: Provider }) {
   }, [providerRequest]);
   useEffect(() => { setIsIOSDevice(isIOSBrowser(navigator.userAgent, navigator.platform, navigator.maxTouchPoints)); }, []);
   useEffect(() => {
-    const clientId = provider === "google" && !inTelegramWebView ? providers?.google?.clientId : undefined; if (!clientId || !googleHost.current) return;
+    const canStartGoogle = !inTelegramWebView && isIOSDevice !== null && (!isIOSDevice || iosGoogleConfirmed);
+    const clientId = provider === "google" && canStartGoogle ? providers?.google?.clientId : undefined; if (!clientId || !googleHost.current) return;
     let cancelled = false; const element = googleHost.current;
     const credentialHandler = (credential: string) => { void submit("google", { credential }); };
     loadGsi().then(() => { if (cancelled) return; const google = (window as unknown as { google?: GoogleApi }).google; if (!google) return;
@@ -63,7 +64,7 @@ function SocialLogin({ provider }: { provider: Provider }) {
       google.accounts.id.renderButton(element, { theme: "outline", size: "large", text: "continue_with", shape: "pill", width: Math.min(320, element.clientWidth || 320) });
     }).catch(() => setError("Google’s sign-in button could not load. Check your connection and try again."));
     return () => { cancelled = true; element.replaceChildren(); if (googleCredentialHandler === credentialHandler) googleCredentialHandler = null; };
-  }, [provider, providers?.google?.clientId, inTelegramWebView]);
+  }, [provider, providers?.google?.clientId, inTelegramWebView, isIOSDevice, iosGoogleConfirmed]);
   useEffect(() => {
     const bot = provider === "telegram" ? providers?.telegram?.botUsername : undefined; if (!bot || !telegramHost.current) return;
     const element = telegramHost.current; const widgetWindow = window as unknown as { onDeborahTelegramAuth?: (user: unknown) => void };
@@ -89,7 +90,7 @@ function SocialLogin({ provider }: { provider: Provider }) {
     <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#4285F4]/10 text-xl font-extrabold text-[#4285F4]">G</div><h2 className="font-bold text-text">Continue with Google</h2>
     <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted">Use your Google account to sign in or create your Deborah student account.</p>
     {submitting && <p role="status" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary"><LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />Signing in with Google…</p>}
-    {inTelegramWebView ? <p role="status" className="mt-5 rounded-xl border border-warning/30 bg-warning/10 p-4 text-left text-sm leading-6 text-text">Google sign-in is unavailable inside Telegram’s embedded browser. In Telegram, open the menu (⋯) and choose <strong>Open in Safari</strong>, then sign in there. This avoids sending Google authentication through an embedded WebView.</p> : isIOSDevice && !iosGoogleConfirmed ? <div role="note" className="mt-5 rounded-xl border border-warning/30 bg-warning/10 p-4 text-left text-sm leading-6 text-text"><p>Google sign-in may be blocked in Telegram’s in-app browser. If you opened Deborah from Telegram, tap <strong>⋯ → Open in Safari</strong> first. Telegram on iPhone can look like Safari to websites, so this page cannot reliably tell which browser is open.</p><button type="button" onClick={() => setIosGoogleConfirmed(true)} className="mt-3 rounded-full border border-current px-4 py-2 font-semibold">I’m in Safari — continue with Google</button></div> : <div ref={googleHost} className={`mt-5 flex min-h-[44px] w-full justify-center ${submitting ? "pointer-events-none opacity-50" : ""}`} />}{error && <p role="alert" className="mt-3 text-center text-sm text-error">{error}</p>}
+    {inTelegramWebView ? <p role="status" className="mt-5 rounded-xl border border-warning/30 bg-warning/10 p-4 text-left text-sm leading-6 text-text">Google sign-in is unavailable inside Telegram’s embedded browser. In Telegram, open the menu (⋯) and choose <strong>Open in Safari</strong>, then sign in there. This avoids sending Google authentication through an embedded WebView.</p> : isIOSDevice !== false && !iosGoogleConfirmed ? <div role="note" className="mt-5 rounded-xl border border-warning/30 bg-warning/10 p-4 text-left text-sm leading-6 text-text"><p>Google sign-in may be blocked in Telegram’s in-app browser. If you opened Deborah from Telegram, tap <strong>⋯ → Open in Safari</strong> first. Telegram on iPhone can look like Safari to websites, so this page cannot reliably tell which browser is open.</p><button type="button" onClick={() => setIosGoogleConfirmed(true)} className="mt-3 rounded-full border border-current px-4 py-2 font-semibold">I’m in Safari — continue with Google</button></div> : <div ref={googleHost} className={`mt-5 flex min-h-[44px] w-full justify-center ${submitting ? "pointer-events-none opacity-50" : ""}`} />}{error && <p role="alert" className="mt-3 text-center text-sm text-error">{error}</p>}
   </div>;
 }
 
