@@ -1,6 +1,6 @@
 # Deborah — Ethiopian Grade 12 AI Learning & Exam Platform
 
-The product name is configurable via `APP_NAME` / `NEXT_PUBLIC_APP_NAME`.
+The public-facing web brand is Deborah.
 
 ## Status
 The web app supports both a browser-local demo mode and a live API-backed mode. Student workflows and the core admin console use the backend in live mode; see "Demo mode vs real mode" and the current verification limitations below.

@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BookOpenCheck, Check, GraduationCap, Sparkles, Target } from "lucide-react";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Deborah";
+const APP_NAME = "Deborah";
 
 export function AuthLayout({ children, mode }: { children: React.ReactNode; mode: "login" | "register" }) {
   const isRegister = mode === "register";
