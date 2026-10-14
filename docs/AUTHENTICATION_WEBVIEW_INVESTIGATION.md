@@ -43,17 +43,17 @@ The shared provider-load message is likewise **before** Telegram’s script/call
 
 Observed on the public deployment during this investigation:
 
-- `/login`: HTTP 200 from Vercel.
-- `/api/auth/providers`: HTTP 200 (approximately 0.3 seconds), JSON envelope successful, public Google client ID and Telegram bot username included. This proves the public provider settings are being returned by the deployed API. The API only reports Telegram as configured when both username and bot token are present; the token value was neither requested nor exposed.
-- `POST /api/auth/google` with an empty body: HTTP 400 `VALIDATION_ERROR`, as expected for a malformed request, no OAuth redirect.
-- `/api/auth/me` without a session: protected endpoint; no successful authenticated session was attempted against a real account.
-- API responses expose a request ID, but provider runtime logs were not accessible from this workspace. No iPhone/WebView request trace or client console log was available.
+- Production deployment for commit `d4293843607c4f3a03f9a7f24fe67867309192de` reached READY on the `web-cdry.vercel.app` alias.
+- `/login?method=google`, `/login?method=telegram`, and `/api/auth/providers` returned HTTP 200. The provider endpoint responded in about 0.45 seconds and returned both public provider settings.
+- Deliberately invalid Google and forged Telegram callback probes each returned HTTP 401 `INVALID_SOCIAL_LOGIN`; neither response set a session cookie. Their API request IDs were `44d60d00-7a6d-45be-81d3-9b315d026849` and `19d4096e-0e82-4f8e-a587-6a77f046f99b`.
+- `/api/auth/me` without a session returned HTTP 401 as expected. No real account credentials or valid provider payloads were used, so no user or session was created.
+- Vercel build logs show a successful Next.js build and deployment. Vercel runtime-log queries (including both callback request IDs) returned no entries, and the Vercel error-cluster query returned none. The auth API is served by the external Render origin behind the Vercel rewrite (`x-render-origin-server`); its application runtime logs are not available through the Vercel project log endpoint. No iPhone/WebView client trace was available.
 
-The active workspace has no Vercel CLI/project link or Vercel connector. Therefore the existence/value of individual Vercel or Render environment variables **could not be directly verified**. Values are not printed anywhere in this report. The deployed provider response and functional Vercel-to-API rewrite are evidence that provider discovery is configured now, not a substitute for inspecting platform settings.
+The Vercel project’s Production environment-variable names were inspected without decrypting values. `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_DEMO_MODE` are present for Production; Vercel also has a sensitive `TELEGRAM_BOT_TOKEN` entry. The public discovery response proves the API currently returns Google and Telegram configuration; the API only does so for Telegram when both its bot token and username are configured. The API is hosted outside Vercel, so its `GOOGLE_CLIENT_ID`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `WEB_ORIGIN`, database URL, and session secret could not be directly audited in Render. No environment-variable values are included here. The token entry in Vercel is not used by the frontend and should not be copied into `NEXT_PUBLIC_*`; consider removing that duplicate from Vercel after confirming it is not used by another function.
 
 Verify these production settings in their respective platforms (keep secrets in the API secret store):
 
-- **Vercel web project:** `NEXT_PUBLIC_API_URL` set for the Production deployment to the API origin only (scheme + host, no `/api` or trailing `/`). It is read when Next builds its rewrite. The current public `/api/auth/providers` success shows a working API route from this deployment, though not which setting supplied its destination.
+- **Vercel web project:** Production entries for `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_DEMO_MODE` are present. The live provider route returned HTTP 200 after the deployment. The actual value of `NEXT_PUBLIC_API_URL` was not decrypted; verify it is the API origin only (scheme + host, no `/api` or trailing slash).
 - **API host:** `GOOGLE_CLIENT_ID`; `TELEGRAM_BOT_TOKEN` (secret); `TELEGRAM_BOT_USERNAME` (public bot username without `@`); and `WEB_ORIGIN=https://web-cdry.vercel.app` for exact-origin CSRF/CORS policy. Existing API startup also requires `DATABASE_URL` and `SESSION_SECRET` (at least 32 characters).
 - **Google Cloud OAuth client:** web application client ID must match `GOOGLE_CLIENT_ID`; add `https://web-cdry.vercel.app` as an Authorized JavaScript origin. This GIS ID-token flow has no Deborah OAuth redirect/callback URL to configure. Do not place a Google client secret or Telegram bot token in `NEXT_PUBLIC_*` variables.
 - **Telegram @BotFather:** link the bot to the exact website domain with `/setdomain` for the legacy widget. For Telegram’s newer OIDC product, its separate allowed-origin/redirect URI configuration would apply; this code does not use OIDC callback URLs.
@@ -69,16 +69,17 @@ No middleware or redirect loop was found in the message path. The same-origin re
 - `apps/api/tests/social-auth.test.ts`: tests Google JWKS network outage maps to 503 without issuing a session cookie, and a session-creation failure returns an error without issuing a cookie. Existing tests already cover invalid Google/Telegram callbacks, the Telegram HMAC/timestamp checks, successful sessions, cookie attributes, and disabled providers.
 - `docs/AUTHENTICATION_WEBVIEW_INVESTIGATION.md`: this report.
 
-No authentication library, token verification, account-linking behavior, provider secret, API session policy, routing, or existing Safari Google flow was replaced or weakened. Changes are local to the attached repository; no production deployment was made.
+No authentication library, token verification, account-linking behavior, provider secret, API session policy, routing, or existing Safari Google flow was replaced or weakened. The changes were committed as `d4293843607c4f3a03f9a7f24fe67867309192de` and deployed to the Vercel production alias.
 
 ## Verification results
 
 - Full API test suite: **160 passed, 0 failed**.
 - Web test suite: **9 passed, 0 failed**.
 - TypeScript checks for `apps/web` and `apps/api`: **passed**.
-- Next.js production build: **passed** with `NEXT_PUBLIC_API_URL` set to a non-production placeholder for the isolated build; no deployment was produced.
-- Live read-only provider-discovery probe: **HTTP 200**, both providers advertised.
-- Invalid live Google request: **HTTP 400** validation response as expected.
+- Next.js production build: **passed** locally and in Vercel build logs.
+- Live provider-discovery probe after deploy: **HTTP 200**, both providers advertised.
+- Invalid live Google and forged Telegram callbacks: **HTTP 401** each, no session cookie issued.
+- Vercel production runtime logs queried after probes: **no matching entries**; the API’s Render runtime logs remain uninspected.
 - `git diff --check`: **passed**.
 
-These results establish that the code changes compile, tests pass, and the public discovery endpoint was healthy at probe time. They do **not** prove the reported iPhone attempt now succeeds or that changes are deployed. To close the incident, deploy these edits and reproduce on Deborah’s iPhone: check Telegram WebView `/api/auth/providers` status/response, try Telegram callback + `/api/auth/me`, and use Telegram’s Open in Safari action for Google. Capture the response/request ID and corresponding API logs if discovery still fails; also inspect the exact production env *names/presence* in Vercel and the API host without exposing values.
+These results establish that the updated code is deployed, both login pages load, and the shared provider-discovery endpoint was healthy during the probes. Synthetic invalid callback probes verify rejection and no session issuance; they do **not** prove a successful sign-in or reproduce Deborah’s physical iPhone Telegram WebView. To finish that device-specific check, have Deborah open the deployed login page in Telegram, record the `/api/auth/providers` status and response/request ID, try Telegram sign-in, and use Telegram’s Open in Safari action for Google. If discovery fails again, the Render API logs must be checked for that request ID; Vercel runtime logs do not contain the upstream API’s application logs.
