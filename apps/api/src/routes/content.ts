@@ -54,7 +54,7 @@ export const contentRoutes = (db: Db) => {
       .from(subjects).where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.id, await selectedFor(c)))).orderBy(asc(subjects.sortOrder), asc(subjects.grade)));
   });
   r.get("/topics", zValidator("query", z.object({ subjectId: z.string().uuid() })), async (c) =>
-    ok(c, await db.select({ id: topics.id, slug: topics.slug, names: topics.names }).from(topics).where(and(eq(topics.subjectId, c.req.valid("query").subjectId), eq(topics.status, "PUBLISHED"), inArray(topics.subjectId, await selectedFor(c)))).orderBy(asc(topics.sortOrder))));
+    ok(c, await db.select({ id: topics.id, slug: topics.slug, names: topics.names }).from(topics).where(and(eq(topics.subjectId, c.req.valid("query").subjectId), eq(topics.status, "PUBLISHED"), inArray(topics.subjectId, await notesSubjectIds(c)))).orderBy(asc(topics.sortOrder))));
   r.get("/notes", zValidator("query", z.object({ topicId: z.string().uuid().optional(), subjectId: z.string().uuid().optional(), subjectKey: z.string().max(240).optional(), grade: z.coerce.number().int().min(9).max(12).optional(), q: z.string().max(80).optional(), limit: z.coerce.number().int().min(1).max(50).default(20) })), async (c) => {
     const { topicId, subjectId, subjectKey, grade, q, limit } = c.req.valid("query");
     const conds = [

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { v as zValidator } from "../utils/validate";
 import { z } from "zod";
-import { profileUpdateSchema, practiceAnswerSchema, practiceQuerySchema, aiMessageSchema } from "@dibora/validation";
+import { profileUpdateSchema, practiceAnswerSchema, practiceQuerySchema, aiMessageSchema, aiMessageFeedbackSchema, aiMessageSavedSchema, aiConversationSavedSchema } from "@dibora/validation";
 import type { StudentService } from "../services/student.service";
 import type { PracticeService } from "../services/practice.service";
 import type { ProgressService } from "../services/progress.service";
@@ -35,10 +35,13 @@ export const studentRoutes = (d: Deps) => {
   r.post("/notifications/:id/read", zValidator("param", uuid), async (c) => ok(c, await d.students.markNotificationRead((await who(c)).userId, c.req.valid("param").id)));
   r.post("/notifications/read-all", async (c) => { await d.students.markAllRead((await who(c)).userId); return ok(c, { done: true }); });
 
-  r.get("/ai/conversations", async (c) => ok(c, await d.chat.list((await who(c)).userId)));
+  r.get("/ai/conversations", zValidator("query", z.object({ saved: z.coerce.boolean().optional() })), async (c) => { const w = await who(c); return ok(c, await d.chat.list(w.userId, c.req.valid("query").saved === true)); });
   r.get("/ai/conversations/:id/messages", zValidator("param", uuid), async (c) => ok(c, await d.chat.messages((await who(c)).userId, c.req.valid("param").id)));
   r.patch("/ai/conversations/:id", zValidator("param", uuid), zValidator("json", z.object({ title: z.string().trim().min(1).max(80) })), async (c) => { await d.chat.rename((await who(c)).userId, c.req.valid("param").id, c.req.valid("json").title); return ok(c, { done: true }); });
+  r.patch("/ai/conversations/:id/saved", zValidator("param", uuid), zValidator("json", aiConversationSavedSchema), async (c) => { const w = await who(c); await d.chat.setConversationSaved(w.userId, c.req.valid("param").id, c.req.valid("json").saved); return ok(c, { done: true }); });
   r.delete("/ai/conversations/:id", zValidator("param", uuid), async (c) => { await d.chat.remove((await who(c)).userId, c.req.valid("param").id); return ok(c, { done: true }); });
+  r.patch("/ai/messages/:id/feedback", zValidator("param", uuid), zValidator("json", aiMessageFeedbackSchema), async (c) => { const w = await who(c); await d.chat.setMessageFeedback(w.userId, c.req.valid("param").id, c.req.valid("json").feedback); return ok(c, { done: true }); });
+  r.patch("/ai/messages/:id/saved", zValidator("param", uuid), zValidator("json", aiMessageSavedSchema), async (c) => { const w = await who(c); await d.chat.setMessageSaved(w.userId, c.req.valid("param").id, c.req.valid("json").saved); return ok(c, { done: true }); });
   r.post("/ai/messages", rateLimit({ limit: 20, windowMs: 60_000, prefix: "ai", keyBy: "user" }), zValidator("json", aiMessageSchema), async (c) => { const w = await who(c); return ok(c, await d.chat.send(w.userId, w.studentId, w.isPremium, c.req.valid("json"))); });
   r.get("/exams", async (c) => { const w = await who(c); return ok(c, await d.learning.exams(w.studentId, w.isPremium)); });
   r.get("/attempts/:id", zValidator("param", uuid), async (c) => ok(c, await d.learning.attempt((await who(c)).studentId, c.req.valid("param").id)));

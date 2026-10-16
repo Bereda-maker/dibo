@@ -325,6 +325,8 @@ export const aiConversations = pgTable("ai_conversations", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull().default("New conversation"),
   topicId: uuid("topic_id").references(() => topics.id, { onDelete: "set null" }),
+  subjectId: uuid("subject_id").references(() => subjects.id, { onDelete: "set null" }),
+  isSaved: boolean("is_saved").notNull().default(false),
   createdAt: createdAt(), updatedAt: updatedAt(), deletedAt: deletedAt(),
 }, (t) => [index("aiconv_user_idx").on(t.userId, t.updatedAt)]);
 
@@ -335,6 +337,9 @@ export const aiMessages = pgTable("ai_messages", {
   content: text("content").notNull(),
   sources: jsonb("sources").$type<string[]>(),
   tokensUsed: integer("tokens_used"),
+  feedback: text("feedback"), // HELPFUL | NOT_HELPFUL
+  isSaved: boolean("is_saved").notNull().default(false),
+  isRegeneration: boolean("is_regeneration").notNull().default(false),
   createdAt: createdAt(),
 }, (t) => [index("aimsg_conv_idx").on(t.conversationId, t.createdAt)]);
 

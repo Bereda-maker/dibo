@@ -58,7 +58,12 @@ test.describe("Deborah admin navigation smoke (demo data only)", () => {
   test.use({ viewport: { width: 375, height: 812 } });
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
-      localStorage.setItem("dibora_state_v1", JSON.stringify({ user: { name: "QA Admin", role: "ADMIN" } }));
+      localStorage.setItem("dibora_state_v1", JSON.stringify({ user: {
+        name: "QA Admin", email: "qa-admin@example.test", phone: "", school: "Test School",
+        region: "Addis Ababa", city: "Addis Ababa", grade: 12, stream: "Natural Science",
+        examYear: 2027, subjects: [], role: "ADMIN", plan: "FREE",
+        leaderboardOptIn: false, learningStatus: "ACTIVE",
+      } }));
     });
   });
 

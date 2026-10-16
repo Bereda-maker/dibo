@@ -7,8 +7,8 @@ export type User = { name: string; email: string; phone: string; school: string;
 export type Attempt = { id: string; examId: string; title: string; type: string; submittedAt: string; result: ScoreResult; answers: SubmittedAnswer[]; order: string[] };
 export type InProgress = { startedAt: number; deadline: number; order: string[]; answers: Record<string, SubmittedAnswer>; flagged: string[]; index: number };
 export type PracticeEntry = { qid: string; topicId: string; correct: boolean; at: string };
-export type ChatMsg = { role: "user" | "assistant"; content: string; sources?: string[] };
-export type Conversation = { id: string; title: string; messages: ChatMsg[] };
+export type ChatMsg = { id: string; role: "user" | "assistant"; content: string; sources?: string[]; feedback?: "HELPFUL" | "NOT_HELPFUL" | null; isSaved?: boolean; isRegeneration?: boolean; createdAt?: string };
+export type Conversation = { id: string; title: string; messages: ChatMsg[]; updatedAt?: string; subjectId?: string | null; topicId?: string | null; isSaved?: boolean };
 export type State = {
   user: User | null; attempts: Attempt[]; inProgress: Record<string, InProgress>; practice: PracticeEntry[];
   bookmarks: { type: "NOTE" | "QUESTION" | "TOPIC"; id: string }[]; notesDone: string[]; days: string[]; readNotifs: string[];
@@ -26,7 +26,36 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State>(empty);
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    try { const raw = localStorage.getItem(KEY); if (raw) setState({ ...empty, ...JSON.parse(raw) }); } catch { /* corrupt storage: start fresh */ }
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<State> & { conversations?: Partial<Conversation>[] };
+        const conversations: Conversation[] = (parsed.conversations ?? []).map((conversation, index) => {
+          const oldMessages = Array.isArray(conversation.messages) ? conversation.messages as Partial<ChatMsg>[] : [];
+          const id = conversation.id ?? `legacy-conversation-${index}`;
+          const messages: ChatMsg[] = oldMessages.map((message, messageIndex) => ({
+            id: message.id ?? `legacy-${id}-${messageIndex}`,
+            role: message.role === "assistant" ? "assistant" : "user",
+            content: message.content ?? "",
+            sources: message.sources,
+            feedback: message.feedback ?? null,
+            isSaved: message.isSaved ?? false,
+            isRegeneration: message.isRegeneration ?? false,
+            createdAt: message.createdAt,
+          }));
+          return {
+            id,
+            title: conversation.title ?? "Conversation",
+            messages,
+            updatedAt: conversation.updatedAt ?? messages.at(-1)?.createdAt ?? "",
+            subjectId: conversation.subjectId ?? null,
+            topicId: conversation.topicId ?? null,
+            isSaved: conversation.isSaved ?? false,
+          };
+        });
+        setState({ ...empty, ...parsed, conversations });
+      }
+    } catch { /* corrupt storage: start fresh */ }
     setReady(true);
   }, []);
   const update = useCallback((fn: (s: State) => State) => {

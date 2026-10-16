@@ -102,6 +102,7 @@ export function AppShell({ children, admin = false, items }: { children: React.R
   const pageLabel = adminGroups.flatMap((g) => g.items).find(([href]) => href === path)?.[1] ?? crumbs.at(-1)?.replaceAll("-", " ") ?? "Dashboard";
   const profileName = u.name || "Administrator";
   const signOut = () => { logout(); router.push("/"); };
+  if (!admin && path === "/assistant") return <AdminActionCountsContext.Provider value={adminCounts}><StudentNotificationCountContext.Provider value={studentNotificationCount}>{children}</StudentNotificationCountContext.Provider></AdminActionCountsContext.Provider>;
   return <AdminActionCountsContext.Provider value={adminCounts}><StudentNotificationCountContext.Provider value={studentNotificationCount}><div className="min-h-dvh min-w-0 overflow-x-clip md:flex">
     {admin ? <>
       <aside className={cx("relative hidden shrink-0 border-r border-border bg-surface transition-[width] duration-200 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto", collapsed ? "md:w-[76px] md:p-3" : "md:w-[264px] md:p-5")}>

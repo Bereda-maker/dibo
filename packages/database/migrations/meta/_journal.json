@@ -36,6 +36,13 @@
       "when": 1791690000000,
       "tag": "0004_finance_deductions_and_stewardship",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792064665823,
+      "tag": "0005_add_ai_assistant_context_and_actions",
+      "breakpoints": true
     }
   ]
 }

@@ -68,9 +68,15 @@ export const diagnosticUpsertSchema = z.object({
 
 export const aiMessageSchema = z.object({
   conversationId: z.string().uuid().optional(),
-  topicId: z.string().uuid().optional(),
+  subjectId: z.string().uuid().nullable().optional(),
+  topicId: z.string().uuid().nullable().optional(),
   message: z.string().trim().min(1).max(2000),
+  regenerate: z.boolean().default(false),
 });
+
+export const aiMessageFeedbackSchema = z.object({ feedback: z.enum(["HELPFUL", "NOT_HELPFUL"]).nullable() });
+export const aiMessageSavedSchema = z.object({ saved: z.boolean() });
+export const aiConversationSavedSchema = z.object({ saved: z.boolean() });
 
 export const contactMessageSchema = z.object({
   name: z.string().trim().min(2, "Enter your name").max(100),
