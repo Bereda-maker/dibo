@@ -75,7 +75,16 @@ export const contentRoutes = (db: Db) => {
     }).map((row) => row.id);
   };
   const requireTopicAccess = async (c: unknown, topicId: string, grade?: number) => {
-    const ids = await firstTopicIds(c, await notesSubjectIds(c), grade);
+    let topicGrade = grade;
+    if (topicGrade == null) {
+      const topicRows = await db.select({ subjectGrade: subjects.grade, noteTitle: notes.title }).from(topics)
+        .innerJoin(subjects, eq(subjects.id, topics.subjectId))
+        .leftJoin(learningMaterials, eq(learningMaterials.topicId, topics.id))
+        .leftJoin(notes, eq(notes.materialId, learningMaterials.id))
+        .where(eq(topics.id, topicId));
+      topicGrade = topicRows.map((row) => row.noteTitle ? gradeInTitle(row.noteTitle) : null).find((value): value is number => value != null) ?? topicRows[0]?.subjectGrade;
+    }
+    const ids = await firstTopicIds(c, await notesSubjectIds(c), topicGrade);
     if (ids && !ids.includes(topicId)) throw Errors.premiumRequired("premiumNotes");
   };
 
