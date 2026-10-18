@@ -88,7 +88,8 @@ export function LiveNotes() {
     selectedSubjectKey={selectedSubjectKey} onSelectSubject={(subjectKey) => { setSelectedSubjectKey(subjectKey); setSelectedGrade(profile && profile.grade >= 9 && profile.grade <= 12 ? profile.grade : 12); }}
     grade={grade} onSelectGrade={setSelectedGrade} notes={notesQuery.loading ? [] : notesQuery.data ?? []} notesLoading={notesQuery.loading}
     notesError={notesQuery.error?.message} completedTopicIds={(done.data ?? []).map((item) => item.topicId)}
-    bookmarkedNoteIds={(bookmarks.data ?? []).filter((item) => item.type === "NOTE").map((item) => item.id)} />;
+    bookmarkedNoteIds={(bookmarks.data ?? []).filter((item) => item.type === "NOTE").map((item) => item.id)}
+    isPremium={profile?.subscriptionStatus === "PREMIUM"} />;
 }
 type NoteFull = { id: string; title: string; summary: string | null; topicId: string; topicName: Record<string, string>; grade: number; content: Record<string, unknown> };
 type Tutorial = { id: string; youtubeVideoId: string; title: string; description: string | null; language: string; difficulty: string | null; thumbnailUrl: string | null; embedUrl: string };

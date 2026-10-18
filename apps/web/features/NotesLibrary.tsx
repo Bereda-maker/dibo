@@ -21,11 +21,12 @@ type Props = {
   notesError?: string;
   completedTopicIds: string[];
   bookmarkedNoteIds: string[];
+  isPremium?: boolean;
 };
 
 const GRADES = [9, 10, 11, 12];
 
-export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, subjectError, selectedSubjectKey, onSelectSubject, grade, onSelectGrade, notes, notesLoading = false, notesError, completedTopicIds, bookmarkedNoteIds }: Props) {
+export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, subjectError, selectedSubjectKey, onSelectSubject, grade, onSelectGrade, notes, notesLoading = false, notesError, completedTopicIds, bookmarkedNoteIds, isPremium = false }: Props) {
   const localizedName = useLocalizedName();
   const [search, setSearch] = useState("");
   const [unitFilter, setUnitFilter] = useState("all");
@@ -88,6 +89,7 @@ export function NotesLibrary({ subjects, subjectSource, subjectLoading = false, 
               {GRADES.map((option) => <button key={option} type="button" aria-pressed={grade === option} onClick={() => { onSelectGrade(option); setUnitFilter("all"); }} className={cx("min-h-11 rounded-xl px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", grade === option ? "bg-primary text-white shadow-sm" : "text-muted hover:bg-surface hover:text-text")}>Grade {option}</button>)}
             </div>
           </div>
+          {!isPremium && <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/30 bg-accent/10 p-3 text-sm"><span><strong>Free plan:</strong> the first topic in this subject and grade is available. Other topics, notes, and tutorials require Premium.</span><Button href="/pricing" variant="secondary">See Premium</Button></div>}
 
           <div className="mt-5 grid grid-cols-3 gap-2 sm:max-w-xl sm:gap-3">
             <div className="rounded-xl bg-bg/70 p-3"><p className="flex items-center gap-1.5 text-xs text-muted"><Layers3 size={14} aria-hidden />Units</p><p className="mt-1 text-lg font-bold">{units.length}</p></div>

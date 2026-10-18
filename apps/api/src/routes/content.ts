@@ -46,6 +46,38 @@ export const contentRoutes = (db: Db) => {
     });
   };
   const notesSubjectIds = async (c: unknown) => (await notesSubjects(c)).map((subject) => subject.id);
+  const isPremium = async (c: unknown) => {
+    const auth = (c as { get: (key: string) => unknown }).get("auth") as AuthContext;
+    const [profile] = await db.select({ status: studentProfiles.subscriptionStatus }).from(studentProfiles).where(eq(studentProfiles.userId, auth.userId)).limit(1);
+    return profile?.status === "PREMIUM";
+  };
+  /** Free students get the first published topic in each subject/grade; topic order is curriculum data. */
+  const firstTopicIds = async (c: unknown, subjectIds: string[], grade?: number) => {
+    if (await isPremium(c) || !subjectIds.length) return null;
+    const rows = await db.select({ id: topics.id, subjectId: topics.subjectId, subjectGrade: subjects.grade, noteTitle: notes.title }).from(topics)
+      .innerJoin(subjects, eq(subjects.id, topics.subjectId))
+      .leftJoin(learningMaterials, eq(learningMaterials.topicId, topics.id))
+      .leftJoin(notes, eq(notes.materialId, learningMaterials.id))
+      .where(and(eq(topics.status, "PUBLISHED"), isNull(topics.deletedAt), eq(subjects.status, "PUBLISHED"), isNull(subjects.deletedAt), inArray(topics.subjectId, subjectIds)))
+      .orderBy(asc(topics.sortOrder), asc(topics.id));
+    const grouped = new Map<string, { subjectId: string; subjectGrade: number; grades: Set<number> }>();
+    for (const row of rows) {
+      const item = grouped.get(row.id) ?? { subjectId: row.subjectId, subjectGrade: row.subjectGrade, grades: new Set<number>() };
+      const noteGrade = row.noteTitle ? gradeInTitle(row.noteTitle) : null;
+      if (noteGrade != null) item.grades.add(noteGrade);
+      grouped.set(row.id, item);
+    }
+    const seen = new Set<string>();
+    return rows.filter((row) => {
+      const item = grouped.get(row.id)!;
+      const matchesGrade = grade == null ? true : item.grades.size ? item.grades.has(grade) : item.subjectGrade === grade;
+      return matchesGrade && !seen.has(row.subjectId) && (seen.add(row.subjectId), true);
+    }).map((row) => row.id);
+  };
+  const requireTopicAccess = async (c: unknown, topicId: string, grade?: number) => {
+    const ids = await firstTopicIds(c, await notesSubjectIds(c), grade);
+    if (ids && !ids.includes(topicId)) throw Errors.premiumRequired("premiumNotes");
+  };
 
   r.get("/subjects", zValidator("query", z.object({ scope: z.literal("notes").optional() })), async (c) => {
     const { scope } = c.req.valid("query");
@@ -54,9 +86,10 @@ export const contentRoutes = (db: Db) => {
       .from(subjects).where(and(eq(subjects.status, "PUBLISHED"), inArray(subjects.id, await selectedFor(c)))).orderBy(asc(subjects.sortOrder), asc(subjects.grade)));
   });
   r.get("/topics", zValidator("query", z.object({ subjectId: z.string().uuid() })), async (c) =>
-    ok(c, await db.select({ id: topics.id, slug: topics.slug, names: topics.names }).from(topics).where(and(eq(topics.subjectId, c.req.valid("query").subjectId), eq(topics.status, "PUBLISHED"), inArray(topics.subjectId, await notesSubjectIds(c)))).orderBy(asc(topics.sortOrder))));
+    ok(c, await db.select({ id: topics.id, slug: topics.slug, names: topics.names }).from(topics).where(and(eq(topics.subjectId, c.req.valid("query").subjectId), eq(topics.status, "PUBLISHED"), isNull(topics.deletedAt), inArray(topics.subjectId, await notesSubjectIds(c)))).orderBy(asc(topics.sortOrder))));
   r.get("/tutorials", zValidator("query", z.object({ topicId: z.string().uuid() })), async (c) => {
     const { topicId } = c.req.valid("query");
+    await requireTopicAccess(c, topicId);
     const rows = await db.select({ id: tutorialVideos.id, youtubeVideoId: tutorialVideos.youtubeVideoId, title: tutorialVideos.title, description: tutorialVideos.description,
       language: tutorialVideos.language, difficulty: tutorialVideos.difficulty, thumbnailUrl: tutorialVideos.thumbnailUrl, displayOrder: tutorialVideos.displayOrder })
       .from(tutorialVideos).innerJoin(tutorialVideoTopics, eq(tutorialVideoTopics.tutorialVideoId, tutorialVideos.id)).innerJoin(topics, eq(topics.id, tutorialVideoTopics.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))
@@ -65,6 +98,8 @@ export const contentRoutes = (db: Db) => {
     return ok(c, rows.map((row) => ({ ...row, embedUrl: `https://www.youtube-nocookie.com/embed/${row.youtubeVideoId}` })));
   });
   r.get("/tutorials/:id", zValidator("param", z.object({ id: z.string().uuid() })), async (c) => {
+    const [topic] = await db.select({ topicId: tutorialVideoTopics.topicId }).from(tutorialVideoTopics).where(eq(tutorialVideoTopics.tutorialVideoId, c.req.valid("param").id)).limit(1);
+    if (topic) await requireTopicAccess(c, topic.topicId);
     const [row] = await db.select({ id: tutorialVideos.id, youtubeVideoId: tutorialVideos.youtubeVideoId, title: tutorialVideos.title, description: tutorialVideos.description,
       language: tutorialVideos.language, difficulty: tutorialVideos.difficulty, thumbnailUrl: tutorialVideos.thumbnailUrl, embedUrl: sql<string>`'https://www.youtube-nocookie.com/embed/' || ${tutorialVideos.youtubeVideoId}` })
       .from(tutorialVideos).innerJoin(tutorialVideoTopics, eq(tutorialVideoTopics.tutorialVideoId, tutorialVideos.id)).innerJoin(topics, eq(topics.id, tutorialVideoTopics.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))
@@ -82,15 +117,17 @@ export const contentRoutes = (db: Db) => {
     ].filter(Boolean) as never[];
     const accessibleSubjects = await notesSubjects(c);
     const allowedIds = subjectKey ? accessibleSubjects.filter((subject) => subject.subjectKey === subjectKey).map((subject) => subject.id) : accessibleSubjects.map((subject) => subject.id);
+    const freeTopicIds = await firstTopicIds(c, allowedIds, grade);
     const rows = await db.select({ id: notes.id, title: notes.title, summary: notes.summary, topicId: learningMaterials.topicId, topicName: topics.names, topicSlug: topics.slug, subjectId: topics.subjectId, grade: subjects.grade })
       .from(notes).innerJoin(learningMaterials, eq(learningMaterials.id, notes.materialId)).innerJoin(topics, eq(topics.id, learningMaterials.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))
-      .where(and(...conds, inArray(topics.subjectId, allowedIds))).orderBy(asc(topics.sortOrder), asc(learningMaterials.sortOrder), asc(notes.title));
+      .where(and(...conds, inArray(topics.subjectId, allowedIds), freeTopicIds ? inArray(learningMaterials.topicId, freeTopicIds) : undefined)).orderBy(asc(topics.sortOrder), asc(learningMaterials.sortOrder), asc(notes.title));
     return ok(c, rows.filter((note) => grade == null || (gradeInTitle(note.title) ?? note.grade) === grade).slice(0, limit));
   });
   r.get("/notes/:id", zValidator("param", z.object({ id: z.string().uuid() })), async (c) => {
     const [n] = await db.select().from(notes).innerJoin(learningMaterials, eq(learningMaterials.id, notes.materialId)).innerJoin(topics, eq(topics.id, learningMaterials.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))
       .where(and(eq(notes.id, c.req.valid("param").id), eq(learningMaterials.status, "PUBLISHED"), eq(topics.status, "PUBLISHED"), eq(subjects.status, "PUBLISHED"), inArray(topics.subjectId, await notesSubjectIds(c)))).limit(1);
     if (!n) throw Errors.notFound("Note");
+    await requireTopicAccess(c, n.learning_materials.topicId, gradeInTitle(n.notes.title) ?? n.subjects.grade);
     return ok(c, { id: n.notes.id, title: n.notes.title, summary: n.notes.summary, content: n.notes.content, topicId: n.learning_materials.topicId, topicName: n.topics.names, grade: gradeInTitle(n.notes.title) ?? n.subjects.grade });
   });
   return r;
