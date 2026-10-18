@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   pgTable, pgEnum, uuid, text, integer, boolean, timestamp, numeric, jsonb, date,
-  index, uniqueIndex, primaryKey,
+  index, uniqueIndex, primaryKey, check,
 } from "drizzle-orm/pg-core";
 import {
   ROLES, LEARNING_STATUSES, SUBSCRIPTION_STATUSES, DIFFICULTIES, QUESTION_TYPES, EXAM_TYPES,
@@ -170,6 +170,7 @@ export const tutorialVideos = pgTable("tutorial_videos", {
   uniqueIndex("tutorial_videos_youtube_id_uq").on(t.youtubeVideoId),
   index("tutorial_videos_status_idx").on(t.status, t.createdAt),
   index("tutorial_videos_created_by_idx").on(t.createdBy),
+  check("tutorial_videos_language_check", sql`${t.language} in ('en', 'am')`),
 ]);
 
 export const tutorialVideoTopics = pgTable("tutorial_video_topics", {

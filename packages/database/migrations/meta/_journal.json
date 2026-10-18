@@ -50,6 +50,13 @@
       "when": 1792250000000,
       "tag": "0006_tutorial_videos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792260000000,
+      "tag": "0007_tutorial_language_check",
+      "breakpoints": true
     }
   ]
 }

@@ -11,6 +11,11 @@ import { parseYouTubeVideoId, youtubeThumbnailUrl } from "../utils/youtube";
 type Actor = { userId: string; ip?: string; requestId?: string };
 type QuestionInput = z.infer<typeof questionUpsertSchema>;
 type DiagnosticInput = z.infer<typeof diagnosticUpsertSchema>;
+const normalizeTutorialLanguage = (language: string): "en" | "am" => {
+  const normalized = language.trim().toLowerCase();
+  if (normalized !== "en" && normalized !== "am") throw new AppError(422, "INVALID_TUTORIAL_LANGUAGE", "Tutorial videos must be in English or Amharic");
+  return normalized;
+};
 
 export class AdminService {
   constructor(private db: Db) {}
@@ -285,9 +290,10 @@ export class AdminService {
   async createTutorial(a: Actor, input: { youtubeUrl: string; title: string; description?: string; language: string; difficulty?: "EASY" | "MEDIUM" | "HARD" | null; topicIds: string[]; displayOrder: number }) {
     const youtubeVideoId = parseYouTubeVideoId(input.youtubeUrl);
     if (!youtubeVideoId) throw new AppError(422, "INVALID_YOUTUBE_URL", "Enter a valid YouTube watch, short, embed, or youtu.be URL");
+    const language = normalizeTutorialLanguage(input.language);
     const topicsScope = await this.validateTutorialTopics(input.topicIds);
     const created = await this.db.transaction(async (tx) => {
-      const [video] = await tx.insert(tutorialVideos).values({ youtubeVideoId, title: input.title.trim(), description: input.description?.trim() || null, language: input.language.trim().toLowerCase(), difficulty: input.difficulty ?? null, thumbnailUrl: youtubeThumbnailUrl(youtubeVideoId), displayOrder: input.displayOrder, createdBy: a.userId, status: "DRAFT" }).returning({ id: tutorialVideos.id });
+      const [video] = await tx.insert(tutorialVideos).values({ youtubeVideoId, title: input.title.trim(), description: input.description?.trim() || null, language, difficulty: input.difficulty ?? null, thumbnailUrl: youtubeThumbnailUrl(youtubeVideoId), displayOrder: input.displayOrder, createdBy: a.userId, status: "DRAFT" }).returning({ id: tutorialVideos.id });
       await tx.insert(tutorialVideoTopics).values(topicsScope.ids.map((topicId) => ({ tutorialVideoId: video!.id, topicId })));
       return video!.id;
     });
@@ -299,9 +305,10 @@ export class AdminService {
     const [existing] = await this.db.select({ id: tutorialVideos.id, status: tutorialVideos.status }).from(tutorialVideos).where(and(eq(tutorialVideos.id, id), isNull(tutorialVideos.deletedAt))).limit(1);
     if (!existing) throw Errors.notFound("Tutorial video");
     const youtubeVideoId = parseYouTubeVideoId(input.youtubeUrl); if (!youtubeVideoId) throw new AppError(422, "INVALID_YOUTUBE_URL", "Enter a valid YouTube URL");
+    const language = normalizeTutorialLanguage(input.language);
     const topicsScope = await this.validateTutorialTopics(input.topicIds);
     await this.db.transaction(async (tx) => {
-      await tx.update(tutorialVideos).set({ youtubeVideoId, title: input.title.trim(), description: input.description?.trim() || null, language: input.language.trim().toLowerCase(), difficulty: input.difficulty ?? null, thumbnailUrl: youtubeThumbnailUrl(youtubeVideoId), displayOrder: input.displayOrder, updatedAt: new Date() }).where(eq(tutorialVideos.id, id));
+      await tx.update(tutorialVideos).set({ youtubeVideoId, title: input.title.trim(), description: input.description?.trim() || null, language, difficulty: input.difficulty ?? null, thumbnailUrl: youtubeThumbnailUrl(youtubeVideoId), displayOrder: input.displayOrder, updatedAt: new Date() }).where(eq(tutorialVideos.id, id));
       await tx.delete(tutorialVideoTopics).where(eq(tutorialVideoTopics.tutorialVideoId, id));
       await tx.insert(tutorialVideoTopics).values(topicsScope.ids.map((topicId) => ({ tutorialVideoId: id, topicId })));
     });
