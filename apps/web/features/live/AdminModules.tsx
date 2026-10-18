@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Activity, Archive, BookOpen, Check, Plus, RefreshCw, Search } from "lucide-react";
+import { Activity, Archive, BookOpen, Check, Copy, Plus, RefreshCw, Search } from "lucide-react";
 import { Badge, Button, Card, EmptyState, ErrorState, Field, PageHeader, Skeleton, inputCls, useToast } from "../../components/ui";
 import { DataTable } from "../../components/DataTable";
 import { api, ApiError } from "../../lib/api";
@@ -43,6 +43,15 @@ function LiveAdminContentInner() {
   const [topicName, setTopicName] = useState(""); const [subjectId, setSubjectId] = useState("");
   const [noteTitle, setNoteTitle] = useState(""); const [noteBody, setNoteBody] = useState(""); const [topicId, setTopicId] = useState("");
   const data = query.data;
+  const copyAllTopics = async () => {
+    if (!data?.topics.length) return toast("There are no topics to copy.", "error");
+    const text = data.topics.map((topic, index) => {
+      const subject = data.subjects.find((row) => row.id === topic.subjectId);
+      return `${index + 1}. ${subject?.names.en ?? "Unknown subject"} · Grade ${subject?.grade ?? "—"} · ${topic.names.en ?? topic.slug} [${topic.status}] · ID: ${topic.id}`;
+    }).join("\n");
+    try { await navigator.clipboard.writeText(text); toast(`Copied ${data.topics.length} topics.`); }
+    catch { toast("Could not access the clipboard. Check your browser permissions.", "error"); }
+  };
   const createSubject = () => { if (!subjectName.trim()) return toast("Enter a subject name.", "error"); void act(() => api("/admin/subjects", { method: "POST", body: { educationLevel: "SECONDARY", grade, stream: stream || null, slug: toSlug(subjectName), names: { en: subjectName.trim() }, sortOrder: 0 } }), "Subject saved as draft.", query.reload); };
   const createTopic = () => { if (!subjectId || !topicName.trim()) return toast("Choose a subject and enter a topic name.", "error"); void act(() => api("/admin/topics", { method: "POST", body: { subjectId, slug: toSlug(topicName), names: { en: topicName.trim() }, sortOrder: 0 } }), "Topic saved as draft.", query.reload); };
   const createNote = () => {
@@ -58,7 +67,7 @@ function LiveAdminContentInner() {
   const visibleMaterials = draftOnly ? data.materials.filter((row) => row.status === "DRAFT") : data.materials;
   const totalDrafts = data.subjects.filter((row) => row.status === "DRAFT").length + data.topics.filter((row) => row.status === "DRAFT").length + data.materials.filter((row) => row.status === "DRAFT").length;
   return <>
-    <PageHeader title={draftOnly ? "Curriculum drafts awaiting review" : "Curriculum & learning materials"} sub="Manage subjects, topics, and notes. Drafts stay private to admins until the required parent content is published." action={<div className="flex gap-2">{draftOnly && <Button variant="secondary" href="/admin/content">Show all</Button>}<Button variant="secondary" onClick={query.reload}><RefreshCw size={15} />Refresh</Button></div>} />
+    <PageHeader title={draftOnly ? "Curriculum drafts awaiting review" : "Curriculum & learning materials"} sub="Manage subjects, topics, and notes. Drafts stay private to admins until the required parent content is published." action={<div className="flex flex-wrap gap-2">{!draftOnly && <Button variant="secondary" onClick={() => void copyAllTopics()}><Copy size={15} />Copy all topics</Button>}{draftOnly && <Button variant="secondary" href="/admin/content">Show all</Button>}<Button variant="secondary" onClick={query.reload}><RefreshCw size={15} />Refresh</Button></div>} />
     {query.error && <p role="status" className="mb-4 text-sm text-warning">Refresh failed; showing the last loaded data.</p>}
     {draftOnly && totalDrafts === 0 && <p role="status" className="mb-4 rounded-xl border border-success/25 bg-success/5 p-3 text-sm text-success">No curriculum drafts are waiting for review.</p>}
     <div className="grid gap-4 xl:grid-cols-3">
