@@ -1,11 +1,12 @@
 import { and, asc, desc, eq, gte, ilike, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
-import { adminAuditLogs, affiliateDeductions, contactMessages, examAttempts, examQuestions, exams, learningMaterials, notes, notifications, payments, questionOptions, questions, stewardshipReminders, studentAnswers, studentProfiles, subjects, subtopics, subscriptionPlans, topics, users, type Db } from "@dibora/database";
+import { adminAuditLogs, affiliateDeductions, contactMessages, examAttempts, examQuestions, exams, learningMaterials, notes, notifications, payments, questionOptions, questions, stewardshipReminders, studentAnswers, studentProfiles, subjects, subtopics, subscriptionPlans, topics, tutorialVideoTopics, tutorialVideos, users, type Db } from "@dibora/database";
 import { diagnosticUpsertSchema, questionUpsertSchema } from "@dibora/validation";
 import { MIN_RECOMMENDATION_SAMPLE } from "@dibora/core/recommendation";
 import type { z } from "zod";
 import { rowsOf } from "../utils/rows";
 import { Errors, AppError } from "../utils/errors";
 import { calculateAffiliateDeduction, calculateRevenueAllocation, currentMonthEAT, FINANCE_TIME_ZONE, isLastCalendarDayEAT, monthRangeEAT } from "./finance-allocation";
+import { parseYouTubeVideoId, youtubeThumbnailUrl } from "../utils/youtube";
 
 type Actor = { userId: string; ip?: string; requestId?: string };
 type QuestionInput = z.infer<typeof questionUpsertSchema>;
@@ -251,6 +252,76 @@ export class AdminService {
     const [updated] = await this.db.update(table).set({ status, updatedAt: new Date() }).where(and(eq(idColumn, id), isNull(table.deletedAt))).returning({ id: idColumn });
     if (!updated) throw Errors.notFound(kind);
     await this.audit(a, `${kind.toUpperCase()}_STATUS_${status}`, kind, id, { status });
+  }
+
+  private async validateTutorialTopics(topicIds: string[]) {
+    const unique = [...new Set(topicIds)];
+    if (!unique.length) throw new AppError(422, "TUTORIAL_TOPIC_REQUIRED", "Associate the tutorial with at least one topic");
+    const rows = await this.db.select({ id: topics.id, subjectId: topics.subjectId, topicStatus: topics.status, subjectStatus: subjects.status })
+      .from(topics).innerJoin(subjects, eq(subjects.id, topics.subjectId))
+      .where(and(inArray(topics.id, unique), isNull(topics.deletedAt), isNull(subjects.deletedAt)));
+    if (rows.length !== unique.length) throw new AppError(422, "INVALID_TUTORIAL_TOPIC", "One or more selected topics do not exist");
+    return { ids: unique, rows };
+  }
+
+  async listTutorials(f: { q?: string; subjectId?: string; topicId?: string; status?: "DRAFT" | "PUBLISHED" | "ARCHIVED"; language?: string; limit: number; offset: number }) {
+    const query = f.q?.replace(/[%_]/g, "");
+    const where = and(isNull(tutorialVideos.deletedAt), f.status ? eq(tutorialVideos.status, f.status) : undefined,
+      f.language ? eq(tutorialVideos.language, f.language) : undefined,
+      f.subjectId ? eq(topics.subjectId, f.subjectId) : undefined, f.topicId ? eq(tutorialVideoTopics.topicId, f.topicId) : undefined,
+      query ? or(ilike(tutorialVideos.title, `%${query}%`), ilike(tutorialVideos.description, `%${query}%`)) : undefined);
+    const rows = await this.db.select({ id: tutorialVideos.id, youtubeVideoId: tutorialVideos.youtubeVideoId, title: tutorialVideos.title, description: tutorialVideos.description,
+      language: tutorialVideos.language, difficulty: tutorialVideos.difficulty, thumbnailUrl: tutorialVideos.thumbnailUrl, status: tutorialVideos.status,
+      displayOrder: tutorialVideos.displayOrder, createdAt: tutorialVideos.createdAt, topicId: topics.id, topicName: topics.names, topicSlug: topics.slug,
+      subjectId: subjects.id, subjectName: subjects.names, subjectSlug: subjects.slug })
+      .from(tutorialVideos).innerJoin(tutorialVideoTopics, eq(tutorialVideoTopics.tutorialVideoId, tutorialVideos.id)).innerJoin(topics, eq(topics.id, tutorialVideoTopics.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))
+      .where(where).orderBy(asc(tutorialVideos.displayOrder), desc(tutorialVideos.createdAt));
+    const grouped = new Map<string, (typeof rows)[number] & { topics: { id: string; name: string }[] }>();
+    for (const row of rows) { const current = grouped.get(row.id) ?? { ...row, topics: [] }; current.topics.push({ id: row.topicId, name: row.topicName.en ?? row.topicSlug }); grouped.set(row.id, current); }
+    const all = [...grouped.values()];
+    return { items: all.slice(f.offset, f.offset + f.limit).map(({ topicId: _topicId, topicName: _topicName, topicSlug: _topicSlug, subjectId: _subjectId, subjectName: _subjectName, subjectSlug: _subjectSlug, ...row }) => row), total: all.length, limit: f.limit, offset: f.offset };
+  }
+
+  async createTutorial(a: Actor, input: { youtubeUrl: string; title: string; description?: string; language: string; difficulty?: "EASY" | "MEDIUM" | "HARD" | null; topicIds: string[]; displayOrder: number }) {
+    const youtubeVideoId = parseYouTubeVideoId(input.youtubeUrl);
+    if (!youtubeVideoId) throw new AppError(422, "INVALID_YOUTUBE_URL", "Enter a valid YouTube watch, short, embed, or youtu.be URL");
+    const topicsScope = await this.validateTutorialTopics(input.topicIds);
+    const created = await this.db.transaction(async (tx) => {
+      const [video] = await tx.insert(tutorialVideos).values({ youtubeVideoId, title: input.title.trim(), description: input.description?.trim() || null, language: input.language.trim().toLowerCase(), difficulty: input.difficulty ?? null, thumbnailUrl: youtubeThumbnailUrl(youtubeVideoId), displayOrder: input.displayOrder, createdBy: a.userId, status: "DRAFT" }).returning({ id: tutorialVideos.id });
+      await tx.insert(tutorialVideoTopics).values(topicsScope.ids.map((topicId) => ({ tutorialVideoId: video!.id, topicId })));
+      return video!.id;
+    });
+    await this.audit(a, "TUTORIAL_CREATED", "tutorial_video", created, { youtubeVideoId, topicIds: topicsScope.ids });
+    return { id: created, status: "DRAFT" };
+  }
+
+  async updateTutorial(a: Actor, id: string, input: { youtubeUrl: string; title: string; description?: string; language: string; difficulty?: "EASY" | "MEDIUM" | "HARD" | null; topicIds: string[]; displayOrder: number }) {
+    const [existing] = await this.db.select({ id: tutorialVideos.id, status: tutorialVideos.status }).from(tutorialVideos).where(and(eq(tutorialVideos.id, id), isNull(tutorialVideos.deletedAt))).limit(1);
+    if (!existing) throw Errors.notFound("Tutorial video");
+    const youtubeVideoId = parseYouTubeVideoId(input.youtubeUrl); if (!youtubeVideoId) throw new AppError(422, "INVALID_YOUTUBE_URL", "Enter a valid YouTube URL");
+    const topicsScope = await this.validateTutorialTopics(input.topicIds);
+    await this.db.transaction(async (tx) => {
+      await tx.update(tutorialVideos).set({ youtubeVideoId, title: input.title.trim(), description: input.description?.trim() || null, language: input.language.trim().toLowerCase(), difficulty: input.difficulty ?? null, thumbnailUrl: youtubeThumbnailUrl(youtubeVideoId), displayOrder: input.displayOrder, updatedAt: new Date() }).where(eq(tutorialVideos.id, id));
+      await tx.delete(tutorialVideoTopics).where(eq(tutorialVideoTopics.tutorialVideoId, id));
+      await tx.insert(tutorialVideoTopics).values(topicsScope.ids.map((topicId) => ({ tutorialVideoId: id, topicId })));
+    });
+    await this.audit(a, "TUTORIAL_UPDATED", "tutorial_video", id, { topicIds: topicsScope.ids }); return { id, status: existing.status };
+  }
+
+  async setTutorialStatus(a: Actor, id: string, status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
+    const [video] = await this.db.select({ id: tutorialVideos.id, status: tutorialVideos.status }).from(tutorialVideos).where(and(eq(tutorialVideos.id, id), isNull(tutorialVideos.deletedAt))).limit(1);
+    if (!video) throw Errors.notFound("Tutorial video");
+    if (status === "PUBLISHED") {
+      const rows = await this.db.select({ topicStatus: topics.status, subjectStatus: subjects.status }).from(tutorialVideoTopics).innerJoin(topics, eq(topics.id, tutorialVideoTopics.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId)).where(eq(tutorialVideoTopics.tutorialVideoId, id));
+      if (!rows.length || rows.some((row) => row.topicStatus !== "PUBLISHED" || row.subjectStatus !== "PUBLISHED")) throw new AppError(422, "PARENT_NOT_PUBLISHED", "Publish every assigned subject and topic before publishing this tutorial");
+    }
+    await this.db.update(tutorialVideos).set({ status, updatedAt: new Date() }).where(eq(tutorialVideos.id, id));
+    await this.audit(a, `TUTORIAL_${status}`, "tutorial_video", id); return { id, status };
+  }
+
+  async deleteTutorial(a: Actor, id: string) {
+    const [deleted] = await this.db.update(tutorialVideos).set({ deletedAt: new Date(), status: "ARCHIVED", updatedAt: new Date() }).where(and(eq(tutorialVideos.id, id), isNull(tutorialVideos.deletedAt))).returning({ id: tutorialVideos.id });
+    if (!deleted) throw Errors.notFound("Tutorial video"); await this.audit(a, "TUTORIAL_DELETED", "tutorial_video", id); return { done: true };
   }
 
   async listExams(f: { q?: string; status?: "DRAFT" | "PUBLISHED" | "ARCHIVED"; limit: number; offset: number }) {

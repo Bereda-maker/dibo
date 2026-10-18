@@ -151,6 +151,35 @@ export const notes = pgTable("notes", {
   createdAt: createdAt(), updatedAt: updatedAt(),
 }, (t) => [uniqueIndex("notes_material_locale_uq").on(t.materialId, t.locale)]);
 
+// ---------- tutorial videos ----------
+export const tutorialVideos = pgTable("tutorial_videos", {
+  id: id(),
+  youtubeVideoId: text("youtube_video_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  language: text("language").notNull().default("en"),
+  difficulty: difficultyEnum("difficulty"),
+  thumbnailUrl: text("thumbnail_url"),
+  status: contentStatusEnum("status").notNull().default("DRAFT"),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+  deletedAt: deletedAt(),
+}, (t) => [
+  uniqueIndex("tutorial_videos_youtube_id_uq").on(t.youtubeVideoId),
+  index("tutorial_videos_status_idx").on(t.status, t.createdAt),
+  index("tutorial_videos_created_by_idx").on(t.createdBy),
+]);
+
+export const tutorialVideoTopics = pgTable("tutorial_video_topics", {
+  tutorialVideoId: uuid("tutorial_video_id").notNull().references(() => tutorialVideos.id, { onDelete: "cascade" }),
+  topicId: uuid("topic_id").notNull().references(() => topics.id, { onDelete: "cascade" }),
+}, (t) => [
+  primaryKey({ columns: [t.tutorialVideoId, t.topicId] }),
+  index("tutorial_video_topics_topic_idx").on(t.topicId),
+]);
+
 // ---------- questions ----------
 export const questions = pgTable("questions", {
   id: id(),

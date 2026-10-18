@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { and, asc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { v as zValidator } from "../utils/validate";
-import { subjects, topics, learningMaterials, notes, studentProfiles, type Db } from "@dibora/database";
+import { subjects, topics, learningMaterials, notes, studentProfiles, tutorialVideoTopics, tutorialVideos, type Db } from "@dibora/database";
 import type { AuthContext } from "../middleware/auth";
 import { ok } from "../utils/response";
 import { Errors } from "../utils/errors";
@@ -55,6 +55,23 @@ export const contentRoutes = (db: Db) => {
   });
   r.get("/topics", zValidator("query", z.object({ subjectId: z.string().uuid() })), async (c) =>
     ok(c, await db.select({ id: topics.id, slug: topics.slug, names: topics.names }).from(topics).where(and(eq(topics.subjectId, c.req.valid("query").subjectId), eq(topics.status, "PUBLISHED"), inArray(topics.subjectId, await notesSubjectIds(c)))).orderBy(asc(topics.sortOrder))));
+  r.get("/tutorials", zValidator("query", z.object({ topicId: z.string().uuid() })), async (c) => {
+    const { topicId } = c.req.valid("query");
+    const rows = await db.select({ id: tutorialVideos.id, youtubeVideoId: tutorialVideos.youtubeVideoId, title: tutorialVideos.title, description: tutorialVideos.description,
+      language: tutorialVideos.language, difficulty: tutorialVideos.difficulty, thumbnailUrl: tutorialVideos.thumbnailUrl, displayOrder: tutorialVideos.displayOrder })
+      .from(tutorialVideos).innerJoin(tutorialVideoTopics, eq(tutorialVideoTopics.tutorialVideoId, tutorialVideos.id)).innerJoin(topics, eq(topics.id, tutorialVideoTopics.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))
+      .where(and(eq(tutorialVideoTopics.topicId, topicId), eq(tutorialVideos.status, "PUBLISHED"), isNull(tutorialVideos.deletedAt), eq(topics.status, "PUBLISHED"), eq(subjects.status, "PUBLISHED"), inArray(topics.subjectId, await notesSubjectIds(c))))
+      .orderBy(asc(tutorialVideos.displayOrder), asc(tutorialVideos.createdAt));
+    return ok(c, rows.map((row) => ({ ...row, embedUrl: `https://www.youtube-nocookie.com/embed/${row.youtubeVideoId}` })));
+  });
+  r.get("/tutorials/:id", zValidator("param", z.object({ id: z.string().uuid() })), async (c) => {
+    const [row] = await db.select({ id: tutorialVideos.id, youtubeVideoId: tutorialVideos.youtubeVideoId, title: tutorialVideos.title, description: tutorialVideos.description,
+      language: tutorialVideos.language, difficulty: tutorialVideos.difficulty, thumbnailUrl: tutorialVideos.thumbnailUrl, embedUrl: sql<string>`'https://www.youtube-nocookie.com/embed/' || ${tutorialVideos.youtubeVideoId}` })
+      .from(tutorialVideos).innerJoin(tutorialVideoTopics, eq(tutorialVideoTopics.tutorialVideoId, tutorialVideos.id)).innerJoin(topics, eq(topics.id, tutorialVideoTopics.topicId)).innerJoin(subjects, eq(subjects.id, topics.subjectId))
+      .where(and(eq(tutorialVideos.id, c.req.valid("param").id), eq(tutorialVideos.status, "PUBLISHED"), isNull(tutorialVideos.deletedAt), eq(topics.status, "PUBLISHED"), eq(subjects.status, "PUBLISHED"), inArray(topics.subjectId, await notesSubjectIds(c)))).limit(1);
+    if (!row) throw Errors.notFound("Tutorial video");
+    return ok(c, row);
+  });
   r.get("/notes", zValidator("query", z.object({ topicId: z.string().uuid().optional(), subjectId: z.string().uuid().optional(), subjectKey: z.string().max(240).optional(), grade: z.coerce.number().int().min(9).max(12).optional(), q: z.string().max(80).optional(), limit: z.coerce.number().int().min(1).max(50).default(20) })), async (c) => {
     const { topicId, subjectId, subjectKey, grade, q, limit } = c.req.valid("query");
     const conds = [
