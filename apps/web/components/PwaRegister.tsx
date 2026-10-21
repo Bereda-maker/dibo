@@ -12,13 +12,23 @@ async function syncMutation(mutation: OfflineMutation) {
 export function PwaRegister() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    const register = () => navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);
+    let registration: ServiceWorkerRegistration | undefined;
+    const register = () => {
+      void navigator.serviceWorker.register("/sw.js", { scope: "/" }).then((nextRegistration) => {
+        registration = nextRegistration;
+        // Explicitly check for a refreshed shell so an old offline page is not
+        // kept indefinitely by browsers that rarely revisit the app online.
+        return nextRegistration.update();
+      }).catch(() => undefined);
+    };
+    const update = () => { if (navigator.onLine) void registration?.update().catch(() => undefined); };
     if (document.readyState === "complete") register();
     else window.addEventListener("load", register, { once: true });
     const sync = () => { if (navigator.onLine) void drainOfflineMutations(syncMutation); };
     sync();
     window.addEventListener("online", sync);
-    return () => { window.removeEventListener("load", register); window.removeEventListener("online", sync); };
+    window.addEventListener("online", update);
+    return () => { window.removeEventListener("load", register); window.removeEventListener("online", sync); window.removeEventListener("online", update); };
   }, []);
   return null;
 }
