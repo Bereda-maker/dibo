@@ -3,28 +3,139 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b5d3b">
-  <title>Deborah — Offline</title>
+  <meta name="theme-color" content="#173f32">
+  <title>Deborah — Offline study lounge</title>
   <style>
-    :root { color-scheme: light; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#fbf7ee; color:#1d2420; }
-    * { box-sizing:border-box; }
-    body { min-height:100vh; margin:0; display:grid; place-items:center; padding:24px; }
-    main { width:min(560px,100%); text-align:center; background:#fff; border:1px solid #e6dfcd; border-radius:28px; padding:40px 28px; box-shadow:0 12px 35px rgba(11,93,59,.10); }
-    img { width:72px; height:72px; object-fit:contain; border-radius:20px; margin-bottom:18px; }
-    h1 { margin:0; color:#0b5d3b; font-size:clamp(1.7rem,5vw,2.35rem); }
-    p { color:#5d6a63; line-height:1.7; margin:14px auto 0; }
-    button { margin-top:24px; border:0; border-radius:14px; padding:13px 20px; background:#0b5d3b; color:#fff; font-weight:700; font-size:1rem; cursor:pointer; }
-    .languages { margin-top:25px; padding-top:20px; border-top:1px solid #e6dfcd; font-size:.9rem; }
+    :root {
+      color-scheme: light;
+      font-family: "Noto Sans Ethiopic", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #faf8f2;
+      color: #202923;
+      --primary: #173f32;
+      --primary-light: #28664f;
+      --accent: #d4a437;
+      --surface: #ffffff;
+      --muted: #68736c;
+      --border: #e5e9e4;
+      --shadow: 0 18px 46px rgba(23, 63, 50, .12);
+    }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; padding: 24px; background: radial-gradient(circle at 12% 0%, rgba(212,164,55,.14), transparent 30rem), #faf8f2; }
+    a, button { -webkit-tap-highlight-color: transparent; }
+    a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    .shell { width: min(980px, 100%); margin: 0 auto; }
+    .brand { display: inline-flex; align-items: center; gap: 12px; color: var(--primary); text-decoration: none; }
+    .brand-mark { width: 52px; height: 52px; padding: 4px; object-fit: contain; background: #fff; border: 1px solid rgba(212,164,55,.32); border-radius: 16px; box-shadow: 0 4px 12px rgba(23,63,50,.08); }
+    .brand-name { display: block; font-size: 1.25rem; font-weight: 800; letter-spacing: -.03em; }
+    .brand-line { display: block; margin-top: 2px; color: var(--muted); font-size: .59rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(290px, .92fr); gap: 18px; margin-top: 22px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 28px; box-shadow: var(--shadow); }
+    .welcome { padding: clamp(28px, 6vw, 58px); display: flex; flex-direction: column; justify-content: center; min-height: 430px; }
+    .eyebrow { display: inline-flex; width: fit-content; align-items: center; gap: 8px; padding: 7px 11px; border: 1px solid rgba(212,164,55,.35); border-radius: 999px; background: rgba(212,164,55,.12); color: #765516; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .eyebrow span { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    h1 { max-width: 620px; margin: 20px 0 0; color: var(--primary); font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1.04; letter-spacing: -.055em; }
+    .lead { max-width: 560px; margin: 18px 0 0; color: var(--muted); font-size: 1.02rem; line-height: 1.75; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+    button, .link-button { min-height: 46px; padding: 12px 17px; border-radius: 13px; font: inherit; font-size: .92rem; font-weight: 800; cursor: pointer; text-decoration: none; }
+    .primary { border: 0; background: var(--primary); color: #fff; box-shadow: 0 5px 12px rgba(23,63,50,.18); }
+    .primary:hover { background: var(--primary-light); }
+    .secondary { border: 1px solid var(--border); background: var(--surface); color: var(--primary); }
+    .secondary:hover { border-color: var(--primary-light); }
+    .hint { margin: 18px 0 0; color: var(--muted); font-size: .84rem; line-height: 1.6; }
+    .game { padding: 24px; background: var(--primary); color: #fff; overflow: hidden; position: relative; }
+    .game:after { content: ""; position: absolute; width: 180px; height: 180px; right: -72px; top: -72px; border: 26px solid rgba(255,255,255,.08); border-radius: 50%; }
+    .game h2 { position: relative; margin: 0; font-size: 1.35rem; letter-spacing: -.025em; }
+    .game p { position: relative; margin: 8px 0 0; color: rgba(255,255,255,.72); font-size: .88rem; line-height: 1.6; }
+    .score-row { position: relative; display: flex; justify-content: space-between; margin-top: 20px; color: rgba(255,255,255,.7); font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .score-row strong { color: #fff; font-size: 1.1rem; letter-spacing: 0; }
+    .arena { position: relative; height: 210px; margin-top: 12px; border: 1px solid rgba(255,255,255,.18); border-radius: 20px; background: linear-gradient(160deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); overflow: hidden; }
+    .arena:before { content: ""; position: absolute; left: 0; right: 0; bottom: 28px; border-bottom: 2px dashed rgba(255,255,255,.22); }
+    #star { position: absolute; z-index: 1; min-height: 44px; min-width: 44px; padding: 0; border: 0; background: transparent; color: var(--accent); font-size: 2rem; line-height: 1; transform: translate(-50%, -50%); transition: left .16s ease, top .16s ease; }
+    #star[hidden] { display: none; }
+    .game-controls { position: relative; display: flex; gap: 8px; margin-top: 12px; }
+    .game-controls button { flex: 1; min-height: 42px; padding: 9px 12px; font-size: .8rem; }
+    .game-controls .primary { background: var(--accent); color: var(--primary); }
+    .offline-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+    .tool { padding: 16px; border: 1px solid var(--border); border-radius: 20px; background: rgba(255,255,255,.7); }
+    .tool b { display: block; color: var(--primary); font-size: .92rem; }
+    .tool span { display: block; margin-top: 5px; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+    footer { padding: 18px 4px 4px; color: var(--muted); font-size: .78rem; text-align: center; }
+    @media (max-width: 720px) { body { padding: 16px; } .layout { grid-template-columns: 1fr; } .welcome { min-height: 0; } .offline-tools { grid-template-columns: 1fr; } .game { min-height: 420px; } }
+    @media (prefers-reduced-motion: reduce) { #star { transition: none; } }
   </style>
 </head>
 <body>
-  <main>
-    <img src="/images/dibora-logo.png" alt="Deborah">
-    <h1>You are offline</h1>
-    <p>አሁን ከኢንተርኔት ውጭ ነዎት።<br>Amma interneetii irraa ala jirta.</p>
-    <p>Previously opened Deborah pages may still be available. Reconnect to continue learning and sync your latest activity.</p>
-    <button type="button" onclick="location.reload()">Try again</button>
-    <div class="languages">Deborah · Learn · Grow · Achieve</div>
-  </main>
+  <div class="shell">
+    <header>
+      <a class="brand" href="/" aria-label="Deborah home">
+        <img class="brand-mark" src="/images/dibora-logo.png" alt="Deborah logo">
+        <span><span class="brand-name">Deborah</span><span class="brand-line">Learn · Grow · Achieve</span></span>
+      </a>
+    </header>
+
+    <main class="layout">
+      <section class="card welcome" aria-labelledby="offline-title">
+        <div class="eyebrow"><span aria-hidden="true"></span>Offline study lounge</div>
+        <h1 id="offline-title">Dear learner, I think you’ve wandered into the dinosaur era.</h1>
+        <p class="lead">Your internet connection is taking a little fossil break. Find a reliable connection and Deborah will be ready to continue your learning journey.</p>
+        <p class="lead">Previously opened pages may still be available on this device. Your new activity will sync when you’re back online.</p>
+        <div class="actions">
+          <button class="primary" type="button" onclick="location.reload()">Try again</button>
+          <a class="link-button secondary" href="/">Open cached home</a>
+        </div>
+        <p class="hint" role="status" aria-live="polite">No worries—your study streak is safe. Take a breath, play a round, and come back when the signal returns.</p>
+      </section>
+
+      <section class="card game" aria-labelledby="game-title">
+        <h2 id="game-title">Dino Dash: catch the stars</h2>
+        <p>Tap or press the star as many times as you can in 20 seconds. No internet, no problem.</p>
+        <div class="score-row"><span>Score <strong id="score">0</strong></span><span>Time <strong id="time">20</strong></span></div>
+        <div class="arena" id="arena" aria-label="Offline game arena">
+          <button id="star" type="button" aria-label="Catch the star">★</button>
+        </div>
+        <div class="game-controls">
+          <button class="primary" id="start" type="button">Start game</button>
+          <button class="secondary" id="reset" type="button">Reset</button>
+        </div>
+        <p id="game-status" role="status" aria-live="polite">Ready when you are.</p>
+      </section>
+    </main>
+
+    <section class="offline-tools" aria-label="Offline study ideas">
+      <div class="tool"><b>Recall one idea</b><span>Explain a topic you studied today in three sentences.</span></div>
+      <div class="tool"><b>Make five questions</b><span>Write a mini quiz from your last lesson and answer it later.</span></div>
+      <div class="tool"><b>Rest with purpose</b><span>Stretch, drink water, and return with a clearer mind.</span></div>
+    </section>
+    <footer>Deborah · Learn · Grow · Achieve</footer>
+  </div>
+  <script>
+    (function () {
+      var arena = document.getElementById('arena');
+      var star = document.getElementById('star');
+      var scoreEl = document.getElementById('score');
+      var timeEl = document.getElementById('time');
+      var start = document.getElementById('start');
+      var reset = document.getElementById('reset');
+      var status = document.getElementById('game-status');
+      var score = 0, time = 20, timer = null, playing = false;
+      function moveStar() {
+        var rect = arena.getBoundingClientRect();
+        star.style.left = (28 + Math.random() * Math.max(44, rect.width - 56)) + 'px';
+        star.style.top = (32 + Math.random() * Math.max(44, rect.height - 64)) + 'px';
+      }
+      function finish() {
+        clearInterval(timer); timer = null; playing = false; star.hidden = true; start.textContent = 'Play again';
+        status.textContent = 'Time! You caught ' + score + ' star' + (score === 1 ? '' : 's') + '. Nice work.';
+      }
+      function begin() {
+        clearInterval(timer); score = 0; time = 20; playing = true; star.hidden = false; start.textContent = 'Restart game';
+        scoreEl.textContent = score; timeEl.textContent = time; status.textContent = 'Go, go, go!'; moveStar();
+        timer = setInterval(function () { time -= 1; timeEl.textContent = time; if (time <= 0) finish(); }, 1000);
+      }
+      star.addEventListener('click', function () { if (!playing) return; score += 1; scoreEl.textContent = score; moveStar(); });
+      start.addEventListener('click', begin);
+      reset.addEventListener('click', function () { clearInterval(timer); timer = null; score = 0; time = 20; playing = false; star.hidden = true; start.textContent = 'Start game'; scoreEl.textContent = '0'; timeEl.textContent = '20'; status.textContent = 'Ready when you are.'; });
+    }());
+  </script>
 </body>
 </html>

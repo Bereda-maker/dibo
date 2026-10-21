@@ -1,4 +1,4 @@
-const CACHE_VERSION = "dibora-shell-v3";
+const CACHE_VERSION = "dibora-shell-v4";
 const APP_SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/icon.png", "/favicon.ico", "/images/dibora-logo.png"];
 
 self.addEventListener("install", (event) => {
