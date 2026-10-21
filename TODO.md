@@ -47,5 +47,5 @@
 
 - When the internet connection fails and the service worker serves the static fallback, show the real Deborah logo and wordmark with the existing “Learn · Grow · Achieve” brand line instead of an unbranded message-only screen.
 - Show a friendly playful offline message, a clear Try again action, and guidance that previously opened Deborah pages may still be available.
-- Provide at least one self-contained offline game and useful offline study prompts that work without network requests, external fonts, or additional assets.
+- Provide self-contained offline games, including a quick arcade game and an educational five-question quiz with feedback and replay, plus useful offline study prompts; all work without network requests, external fonts, or additional assets.
 - Keep the fallback responsive, keyboard-accessible, readable, and visually aligned with the live app’s deep green, gold, warm-neutral, and card-surface design language.

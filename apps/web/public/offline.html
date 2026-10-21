@@ -55,6 +55,22 @@
     .game-controls { position: relative; display: flex; gap: 8px; margin-top: 12px; }
     .game-controls button { flex: 1; min-height: 42px; padding: 9px 12px; font-size: .8rem; }
     .game-controls .primary { background: var(--accent); color: var(--primary); }
+    .quiz-card { margin-top: 18px; padding: 24px; }
+    .quiz-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .quiz-card h2 { margin: 0; color: var(--primary); font-size: 1.35rem; letter-spacing: -.025em; }
+    .quiz-card p { margin: 7px 0 0; color: var(--muted); font-size: .88rem; line-height: 1.6; }
+    .quiz-score { flex: 0 0 auto; padding: 8px 11px; border-radius: 12px; background: rgba(212,164,55,.14); color: #765516; font-size: .76rem; font-weight: 800; white-space: nowrap; }
+    .quiz-progress { height: 7px; margin-top: 20px; border-radius: 99px; background: #edf0eb; overflow: hidden; }
+    .quiz-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .2s ease; }
+    .question { margin-top: 20px !important; color: var(--primary) !important; font-size: 1.08rem !important; font-weight: 800; }
+    .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 14px; }
+    .option { min-height: 48px; padding: 11px 13px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); color: var(--text); text-align: left; font-size: .86rem; font-weight: 700; }
+    .option:hover:not(:disabled) { border-color: var(--primary-light); background: #f5f8f4; }
+    .option.correct { border-color: #22845a; background: #eaf7ef; color: #17633f; }
+    .option.wrong { border-color: #c44747; background: #fff0f0; color: #9f3030; }
+    .quiz-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; }
+    .quiz-actions button { min-height: 42px; padding: 9px 13px; font-size: .82rem; }
+    @media (max-width: 520px) { .quiz-head { display: block; } .quiz-score { display: inline-block; margin-top: 12px; } .options { grid-template-columns: 1fr; } }
     .offline-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
     .tool { padding: 16px; border: 1px solid var(--border); border-radius: 20px; background: rgba(255,255,255,.7); }
     .tool b { display: block; color: var(--primary); font-size: .92rem; }
@@ -101,6 +117,18 @@
       </section>
     </main>
 
+    <section class="card quiz-card" aria-labelledby="quiz-title">
+      <div class="quiz-head">
+        <div><h2 id="quiz-title">Subject Sprint</h2><p>Test your memory with five quick questions. Choose an answer to learn instantly.</p></div>
+        <div class="quiz-score">Score: <span id="quiz-score">0</span>/5</div>
+      </div>
+      <div class="quiz-progress" aria-hidden="true"><span id="quiz-progress"></span></div>
+      <p id="quiz-question" class="question">Ready for a quick brain workout?</p>
+      <div id="quiz-options" class="options"></div>
+      <div class="quiz-actions"><button class="primary" id="quiz-start" type="button">Start quiz</button><button class="secondary" id="quiz-next" type="button" hidden>Next question</button></div>
+      <p id="quiz-status" role="status" aria-live="polite">Five questions. One offline brain. Let’s go.</p>
+    </section>
+
     <section class="offline-tools" aria-label="Offline study ideas">
       <div class="tool"><b>Recall one idea</b><span>Explain a topic you studied today in three sentences.</span></div>
       <div class="tool"><b>Make five questions</b><span>Write a mini quiz from your last lesson and answer it later.</span></div>
@@ -135,6 +163,41 @@
       star.addEventListener('click', function () { if (!playing) return; score += 1; scoreEl.textContent = score; moveStar(); });
       start.addEventListener('click', begin);
       reset.addEventListener('click', function () { clearInterval(timer); timer = null; score = 0; time = 20; playing = false; star.hidden = true; start.textContent = 'Start game'; scoreEl.textContent = '0'; timeEl.textContent = '20'; status.textContent = 'Ready when you are.'; });
+
+      var questions = [
+        { q: 'Which organ pumps blood around the body?', a: ['Lungs', 'Heart', 'Kidney', 'Stomach'], correct: 1, note: 'The heart is a muscular pump that circulates blood.' },
+        { q: 'What is the value of 7 × 8?', a: ['48', '54', '56', '64'], correct: 2, note: 'Seven groups of eight make 56.' },
+        { q: 'Which gas do plants take in during photosynthesis?', a: ['Oxygen', 'Nitrogen', 'Hydrogen', 'Carbon dioxide'], correct: 3, note: 'Plants use carbon dioxide, water and light to make food.' },
+        { q: 'What force pulls objects toward Earth?', a: ['Friction', 'Gravity', 'Magnetism', 'Pressure'], correct: 1, note: 'Gravity attracts objects toward the Earth’s centre.' },
+        { q: 'Which state of matter keeps its own shape?', a: ['Solid', 'Liquid', 'Gas', 'Plasma'], correct: 0, note: 'A solid has a fixed shape and volume.' },
+        { q: 'What is the next prime number after 7?', a: ['8', '9', '10', '11'], correct: 3, note: 'Eleven is divisible only by one and itself.' },
+        { q: 'Which part of a plant usually absorbs water from soil?', a: ['Flower', 'Root', 'Fruit', 'Leaf'], correct: 1, note: 'Roots anchor the plant and absorb water and minerals.' }
+      ];
+      var quizQuestion = document.getElementById('quiz-question');
+      var quizOptions = document.getElementById('quiz-options');
+      var quizScore = document.getElementById('quiz-score');
+      var quizProgress = document.getElementById('quiz-progress');
+      var quizStart = document.getElementById('quiz-start');
+      var quizNext = document.getElementById('quiz-next');
+      var quizStatus = document.getElementById('quiz-status');
+      var quizRound = [], quizIndex = 0, quizPoints = 0, answered = false;
+      function shuffle(items) { return items.slice().sort(function () { return Math.random() - 0.5; }); }
+      function renderQuestion() {
+        var item = quizRound[quizIndex]; answered = false; quizQuestion.textContent = (quizIndex + 1) + '. ' + item.q;
+        quizProgress.style.width = ((quizIndex / 5) * 100) + '%'; quizOptions.innerHTML = ''; quizNext.hidden = true;
+        item.a.forEach(function (answer, index) { var button = document.createElement('button'); button.type = 'button'; button.className = 'option'; button.textContent = answer; button.addEventListener('click', function () { answerQuestion(button, index); }); quizOptions.appendChild(button); });
+        quizStatus.textContent = 'Choose the best answer.';
+      }
+      function answerQuestion(button, choice) {
+        if (answered) return; answered = true; var item = quizRound[quizIndex]; var buttons = quizOptions.querySelectorAll('button');
+        buttons.forEach(function (option, index) { option.disabled = true; if (index === item.correct) option.classList.add('correct'); });
+        if (choice === item.correct) { quizPoints += 1; button.classList.add('correct'); quizStatus.textContent = 'Correct! ' + item.note; }
+        else { button.classList.add('wrong'); quizStatus.textContent = 'Not quite. ' + item.note; }
+        quizScore.textContent = quizPoints; quizProgress.style.width = (((quizIndex + 1) / 5) * 100) + '%'; quizNext.hidden = false;
+      }
+      function beginQuiz() { quizRound = shuffle(questions).slice(0, 5); quizIndex = 0; quizPoints = 0; quizScore.textContent = '0'; quizStart.textContent = 'Restart quiz'; quizStatus.textContent = 'Let’s test that memory.'; renderQuestion(); }
+      quizStart.addEventListener('click', beginQuiz);
+      quizNext.addEventListener('click', function () { quizIndex += 1; if (quizIndex >= quizRound.length) { quizQuestion.textContent = 'Sprint complete! You scored ' + quizPoints + '/5.'; quizOptions.innerHTML = ''; quizNext.hidden = true; quizProgress.style.width = '100%'; quizStatus.textContent = quizPoints >= 4 ? 'Excellent recall. Your brain is warmed up.' : 'Good effort. Review one topic and try again.'; return; } renderQuestion(); });
     }());
   </script>
 </body>
