@@ -99,6 +99,13 @@ export function GoalPlanner() {
               <div className="min-w-0 break-words"><h2 id="student-spotlight-title" className="text-lg font-black leading-tight sm:text-xl">Gosa Negeso Geletto</h2><p className="mt-1 text-sm font-semibold text-cyan-200">589 / 600 · Natural Science</p><blockquote className="mt-3 rounded-xl border-l-2 border-cyan-200 bg-white/[0.06] p-3 text-sm leading-6 text-white/85">“Good study materials and practice questions can help students prepare better.”</blockquote><p className="mt-2 text-xs font-bold text-cyan-100">— Gosa</p></div>
             </div>
           </section>
+          <section aria-labelledby="gishe-spotlight-title" className="mt-4 min-w-0 overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-[#173d36] via-[#145443] to-[#0b302a] p-4 text-white shadow-lg sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[.12em] text-emerald-200">Another student achievement</p><span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[10px] font-bold text-white/75">Shared with permission</span></div>
+            <div className="mt-4 grid min-w-0 items-center gap-4 sm:grid-cols-[110px_minmax(0,1fr)]">
+              <img src="/images/gishe-chuluke-hade-result.jpg" alt="Gishe Chuluke Hade’s result card showing a score of 516 out of 600" className="mx-auto max-h-48 w-auto max-w-full rounded-xl border border-white/15 object-contain shadow-md sm:mx-0" />
+              <div className="min-w-0 break-words"><h2 id="gishe-spotlight-title" className="text-lg font-black leading-tight sm:text-xl">Gishe Chuluke Hade</h2><p className="mt-1 text-sm font-semibold text-emerald-200">516 / 600 · Social Science</p><p className="mt-3 text-sm leading-6 text-white/85">Gishe celebrates the value of dedication, good study materials, and plenty of practice in exam preparation.</p></div>
+            </div>
+          </section>
           <section aria-labelledby="deborah-help-title" className="mt-6 border-t border-border pt-5">
             <h2 id="deborah-help-title" className="text-lg font-black text-primary">Turn your goal into a routine</h2>
             <p className="mt-1 text-sm leading-6 text-muted">Study a topic, practise questions, and use your progress to decide what to work on next.</p>
