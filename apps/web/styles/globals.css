@@ -141,8 +141,15 @@ select {
   animation: dibora-page-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.planner-result-enter {
+  animation: dibora-page-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-transition-enter {
+    animation: none;
+  }
+  .planner-result-enter {
     animation: none;
   }
 }

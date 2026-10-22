@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, BookOpenCheck, ClipboardCheck, RotateCcw, Sparkles, Target, TrendingUp } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type PlannerData = { stream: string; city: string; otherCity: string; otherRegion: string; examYear: string; hours: string };
 const initialData: PlannerData = { stream: "", city: "", otherCity: "", otherRegion: "", examYear: "", hours: "" };
@@ -25,7 +25,7 @@ function currentEthiopianYear() {
 function estimate(data: PlannerData) {
   const year = Number(data.examYear);
   const percentage = Math.min(92, Math.max(20, Math.round(18 + Number(data.hours) * 8 + (data.stream === "natural" ? 3 : 2) + Math.min(6, Math.max(0, year - currentEthiopianYear())))));
-  const band = percentage >= 82 ? "550+" : percentage >= 70 ? "500+" : percentage >= 56 ? "450+" : percentage >= 36 ? "400+" : "300+";
+  const band = percentage >= 82 ? "550" : percentage >= 70 ? "500" : percentage >= 56 ? "450" : percentage >= 36 ? "400" : "300";
   const mood = percentage >= 70 ? { face: "🌟", headline: "You’ve got this!", message: "Your ambition is shining—keep showing up, one focused day at a time." } : percentage >= 45 ? { face: "💪", headline: "A strong start is yours.", message: "You’re building momentum. Every study session brings your goal closer." } : { face: "🌱", headline: "Every big goal starts small.", message: "Be kind to yourself: steady practice can grow your confidence and your score." };
   return { percentage, band, mood };
 }
@@ -35,11 +35,15 @@ export function GoalPlanner() {
   const [data, setData] = useState(initialData);
   const [step, setStep] = useState(0);
   const [resultVisible, setResultVisible] = useState(false);
+  const resultHeadingRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
   const otherCity = data.city === "__other__";
   const selectedCity = otherCity ? data.otherCity.trim() : data.city;
   const region = otherCity ? data.otherRegion : cities.find(([city]) => city === data.city)?.[1] ?? "";
   const result = useMemo(() => estimate(data), [data]);
+  useEffect(() => {
+    if (resultVisible) resultHeadingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [resultVisible]);
   const update = (key: keyof PlannerData, value: string) => { setData((current) => ({ ...current, [key]: value })); setError(""); };
   const values = [data.stream, selectedCity && region, data.examYear, data.hours];
   const next = () => {
@@ -82,7 +86,7 @@ export function GoalPlanner() {
           <div className="mt-7 flex gap-3"><button type="button" onClick={back} disabled={step === 0} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-border text-sm font-bold text-primary hover:bg-background disabled:invisible"><ArrowLeft size={16} /> Back</button><button type="button" onClick={next} className="flex h-12 flex-[1.5] items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-white shadow-sm transition hover:bg-primary-light">{step === steps.length - 1 ? "See my estimate" : "Continue"}<ArrowRight size={17} /></button></div>
           <p className="mt-4 text-center text-[11px] text-muted">A friendly planning guide—not an official exam prediction.</p>
         </> : <>
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-primary"><Sparkles size={15} className="text-accent" /> Your starting estimate</div>
+          <div ref={resultHeadingRef} className="planner-result-enter scroll-mt-4 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-primary"><Sparkles size={15} className="text-accent" /> Your starting estimate</div>
           <div className="mt-4 rounded-2xl bg-primary p-5 text-white sm:p-6"><p className="text-5xl font-black tracking-tight text-accent">{result.percentage}%</p><p className="mt-1 text-sm font-semibold">estimated chance of reaching {result.band}+ out of 600</p><div role="progressbar" aria-label="Estimated likelihood" aria-valuemin={0} aria-valuemax={100} aria-valuenow={result.percentage} aria-valuetext={`${result.percentage}% estimated chance of reaching ${result.band}+ out of 600`} className="mt-4 h-2 overflow-hidden rounded-full bg-white/25"><div aria-hidden="true" className="h-full rounded-full bg-accent transition-all motion-reduce:transition-none" style={{ width: `${result.percentage}%` }} /></div></div>
           <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-4"><p className="text-2xl" aria-hidden="true">{result.mood.face}</p><h2 className="mt-1 text-lg font-black text-primary">{result.mood.headline}</h2><p className="mt-1 text-sm leading-5 text-muted">{result.mood.message}</p></div>
           <p className="mt-4 text-xs leading-5 text-muted">This is a starting-point estimate, not a guarantee. Your stream, {data.hours} study hour{data.hours === "1" ? "" : "s"}/day and {data.examYear} E.C. exam help shape your plan. Your potential is not defined by a number.</p>
