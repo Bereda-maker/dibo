@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, LayoutDashboard, LogOut, UserRound } from "lucide-react";
 import { useSession } from "../lib/session";
 import { useStore } from "../lib/store";
@@ -45,6 +45,7 @@ function AccountMenu({ name, initials, dashboardHref, isStudent, onLogout }: { n
 }
 
 export function MarketingShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const t = useT();
   const session = useSession();
   const store = useStore();
@@ -61,6 +62,8 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
     else void session.logout();
     router.push("/");
   };
+
+  if (pathname === "/goal-planner") return <>{children}</>;
 
   return (
     <div className="min-h-screen">
