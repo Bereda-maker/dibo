@@ -4,13 +4,13 @@ import type { z } from "zod";
 import type { profileUpdateSchema } from "@dibora/validation";
 import { Errors } from "../utils/errors";
 
-const PROFILE_FIELDS = ["fullName", "phone", "school", "region", "city", "stream", "examYear", "displayName", "leaderboardOptIn"] as const;
+const PROFILE_FIELDS = ["fullName", "phone", "school", "region", "city", "stream", "examYear", "dailyStudyHours", "displayName", "leaderboardOptIn"] as const;
 export class StudentService {
   constructor(private db: Db) {}
   async me(userId: string) {
     const [r] = await this.db.select({ p: studentProfiles, email: users.email, role: users.role }).from(studentProfiles).innerJoin(users, eq(users.id, studentProfiles.userId)).where(and(eq(studentProfiles.userId, userId), isNull(studentProfiles.deletedAt)));
     if (!r) throw Errors.notFound("Profile");
-    const p = r.p; return { id: p.id, email: r.email, fullName: p.fullName, phone: p.phone, school: p.school, region: p.region, city: p.city, grade: p.grade, educationLevel: p.educationLevel, stream: p.stream, examYear: p.examYear, displayName: p.displayName, subjectIds: p.selectedSubjectIds, learningStatus: p.learningStatus, subscriptionStatus: p.subscriptionStatus, leaderboardOptIn: p.leaderboardOptIn };
+    const p = r.p; return { id: p.id, email: r.email, fullName: p.fullName, phone: p.phone, school: p.school, region: p.region, city: p.city, grade: p.grade, educationLevel: p.educationLevel, stream: p.stream, examYear: p.examYear, dailyStudyHours: p.dailyStudyHours, displayName: p.displayName, subjectIds: p.selectedSubjectIds, learningStatus: p.learningStatus, subscriptionStatus: p.subscriptionStatus, leaderboardOptIn: p.leaderboardOptIn };
   }
   async update(userId: string, patch: z.infer<typeof profileUpdateSchema>) {
     const set: Record<string, unknown> = { updatedAt: new Date() }; for (const k of PROFILE_FIELDS) if (patch[k] !== undefined) set[k] = patch[k];

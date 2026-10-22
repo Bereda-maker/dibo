@@ -41,7 +41,27 @@ function SocialLogin({ provider }: { provider: Provider }) {
     setError("");
     startNavigationProgress();
     let providerVerified = false;
-    try { const result = await api<{ role: string; isNew: boolean }>(`/auth/${path}`, { method: "POST", body }); providerVerified = true; await refresh(); router.push(result.isNew ? "/profile?welcome=1" : result.role === "STUDENT" ? "/dashboard" : "/admin"); }
+    try {
+      const result = await api<{ role: string; isNew: boolean }>(`/auth/${path}`, { method: "POST", body });
+      providerVerified = true;
+      await refresh();
+      const fromPlanner = new URLSearchParams(window.location.search).get("source") === "goal-planner";
+      let plannerSaveFailed = false;
+      if (fromPlanner && result.role === "STUDENT") {
+        try {
+          const raw = sessionStorage.getItem("deborah_goal_planner_draft");
+          if (raw) {
+            const draft = JSON.parse(raw) as { stream?: unknown; city?: unknown; region?: unknown; examYear?: unknown; dailyStudyHours?: unknown };
+            if (typeof draft.stream === "string" && typeof draft.city === "string" && typeof draft.region === "string" && typeof draft.examYear === "number" && typeof draft.dailyStudyHours === "number") {
+              await api("/students/me", { method: "PATCH", body: { stream: draft.stream, city: draft.city, region: draft.region, examYear: draft.examYear, dailyStudyHours: draft.dailyStudyHours } });
+              sessionStorage.removeItem("deborah_goal_planner_draft");
+            }
+          }
+        } catch { plannerSaveFailed = true; }
+      }
+      const destination = result.role === "STUDENT" ? result.isNew ? plannerSaveFailed ? "/profile?welcome=1&plannerSaveFailed=1" : "/profile?welcome=1" : plannerSaveFailed ? "/profile?plannerSaveFailed=1" : "/dashboard" : "/admin";
+      router.push(destination);
+    }
     catch (cause) { submittingRef.current = false; setError(authFailureMessage(path === "google" ? "Google" : "Telegram", providerVerified ? "session" : "provider-callback", cause)); setSubmitting(false); finishNavigationProgress(); }
   };
   useEffect(() => {
@@ -96,15 +116,16 @@ function SocialLogin({ provider }: { provider: Provider }) {
 
 export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
   const [provider, setProvider] = useState<Provider>("google");
-  useEffect(() => { const requested = new URLSearchParams(window.location.search).get("method"); if (requested === "telegram" || requested === "google") setProvider(requested); }, []);
+  const [plannerSignup, setPlannerSignup] = useState(false);
+  useEffect(() => { const query = new URLSearchParams(window.location.search); const requested = query.get("method"); if (requested === "telegram" || requested === "google") setProvider(requested); setPlannerSignup(query.get("source") === "goal-planner"); }, []);
   const isRegister = mode === "register";
   return <div className="mx-auto w-full max-w-xl">
-    <div className="mb-7"><p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">{isRegister ? "Your study space starts here" : "Your learning space"}</p>
-      <h1 className="text-3xl font-extrabold tracking-tight text-text sm:text-4xl">{isRegister ? "Create your Deborah account." : "Welcome back."}</h1>
-      <p className="mt-2 text-sm leading-6 text-muted">{isRegister ? "Choose Google or Telegram. Your student account is created on your first successful sign-in." : "Choose Google or Telegram to continue learning."}</p>
+    <div className="mb-7"><p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">{plannerSignup ? "Your plan is ready" : isRegister ? "Your study space starts here" : "Your learning space"}</p>
+      <h1 className="text-3xl font-extrabold tracking-tight text-text sm:text-4xl">{plannerSignup ? "Save your plan. Start free." : isRegister ? "Create your Deborah account." : "Welcome back."}</h1>
+      <p className="mt-2 text-sm leading-6 text-muted">{plannerSignup ? "Continue with Google or Telegram to create your free account. We’ll save your stream, city, exam year and study goal to your profile." : isRegister ? "Choose Google or Telegram. Your student account is created on your first successful sign-in." : "Choose Google or Telegram to continue learning."}</p>
     </div>
     <ProviderTabs value={provider} onChange={setProvider} />
     {DEMO ? <div role="status" className="rounded-3xl border border-border bg-background/70 p-5 text-sm leading-6 text-muted sm:p-6"><h2 className="font-bold text-text">Provider sign-in is not active in demo mode</h2><p className="mt-2">Google and Telegram sign-in are available when the live Deborah API is configured. Email and password sign-in are not offered.</p></div> : <SocialLogin provider={provider} />}
-    <p className="mt-5 text-center text-xs leading-5 text-muted">New to Deborah? Your account is created automatically when you first continue with Google or Telegram. You can complete your student profile next.</p>
+    <p className="mt-5 text-center text-xs leading-5 text-muted">{plannerSignup ? "Your free account gives you access to Deborah’s student learning tools. Your saved planner answers can be reviewed in your profile." : "New to Deborah? Your account is created automatically when you first continue with Google or Telegram. You can complete your student profile next."}</p>
   </div>;
 }

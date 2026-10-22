@@ -64,6 +64,13 @@
       "when": 1792261000000,
       "tag": "0008_archive_afaan_oromo_tutorials",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792270000000,
+      "tag": "0009_student_daily_study_hours",
+      "breakpoints": true
     }
   ]
 }

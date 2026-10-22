@@ -2,7 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "./api";
 import { DEMO } from "./config";
-export type Profile = { id: string; email: string; fullName: string; phone: string | null; school: string | null; region: string | null; city: string | null; grade: number; stream: string | null; examYear: number | null; displayName: string | null; subjectIds: string[]; learningStatus: string; subscriptionStatus: string; leaderboardOptIn: boolean };
+export type Profile = { id: string; email: string; fullName: string; phone: string | null; school: string | null; region: string | null; city: string | null; grade: number; stream: string | null; examYear: number | null; dailyStudyHours: number | null; displayName: string | null; subjectIds: string[]; learningStatus: string; subscriptionStatus: string; leaderboardOptIn: boolean };
 type S = { ready: boolean; role: "STUDENT" | "ADMIN" | "SUPER_ADMIN" | null; profile: Profile | null; refresh: () => Promise<void>; logout: () => Promise<void> };
 const C = createContext<S>({ ready: true, role: null, profile: null, refresh: async () => {}, logout: async () => {} });
 export const useSession = () => useContext(C);

@@ -85,6 +85,7 @@ export const studentProfiles = pgTable("student_profiles", {
   grade: integer("grade").notNull(),
   stream: text("stream"),
   examYear: integer("exam_year"),
+  dailyStudyHours: integer("daily_study_hours"),
   displayName: text("display_name"),
   avatarUrl: text("avatar_url"),
   leaderboardOptIn: boolean("leaderboard_opt_in").notNull().default(false),
