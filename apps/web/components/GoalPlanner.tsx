@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, RotateCcw, Sparkles, Target } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpenCheck, ClipboardCheck, RotateCcw, Sparkles, Target, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 
 type PlannerData = { stream: string; city: string; examYear: string; hours: string };
@@ -39,10 +39,10 @@ export function GoalPlanner() {
   const back = () => { setError(""); if (resultVisible) setResultVisible(false); else setStep((current) => Math.max(0, current - 1)); };
   const reset = () => { setData(initialData); setStep(0); setError(""); setResultVisible(false); };
 
-  return <main className="relative flex h-dvh items-center justify-center overflow-hidden bg-background px-3 py-3 sm:px-6 sm:py-4">
+  return <main className={`relative flex justify-center bg-background px-3 py-3 sm:px-6 sm:py-4 ${resultVisible ? "min-h-dvh items-start overflow-y-auto" : "h-dvh items-center overflow-hidden"}`}>
     <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
     <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
-    <section className="relative grid w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-card md:grid-cols-[0.85fr_1.15fr]">
+    <section className={`relative grid w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-card md:grid-cols-[0.85fr_1.15fr] ${resultVisible ? "my-2 sm:my-4" : ""}`}>
       <div className="flex flex-col justify-between bg-primary p-5 text-white sm:p-7 md:min-h-[500px] md:p-9">
         <div><Link href="/" className="text-xs font-bold text-white/75 transition hover:text-white">← Deborah home</Link>
           <p className="mt-7 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.15em] text-accent"><Target size={15} /> Grade 12 goal planner</p>
@@ -70,6 +70,17 @@ export function GoalPlanner() {
           <p className="mt-4 text-xs leading-5 text-muted">This is a starting-point estimate, not a guarantee. Your stream, {data.hours} study hour{data.hours === "1" ? "" : "s"}/day and {data.examYear} exam help shape your plan. Your potential is not defined by a number.</p>
           <div className="mt-5 flex gap-3"><button type="button" onClick={back} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-border text-sm font-bold text-primary hover:bg-background"><ArrowLeft size={15} /> Review answers</button><Link href="/login" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-white hover:bg-primary-light">Start free <ArrowRight size={15} /></Link></div>
           <button type="button" onClick={reset} className="mt-3 inline-flex items-center justify-center gap-2 text-xs font-bold text-muted hover:text-primary"><RotateCcw size={13} /> Start over</button>
+          <section aria-labelledby="deborah-help-title" className="mt-7 border-t border-border pt-6">
+            <p className="text-xs font-black uppercase tracking-wider text-primary">Your preparation, supported</p>
+            <h2 id="deborah-help-title" className="mt-1 text-xl font-black text-primary">How Deborah helps you move forward</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">Turn a big exam goal into a clear routine with learning tools designed for Ethiopian Grade 12 students.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <article className="rounded-2xl border border-border bg-background p-4"><BookOpenCheck size={19} className="text-primary" /><h3 className="mt-3 text-sm font-black text-primary">Learn with clarity</h3><p className="mt-1 text-xs leading-5 text-muted">Review organized notes and get learning support when a topic feels difficult.</p></article>
+              <article className="rounded-2xl border border-border bg-background p-4"><ClipboardCheck size={19} className="text-primary" /><h3 className="mt-3 text-sm font-black text-primary">Practise with purpose</h3><p className="mt-1 text-xs leading-5 text-muted">Try topic questions and quizzes, revisit mistakes, and build exam confidence.</p></article>
+              <article className="rounded-2xl border border-border bg-background p-4"><TrendingUp size={19} className="text-primary" /><h3 className="mt-3 text-sm font-black text-primary">See your progress</h3><p className="mt-1 text-xs leading-5 text-muted">Use progress insights to notice your strengths and choose what to work on next.</p></article>
+            </div>
+            <p className="mt-4 rounded-xl bg-background p-3 text-xs leading-5 text-muted">Small, consistent study sessions add up. Use your estimate as a starting point, then focus on learning and practice—not pressure.</p>
+          </section>
         </>}
       </div>
     </section>
