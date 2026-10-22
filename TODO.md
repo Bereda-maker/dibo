@@ -49,3 +49,12 @@
 - Show a friendly playful offline message, a clear Try again action, and guidance that previously opened Deborah pages may still be available.
 - Provide self-contained offline games, including a quick arcade game and an educational five-question quiz with feedback and replay, plus useful offline study prompts; all work without network requests, external fonts, or additional assets.
 - Keep the fallback responsive, keyboard-accessible, readable, and visually aligned with the live app’s deep green, gold, warm-neutral, and card-surface design language.
+
+## [x] Four-step Grade 12 goal planner
+
+- When a student clicks through from the poster, open a Deborah goal-planner page that asks, in order: (1) stream — Natural or Social; (2) city, region, and exam year; (3) school and school type — Boarding, Private, or Government school; and (4) dedication in study hours per day.
+- Keep each step short, touch-friendly, keyboard-accessible, and clearly show progress through all four steps with validation before continuing.
+- After step 4, provide an analytical percentage estimate based on the inserted data and explain that it is a starting-point estimate, not an official prediction; show an example score statement such as “You have a 40% chance to achieve above 400+ out of 600.”
+- Show an encouraging improvement path that makes clear preparation can change the result, with the requested scenarios: in 1 month from 400 to 450, in 3 months from 400 to 500, and in 6 months from 400 to 550+.
+- Provide a prominent “Start free today” action that redirects to the existing `/login` page without changing authentication or exposing the student’s form data to a new backend.
+- Preserve the existing Deborah brand system and reuse the poster’s student image treatment; keep the route responsive across phone, tablet, and desktop.

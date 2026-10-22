@@ -43,3 +43,12 @@
 - **Brand Voice:** Speak like a patient tutor, not a marketing bot. Examples: “What would you like to understand today?” and “Here are the notes I used, so you can keep learning.”
 - **Wordmark & Logo:** Reuse the existing Deborah wordmark and book/star logo; do not redraw or replace the official mark.
 - **Signature Brand Color:** The existing forest green token (`--primary`), supported by the existing gold accent token.
+
+## Goal planner addition
+
+- **Purpose:** Give a student who clicks the social poster a short, honest starting-point planner for an Ethiopian Grade 12 National Examination goal.
+- **Route:** Add a public `/goal-planner` App Router page with a four-step client-side flow; the poster remains a static preview, while the page provides the interaction.
+- **Steps:** collect stream (Natural or Social); city, region, and exam year; school and school type (Boarding, Private, or Government school); and intended study hours per day.
+- **Estimate:** Calculate a transparent, heuristic percentage and projected score range from the supplied inputs. Label it as an estimate rather than a guaranteed result, and show a simple “with Deborah” improvement path for 1, 3, and 6 months.
+- **Conversion:** Finish with a prominent “Start free today” link to `/login`, preserving the existing authentication flow. Keep inputs local to the page and do not add a backend or claim official predictive validity.
+- **Design:** Use the existing warm cream, deep green, gold, rounded-card language and student photo treatment from the poster; keep one question per view, clear progress, touch-sized choices, and accessible labels/error messages.
