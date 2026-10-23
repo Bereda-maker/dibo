@@ -32,7 +32,7 @@ function catalogSubject(e: ExamRow) {
 
 export function ExamCatalog({ rows, hasSelectedSubjects = true }: { rows: ExamRow[]; hasSelectedSubjects?: boolean }) {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-  const catalog = rows.map((e) => ({ ...e, ...catalogSubject(e) })).map((e) => ({ ...e, subjectKey: e.key, subjectLabel: e.label }));
+  const catalog = rows.map((e) => ({ ...e, ...catalogSubject(e) })).map((e) => ({ ...e, subjectKey: e.key, subjectLabel: e.label })).sort((a, b) => Number(a.locked) - Number(b.locked));
   const subjects = Array.from(new Map(catalog.map((e) => [e.subjectKey, e])).values()).map((first, index) => {
     const palette = subjectPalette[index % subjectPalette.length] ?? subjectPalette[0]!;
     return { key: first.subjectKey, label: first.subjectLabel, exams: catalog.filter((e) => e.subjectKey === first.subjectKey), palette };
