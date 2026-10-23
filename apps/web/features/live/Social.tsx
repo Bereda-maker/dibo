@@ -32,7 +32,12 @@ export function LiveMistakes() {
 }
 
 type Notif = { id: string; title: string; body: string | null; readAt: string | null };
-function LiveNotificationItem({ notification, onAutoRead }: { notification: Notif; onAutoRead: (id: string) => Promise<void> }) {
+export function NotificationDetailModal({ notification, open, onClose }: { notification: { title: string; body: string | null } | null; open: boolean; onClose: () => void }) {
+  return <Modal open={open && !!notification} title="Notification" onClose={onClose}>
+    {notification && <div className="space-y-4"><div className="overflow-hidden rounded-2xl border border-border bg-bg/60"><div className="flex items-center gap-2 border-b border-border bg-surface px-4 py-3 text-xs font-bold uppercase tracking-[.12em] text-muted"><Bell size={15} className="text-accent" aria-hidden="true" />Deborah notification</div><div className="p-4"><h2 className="break-words text-lg font-bold">{notification.title}</h2><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-text">{notification.body ?? "No message content."}</p></div></div><div className="flex justify-end"><Button type="button" onClick={onClose}>Close</Button></div></div>}
+  </Modal>;
+}
+function LiveNotificationItem({ notification, onAutoRead, onOpen }: { notification: Notif; onAutoRead: (id: string) => Promise<void>; onOpen: (notification: Notif) => void }) {
   const visibleNode = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (notification.readAt || !visibleNode.current) return;
@@ -61,11 +66,11 @@ function LiveNotificationItem({ notification, onAutoRead }: { notification: Noti
     return () => { if (timer !== null) window.clearTimeout(timer); observer.disconnect(); };
   }, [notification.id, notification.readAt, onAutoRead]);
 
-  return <Card className={cx("transition-opacity", notification.readAt && "opacity-60")}><div ref={visibleNode} className="flex gap-3"><Bell size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{notification.title}</p>{!notification.readAt && <Badge tone="info">New</Badge>}</div><p className="text-sm text-muted">{notification.body}</p></div></div></Card>;
+  return <Card className={cx("transition-opacity", notification.readAt && "opacity-60")}><button type="button" onClick={() => onOpen(notification)} className="flex w-full gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"><div ref={visibleNode} className="flex min-w-0 flex-1 gap-3"><Bell size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{notification.title}</p>{!notification.readAt && <Badge tone="info">New</Badge>}</div><p className="mt-1 line-clamp-3 whitespace-pre-wrap break-words text-sm text-muted">{notification.body ?? "No message content."}</p><span className="mt-2 inline-block text-xs font-bold text-primary">Read full message</span></div></div></button></Card>;
 }
 export function LiveNotifications() {
   const q = useApi(() => api<Notif[]>("/notifications"));
-  const notificationCount = useStudentNotificationCountContext(); const toast = useToast(); const [marking, setMarking] = useState(false); const readInFlight = useRef(new Set<string>());
+  const notificationCount = useStudentNotificationCountContext(); const toast = useToast(); const [marking, setMarking] = useState(false); const [selected, setSelected] = useState<Notif | null>(null); const readInFlight = useRef(new Set<string>());
   const unread = notificationCount.count ?? 0;
   const markOneRead = useCallback(async (id: string) => {
     if (readInFlight.current.has(id)) return;
@@ -78,6 +83,7 @@ export function LiveNotifications() {
       toast(error instanceof ApiError ? error.message : "Could not mark this notification as read. Scroll back to it to retry.", "error");
     } finally { readInFlight.current.delete(id); }
   }, [q.setData, toast]);
+  const openNotification = (notification: Notif) => { setSelected(notification); if (!notification.readAt) void markOneRead(notification.id); };
   const markAllRead = async () => {
     setMarking(true);
     try {
@@ -87,7 +93,7 @@ export function LiveNotifications() {
       toast(error instanceof ApiError ? error.message : "Could not mark notifications as read.", "error");
     } finally { setMarking(false); }
   };
-  return <><PageHeader title="Notifications" sub="New messages are marked as read after you view them." action={<div className="flex flex-wrap items-center gap-2">{unread > 0 && <Badge tone="info"><span aria-hidden="true">{unread.toLocaleString()}</span><span className="sr-only">{unread} unread notifications</span></Badge>}<Button variant="secondary" loading={marking} disabled={notificationCount.count === 0} onClick={() => void markAllRead()}>Mark all read</Button></div>} /><Async q={q}>{(rows) => rows.length ? <div className="space-y-2">{rows.map((notification) => <LiveNotificationItem key={notification.id} notification={notification} onAutoRead={markOneRead} />)}</div> : <EmptyState title="You're all caught up" />}</Async></>;
+  return <><PageHeader title="Notifications" sub="Open a message to read the full content. New messages are marked as read after you view them." action={<div className="flex flex-wrap items-center gap-2">{unread > 0 && <Badge tone="info"><span aria-hidden="true">{unread.toLocaleString()}</span><span className="sr-only">{unread} unread notifications</span></Badge>}<Button variant="secondary" loading={marking} disabled={notificationCount.count === 0} onClick={() => void markAllRead()}>Mark all read</Button></div>} /><Async q={q}>{(rows) => rows.length ? <div className="space-y-2">{rows.map((notification) => <LiveNotificationItem key={notification.id} notification={notification} onAutoRead={markOneRead} onOpen={openNotification} />)}</div> : <EmptyState title="You're all caught up" />}</Async><NotificationDetailModal notification={selected} open={!!selected} onClose={() => setSelected(null)} /></>;
 }
 type Ach = { code: string; names: Record<string, string>; points: number; unlockedAt: string | null };
 export function LiveAchievements() {
