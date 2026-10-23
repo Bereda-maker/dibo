@@ -58,3 +58,7 @@
 - Show an encouraging improvement path that makes clear preparation can change the result, with the requested scenarios: in 1 month from 400 to 450, in 3 months from 400 to 500, and in 6 months from 400 to 550+.
 - Provide a prominent “Start free today” action that redirects to the existing `/login` page without changing authentication or exposing the student’s form data to a new backend.
 - Preserve the existing Deborah brand system and reuse the poster’s student image treatment; keep the route responsive across phone, tablet, and desktop.
+
+## [x] Practice dashboard visual refresh
+- Improve the Practice dashboard so it feels more interesting and attractive while preserving the existing practice modes, filters, daily limits, question flow, answer checking, bookmarks, recommendations, and navigation.
+- Apply the refresh consistently to both live mode and browser-demo mode, with responsive, touch-friendly, accessible controls and no invented student performance data.
