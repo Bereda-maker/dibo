@@ -6,7 +6,7 @@ import {
   BarChart3, Bell, BookOpen, Bot, Bookmark, ChevronLeft, ChevronRight,
   ClipboardCheck, Crown, FileQuestion, GraduationCap, LayoutDashboard, LogOut,
   Menu, MessageSquare, Search, Settings, ShieldCheck, Users, Wallet,
-  X, XCircle, Dumbbell, TrendingUp, Trophy, Medal, UserCircle,
+  X, XCircle, Dumbbell, TrendingUp, Trophy, Medal, UserCircle, Gift, Sparkles, Clock3, ArrowRight,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { ThemeToggle, LocaleSwitch } from "./Controls";
@@ -105,10 +105,24 @@ function StudentWelcomeOffer({ enabled }: { enabled: boolean }) {
   const minutes = Math.floor((remaining % 3_600_000) / 60_000);
   const seconds = Math.floor((remaining % 60_000) / 1000);
   const countdown = [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
-  return <aside aria-label="New student welcome offer" className="border-b border-accent/40 bg-accent/10 px-4 py-3 sm:px-6">
-    <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-      <p className="text-sm leading-relaxed"><strong className="mr-1">Welcome to Deborah!</strong> Enjoy {offer.discountPercent}% off any Premium plan during your first six hours.</p>
-      <div className="flex items-center gap-3 text-sm"><p className="text-muted">Offer ends in <time className="font-bold tabular-nums text-text" dateTime={offer.expiresAt}>{countdown}</time></p><Link href="/pricing" className="shrink-0 font-bold text-primary underline underline-offset-2">See plans</Link></div>
+  return <aside aria-label="New student welcome offer" className="relative isolate overflow-hidden border-b border-primary/30 bg-gradient-to-r from-primary via-primary-light to-primary px-4 py-4 text-white shadow-md sm:px-6">
+    <Sparkles className="pointer-events-none absolute -right-2 -top-5 h-24 w-24 rotate-12 text-accent/20" aria-hidden="true" />
+    <div className="relative mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent text-primary shadow-lg shadow-black/10"><Gift size={24} strokeWidth={2.2} aria-hidden="true" /></span>
+        <div className="min-w-0">
+          <p className="mb-0.5 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[.16em] text-accent"><Sparkles size={12} aria-hidden="true" />A little welcome gift</p>
+          <p className="text-sm leading-snug sm:text-base"><strong>Welcome to Deborah!</strong> Enjoy <span className="font-extrabold text-accent">{offer.discountPercent}% off</span> any Premium plan during your first six hours.</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-3 pl-[3.75rem] sm:pl-0">
+        <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-black/15 px-3 py-2.5 shadow-inner">
+          <Clock3 size={17} className="shrink-0 text-accent" aria-hidden="true" />
+          <span className="text-xs text-white/75">Offer ends in</span>
+          <time className="font-mono text-base font-extrabold tabular-nums tracking-wider text-white" dateTime={offer.expiresAt}>{countdown}</time>
+        </div>
+        <Link href="/pricing" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-extrabold text-primary shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary">Explore Premium<ArrowRight size={16} aria-hidden="true" /></Link>
+      </div>
     </div>
   </aside>;
 }
