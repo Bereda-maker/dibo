@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, Send, ShieldCheck } from "lucide-react";
 import { api } from "../../lib/api";
+import { getGoalPlannerSubjectIds } from "../../lib/goal-planner-profile";
 import { useSession } from "../../lib/session";
 import { useRouter } from "next/navigation";
 import { DEMO } from "../../lib/config";
@@ -53,7 +54,9 @@ function SocialLogin({ provider }: { provider: Provider }) {
           if (raw) {
             const draft = JSON.parse(raw) as { stream?: unknown; city?: unknown; region?: unknown; examYear?: unknown; dailyStudyHours?: unknown };
             if (typeof draft.stream === "string" && typeof draft.city === "string" && typeof draft.region === "string" && typeof draft.examYear === "number" && typeof draft.dailyStudyHours === "number") {
-              await api("/students/me", { method: "PATCH", body: { stream: draft.stream, city: draft.city, region: draft.region, examYear: draft.examYear, dailyStudyHours: draft.dailyStudyHours } });
+              const subjectIds = await getGoalPlannerSubjectIds(draft.stream);
+              const stream = draft.stream === "natural" ? "Natural Science" : "Social Science";
+              await api("/students/me", { method: "PATCH", body: { stream, subjectIds, city: draft.city, region: draft.region, examYear: draft.examYear, dailyStudyHours: draft.dailyStudyHours } });
               sessionStorage.removeItem("deborah_goal_planner_draft");
             }
           }
@@ -122,7 +125,7 @@ export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
   return <div className="mx-auto w-full max-w-xl">
     <div className="mb-7"><p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">{plannerSignup ? "Your plan is ready" : isRegister ? "Your study space starts here" : "Your learning space"}</p>
       <h1 className="text-3xl font-extrabold tracking-tight text-text sm:text-4xl">{plannerSignup ? "Save your plan. Start free." : isRegister ? "Create your Deborah account." : "Welcome back."}</h1>
-      <p className="mt-2 text-sm leading-6 text-muted">{plannerSignup ? "Continue with Google or Telegram to create your free account. We’ll save your stream, city, exam year and study goal to your profile." : isRegister ? "Choose Google or Telegram. Your student account is created on your first successful sign-in." : "Choose Google or Telegram to continue learning."}</p>
+      <p className="mt-2 text-sm leading-6 text-muted">{plannerSignup ? "Continue with Google or Telegram to create your free account. We’ll save your stream, matching subjects, city, exam year and study goal to your profile." : isRegister ? "Choose Google or Telegram. Your student account is created on your first successful sign-in." : "Choose Google or Telegram to continue learning."}</p>
     </div>
     <ProviderTabs value={provider} onChange={setProvider} />
     {DEMO ? <div role="status" className="rounded-3xl border border-border bg-background/70 p-5 text-sm leading-6 text-muted sm:p-6"><h2 className="font-bold text-text">Provider sign-in is not active in demo mode</h2><p className="mt-2">Google and Telegram sign-in are available when the live Deborah API is configured. Email and password sign-in are not offered.</p></div> : <SocialLogin provider={provider} />}
