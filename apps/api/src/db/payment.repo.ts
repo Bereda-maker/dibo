@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import { payments, paymentWebhookEvents, subscriptions, subscriptionPlans, studentProfiles, notifications, users, type Db } from "@dibora/database";
 import type { ManualReview, PaymentRepo, PaymentRow } from "../services/payments/payment.service";
+import { paymentApprovedNotification } from "../constants/payment-approved-notification";
 
 const DAYS: Record<string, number> = { MONTHLY: 30, QUARTERLY: 90, ANNUAL: 365 };
 type PaymentMeta = { attempt?: number; manualReviewStatus?: string; manualReviewReason?: string; manualReviewSubmittedAt?: string; receiptData?: { base64: string; mime: string } };
@@ -58,8 +59,9 @@ export class DrizzlePaymentRepo implements PaymentRepo {
         const [row] = await tx.select({ interval: subscriptionPlans.interval }).from(subscriptions).innerJoin(subscriptionPlans, eq(subscriptionPlans.id, subscriptions.planId)).where(eq(subscriptions.id, won.subscriptionId)).limit(1);
         const ends = new Date(now.getTime() + (DAYS[row?.interval ?? "MONTHLY"] ?? 30) * 864e5);
         await tx.update(subscriptions).set({ status: "ACTIVE", startsAt: now, endsAt: ends, provider: won.provider, transactionId: won.verifyRequestId ?? won.reference, updatedAt: now }).where(eq(subscriptions.id, won.subscriptionId));
+        const [profile] = await tx.select({ fullName: studentProfiles.fullName }).from(studentProfiles).where(eq(studentProfiles.userId, won.userId)).limit(1);
         await tx.update(studentProfiles).set({ subscriptionStatus: "PREMIUM", updatedAt: now }).where(eq(studentProfiles.userId, won.userId));
-        await tx.insert(notifications).values({ userId: won.userId, type: "SUBSCRIPTION", title: "Premium is active", body: "Thank you! Your payment was verified and Premium access is now active." });
+        await tx.insert(notifications).values({ userId: won.userId, ...paymentApprovedNotification(profile?.fullName ?? "Student") });
       }
       return { duplicate: false, applied: true, status };
     });

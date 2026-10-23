@@ -162,6 +162,8 @@ describe("webhook", () => {
     expect(await pay.handleWebhook(h.rawBody, h.headers)).toMatchObject({ duplicate: true, applied: false }); // same event id retried
     const h2 = hook(done("req_wh1"), { id: "evt_1b" }); expect(await pay.handleWebhook(h2.rawBody, h2.headers)).toMatchObject({ applied: false }); // new event id, already verified
     expect((await row(ref)).status).toBe("VERIFIED"); expect(await premium()).toBe("PREMIUM"); expect((await raw.select().from(s.notifications)).length).toBe(before + 1);
+    const approval = (await raw.select().from(s.notifications).where(eq(s.notifications.userId, userId))).find((notification) => notification.title === "🎉 Payment Approved!");
+    expect(approval?.body).toContain("Hello, P!");
     expect((await raw.select().from(s.paymentWebhookEvents).where(eq(s.paymentWebhookEvents.eventId, "evt_1"))).length).toBe(1);
   });
   test("failed verification marks FAILED and grants nothing", async () => {
