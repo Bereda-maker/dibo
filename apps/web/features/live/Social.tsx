@@ -164,13 +164,13 @@ export function LivePricing() {
                 const monthlyPlan = plans.find((plan) => plan.interval === "MONTHLY");
                 const regularPrice = months && monthlyPlan ? monthlyPlan.priceMinor * months : 0;
                 const discount = regularPrice > p.priceMinor && regularPrice > 0 ? Math.round((1 - p.priceMinor / regularPrice) * 100) : 0;
-                const highlighted = p.interval === "ANNUAL" || p.interval === "QUARTERLY";
+                const featuredPlan = p.interval === "ANNUAL";
+                const highlighted = p.interval === "QUARTERLY";
                 return (
-                  <Card key={p.code} className={`relative overflow-hidden ${highlighted ? "border-primary/30 shadow-md" : ""}`}>
+                  <Card key={p.code} className={`relative overflow-hidden ${featuredPlan ? "border-2 border-primary shadow-lg shadow-primary/10" : highlighted ? "border-primary/30 shadow-md" : ""}`}>
                     {discount > 0 && <div className="absolute right-0 top-0 rounded-bl-2xl bg-success px-3 py-1.5 text-xs font-extrabold text-white">SAVE {discount}%</div>}
                     <div className="flex min-h-7 items-center gap-2 pr-16">
                       <h2 className="font-bold">{name(p.names)}</h2>
-                      {p.interval === "ANNUAL" && <Badge tone="accent">Best value</Badge>}
                     </div>
                     <div className="mt-4 flex items-baseline gap-2">
                       <p className="text-3xl font-extrabold text-primary">{p.priceMinor === 0 ? "Free" : money(p.priceMinor, p.currency)}</p>

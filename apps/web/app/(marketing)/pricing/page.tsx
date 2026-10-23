@@ -4,7 +4,7 @@ import { LivePricing } from "../../../features/live/Social";
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Badge, Button, Card, Modal, useToast } from "../../../components/ui";
+import { Button, Card, Modal, useToast } from "../../../components/ui";
 import { useStore } from "../../../lib/store";
 import { formatBirr } from "../../../lib/mock";
 import { MarketingPageHeader } from "../../../components/MarketingPageHeader";
@@ -18,9 +18,9 @@ function DemoPricing() {
       const regularPrice = months && monthly ? monthly.priceMinor * months : 0;
       const discount = regularPrice > plan.priceMinor ? Math.round((1 - plan.priceMinor / regularPrice) * 100) : 0;
       const features = plan.id === "quarterly" || plan.id === "annual" ? plans.find((item) => item.id === "monthly")?.features ?? plan.features : plan.features;
-      return <Card key={plan.id} className={`relative overflow-hidden ${plan.id === "annual" || plan.id === "quarterly" ? "border-primary/30 shadow-md" : ""}`}>
+      return <Card key={plan.id} className={`relative overflow-hidden ${plan.id === "annual" ? "border-2 border-primary shadow-lg shadow-primary/10" : plan.id === "quarterly" ? "border-primary/30 shadow-md" : ""}`}>
       {discount > 0 && <div className="absolute right-0 top-0 rounded-bl-2xl bg-success px-3 py-1.5 text-xs font-extrabold text-white">SAVE {discount}%</div>}
-      <div className="flex items-center justify-between gap-2 pr-16"><h2 className="font-bold">{plan.name}</h2>{plan.id === "annual" && <Badge tone="accent">Best value</Badge>}</div>
+      <div className="flex items-center justify-between gap-2 pr-16"><h2 className="font-bold">{plan.name}</h2></div>
       <div className="mt-4 flex items-baseline gap-2"><p className="text-3xl font-extrabold text-primary">{formatBirr(plan.priceMinor)}</p>{months > 0 && <span className="text-sm text-muted">/{months === 1 ? "month" : months === 3 ? "3 months" : "year"}</span>}</div>
       {discount > 0 && <p className="mt-1 text-sm text-muted"><span className="line-through">{formatBirr(regularPrice)}</span><span className="ml-2 font-semibold text-success">Save {formatBirr(regularPrice - plan.priceMinor)}</span></p>}
       {months > 1 && <p className="mt-2 rounded-xl bg-primary/5 px-3 py-2 text-sm font-semibold text-primary">Just {formatBirr(Math.round(plan.priceMinor / months))} per month</p>}
