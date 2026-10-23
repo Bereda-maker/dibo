@@ -23,6 +23,7 @@ const schema = z.object({
   META_ACCESS_TOKEN: z.string().optional().transform((v) => v?.trim() || undefined),
   META_GRAPH_API_VERSION: z.string().trim().regex(/^v\d+\.\d+$/).default("v26.0"),
   META_LEAD_EVENT_SOURCE: z.string().trim().min(1).max(100).default("Dibora contact form"),
+  META_TEST_EVENT_CODE: z.string().optional().transform((v) => v?.trim() || undefined),
 });
 /** Fail fast at boot with a readable message instead of failing on the first request. */
 export function loadConfig(env: Record<string, string | undefined> = process.env) {

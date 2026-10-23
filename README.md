@@ -36,6 +36,8 @@ bun test
 ## Environment variables
 See `.env.example`. API: `DATABASE_URL`, `SESSION_SECRET`, `WEB_ORIGIN`, `AI_PROVIDER_API_KEY` (required to enable the default OpenAI assistant), optional overrides `AI_BASE_URL` and `AI_MODEL`, `VERIFY_ET_*`, `RECEIPT_STORAGE_DIR`, `PAYMENT_ACCOUNTS`, social-login settings, and optional Meta CAPI settings (`META_PIXEL_ID`, `META_ACCESS_TOKEN`). Meta Lead events are sent only for contact submissions that explicitly opt in; the access token is API-only. Web: `NEXT_PUBLIC_API_URL` must be the API origin without `/api`; the production Next server proxies `/api/*` through the web origin so the session cookie remains first-party. Set it in the web deployment's Preview and Production environments. Never expose `TELEGRAM_BOT_TOKEN` or `META_ACCESS_TOKEN` through a `NEXT_PUBLIC_*` variable.
 
+For temporary Meta Events Manager testing, set `META_TEST_EVENT_CODE` on the API service. Every opted-in Lead event sent while it is configured includes that test code. Remove the variable and redeploy when testing is complete so later production events are not labeled as test events.
+
 ## What exists
 - **API foundation**: full Drizzle schema, Hono app (request IDs, security headers, CORS/CSRF origin check, central errors, rate limiting), auth (register/login/logout, argon2id, hashed sessions), AI service (guard, retrieval-first prompt, redaction), payment abstraction with Verify.et and verified webhooks.
 - **`packages/core`**: pure business logic shared by API and web: exam scoring + timer rule, recommendations, readiness score, entitlements. 30 passing tests (`bun test`).

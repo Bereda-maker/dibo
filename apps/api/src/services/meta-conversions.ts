@@ -5,6 +5,7 @@ export interface MetaLeadConfig {
   accessToken?: string;
   graphApiVersion?: string;
   leadEventSource?: string;
+  testEventCode?: string;
 }
 
 /** Send a privacy-minimized Lead event after a contact message is saved. */
@@ -41,7 +42,10 @@ export async function sendMetaLeadEvent(input: {
     const response = await (input.fetchImpl ?? fetch)(endpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ data: [event] }),
+      body: JSON.stringify({
+        data: [event],
+        ...(config.testEventCode ? { test_event_code: config.testEventCode } : {}),
+      }),
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) {

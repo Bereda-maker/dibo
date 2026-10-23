@@ -13,7 +13,7 @@ describe("Meta Conversions API Lead sender", () => {
     }) as unknown as typeof fetch;
 
     const sent = await sendMetaLeadEvent({
-      config: { pixelId: "12345", accessToken: "secret-token", graphApiVersion: "v26.0", leadEventSource: "Test contact form" },
+      config: { pixelId: "12345", accessToken: "secret-token", graphApiVersion: "v26.0", leadEventSource: "Test contact form", testEventCode: "TEST72234" },
       contactId: "contact-uuid",
       email: " Test@Example.com ",
       consent: true,
@@ -23,6 +23,7 @@ describe("Meta Conversions API Lead sender", () => {
     expect(sent).toBe(true);
     expect(requestUrl).toContain("/v26.0/12345/events");
     expect(requestUrl).toContain("access_token=secret-token");
+    expect(requestBody).toMatchObject({ test_event_code: "TEST72234" });
     const event = (requestBody?.data as Record<string, unknown>[])[0]!;
     expect(event).toMatchObject({
       event_name: "Lead",

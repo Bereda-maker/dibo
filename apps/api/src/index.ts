@@ -55,6 +55,7 @@ const app = createApp({
     accessToken: cfg.META_ACCESS_TOKEN,
     graphApiVersion: cfg.META_GRAPH_API_VERSION,
     leadEventSource: cfg.META_LEAD_EVENT_SOURCE,
+    testEventCode: cfg.META_TEST_EVENT_CODE,
   },
   webOrigin: env("WEB_ORIGIN"), isProd: cfg.NODE_ENV === "production",
 });
