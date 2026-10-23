@@ -78,9 +78,9 @@ export const EXAMS: ExamDef[] = [
 
 export const DEFAULT_PLANS: Plan[] = [
   { id: "free", name: "Free", interval: "FREE", priceMinor: 0, features: ["Student profile", "Selected short notes", "20 practice questions a day", "Topic quizzes", "Basic progress", "5 AI messages a day"] },
-  { id: "monthly", name: "Premium · Monthly", interval: "MONTHLY", priceMinor: 15000, features: ["Full question bank", "Full mock exams", "Advanced analytics", "Personalized recommendations", "Advanced AI Study Assistant", "Detailed reports"] },
-  { id: "quarterly", name: "Premium · Quarterly", interval: "QUARTERLY", priceMinor: 39000, features: ["Everything in Monthly", "Best for one term"] },
-  { id: "annual", name: "Premium · Annual", interval: "ANNUAL", priceMinor: 120000, features: ["Everything in Monthly", "Best value for exam year"] },
+  { id: "monthly", name: "Premium · Monthly", interval: "MONTHLY", priceMinor: 30000, features: ["Full question bank", "Full mock exams", "Advanced analytics", "Personalized recommendations", "Advanced AI Study Assistant", "Detailed reports"] },
+  { id: "quarterly", name: "Premium · Quarterly", interval: "QUARTERLY", priceMinor: 67500, features: ["Everything in Monthly", "Best for one term"] },
+  { id: "annual", name: "Premium · Annual", interval: "ANNUAL", priceMinor: 180000, features: ["Everything in Monthly", "Best value for exam year"] },
 ];
 export const LEADERBOARD = [{ name: "Selam T.", points: 2840 }, { name: "Dawit M.", points: 2615 }, { name: "Hana B.", points: 2430 }, { name: "Yonas K.", points: 2210 }, { name: "Meron A.", points: 2005 }];
 export const ACHIEVEMENTS = [

@@ -7,9 +7,9 @@ const n = (en: string, am?: string) => ({ en, ...(am ? { am } : {}) });
 // Plans: prices are configuration. Amounts in santim. Edit in the admin Settings page or here before launch.
 await db.insert(subscriptionPlans).values([
   { code: "free", interval: "FREE", names: n("Free"), priceMinor: 0, sortOrder: 0, entitlements: { questionsPerDay: 20, mockExams: false, aiMessagesPerDay: 5 } },
-  { code: "monthly", interval: "MONTHLY", names: n("Premium Monthly"), priceMinor: 15000, sortOrder: 1, entitlements: { questionsPerDay: 100000, mockExams: true, advancedAnalytics: true, personalizedRecommendations: true, aiMessagesPerDay: 200, fullQuestionBank: true } },
-  { code: "quarterly", interval: "QUARTERLY", names: n("Premium Quarterly"), priceMinor: 39000, sortOrder: 2, entitlements: { questionsPerDay: 100000, mockExams: true, advancedAnalytics: true, personalizedRecommendations: true, aiMessagesPerDay: 200, fullQuestionBank: true } },
-  { code: "annual", interval: "ANNUAL", names: n("Premium Annual"), priceMinor: 120000, sortOrder: 3, entitlements: { questionsPerDay: 100000, mockExams: true, advancedAnalytics: true, personalizedRecommendations: true, aiMessagesPerDay: 200, fullQuestionBank: true } },
+  { code: "monthly", interval: "MONTHLY", names: n("Premium Monthly"), priceMinor: 30000, sortOrder: 1, entitlements: { questionsPerDay: 100000, mockExams: true, advancedAnalytics: true, personalizedRecommendations: true, aiMessagesPerDay: 200, fullQuestionBank: true } },
+  { code: "quarterly", interval: "QUARTERLY", names: n("Premium Quarterly"), priceMinor: 67500, sortOrder: 2, entitlements: { questionsPerDay: 100000, mockExams: true, advancedAnalytics: true, personalizedRecommendations: true, aiMessagesPerDay: 200, fullQuestionBank: true } },
+  { code: "annual", interval: "ANNUAL", names: n("Premium Annual"), priceMinor: 180000, sortOrder: 3, entitlements: { questionsPerDay: 100000, mockExams: true, advancedAnalytics: true, personalizedRecommendations: true, aiMessagesPerDay: 200, fullQuestionBank: true } },
 ]).onConflictDoNothing();
 
 await db.insert(achievements).values([["FIRST_EXAM", "First Exam", 20], ["Q100", "First 100 Questions", 50], ["Q500", "500 Questions", 150], ["S7", "7-Day Streak", 50], ["S30", "30-Day Streak", 200], ["E90", "90% Exam Score", 100], ["MOCK", "First Mock Exam", 50], ["MASTERY", "Topic Mastery", 100]]

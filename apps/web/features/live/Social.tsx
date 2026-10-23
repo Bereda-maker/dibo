@@ -139,7 +139,16 @@ function ProfileInner() {
 export function LiveProfile() { const { profile } = useSession(); return profile ? <Suspense><ProfileInner /></Suspense> : <Skeleton className="h-60" />; }
 
 type Plan = { code: string; interval: string; names: Record<string, string>; priceMinor: number; currency: string; entitlements: Record<string, number | boolean> };
-const feat = (e: Record<string, number | boolean>) => [e.questionsPerDay && (Number(e.questionsPerDay) > 1000 ? "Unlimited practice questions" : `${e.questionsPerDay} practice questions a day`), e.fullQuestionBank && "Full question bank", e.mockExams && "Full mock exams", e.advancedAnalytics && "Advanced analytics", e.personalizedRecommendations && "Personalized recommendations", e.aiMessagesPerDay && `${e.aiMessagesPerDay} AI messages a day`].filter(Boolean) as string[];
+const feat = (e: Record<string, number | boolean>) => [
+  e.questionsPerDay && (Number(e.questionsPerDay) > 1000 ? "Unlimited practice questions" : `${e.questionsPerDay} practice questions a day`),
+  e.fullQuestionBank && "Full question bank",
+  e.mockExams && "Full mock exams",
+  e.advancedAnalytics && "Advanced analytics and detailed reports",
+  e.personalizedRecommendations && "Personalized study recommendations",
+  e.aiMessagesPerDay && `${e.aiMessagesPerDay} AI study assistant messages a day`,
+].filter(Boolean) as string[];
+const PLAN_MONTHS: Record<string, number> = { MONTHLY: 1, QUARTERLY: 3, ANNUAL: 12 };
+const money = (amount: number, currency: string) => `${currency} ${(amount / 100).toLocaleString("en-US")}`;
 export function LivePricing() {
   const { role, profile } = useSession(); const router = useRouter(); const toast = useToast(); const q = useApi(() => api<Plan[]>("/subscriptions/plans")); const name = useLocalizedName(); const [busy, setBusy] = useState("");
   const buy = async (code: string) => { if (role !== "STUDENT") return router.push("/login"); setBusy(code); try { const r = await api<{ reference: string }>("/subscriptions/checkout", { method: "POST", body: { planCode: code } }); router.push(`/payment/return?ref=${encodeURIComponent(r.reference)}`); } catch (e) { toast(e instanceof ApiError ? e.message : "Payment is unavailable right now", "error"); setBusy(""); } };
@@ -150,16 +159,33 @@ export function LivePricing() {
         <Async q={q} rows={2}>
           {(plans) => (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {plans.map((p) => (
-                <Card key={p.code}>
-                  <h2 className="font-bold">{name(p.names)}</h2>
-                  <p className="mt-3 text-3xl font-extrabold text-primary">{p.priceMinor === 0 ? "Free" : `${p.currency} ${(p.priceMinor / 100).toLocaleString("en-US")}`}</p>
-                  <ul className="mt-4 space-y-2 text-sm">
-                    {feat(p.entitlements).map((x) => <li key={x} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-success" aria-hidden />{x}</li>)}
-                  </ul>
-                  <Button className="mt-5 w-full" variant={p.priceMinor ? "primary" : "secondary"} loading={busy === p.code} disabled={profile?.subscriptionStatus === "PREMIUM" && p.priceMinor > 0} onClick={() => p.priceMinor ? buy(p.code) : router.push(role === "STUDENT" ? "/dashboard" : "/login")}>{p.priceMinor ? (profile?.subscriptionStatus === "PREMIUM" ? "Current plan" : "Upgrade") : "Start free"}</Button>
-                </Card>
-              ))}
+              {plans.map((p) => {
+                const months = PLAN_MONTHS[p.interval];
+                const monthlyPlan = plans.find((plan) => plan.interval === "MONTHLY");
+                const regularPrice = months && monthlyPlan ? monthlyPlan.priceMinor * months : 0;
+                const discount = regularPrice > p.priceMinor && regularPrice > 0 ? Math.round((1 - p.priceMinor / regularPrice) * 100) : 0;
+                const highlighted = p.interval === "ANNUAL" || p.interval === "QUARTERLY";
+                return (
+                  <Card key={p.code} className={`relative overflow-hidden ${highlighted ? "border-primary/30 shadow-md" : ""}`}>
+                    {discount > 0 && <div className="absolute right-0 top-0 rounded-bl-2xl bg-success px-3 py-1.5 text-xs font-extrabold text-white">SAVE {discount}%</div>}
+                    <div className="flex min-h-7 items-center gap-2 pr-16">
+                      <h2 className="font-bold">{name(p.names)}</h2>
+                      {p.interval === "ANNUAL" && <Badge tone="accent">Best value</Badge>}
+                    </div>
+                    <div className="mt-4 flex items-baseline gap-2">
+                      <p className="text-3xl font-extrabold text-primary">{p.priceMinor === 0 ? "Free" : money(p.priceMinor, p.currency)}</p>
+                      {months && <span className="text-sm text-muted">/{months === 1 ? "month" : months === 3 ? "3 months" : "year"}</span>}
+                    </div>
+                    {discount > 0 && <p className="mt-1 text-sm text-muted"><span className="line-through">{money(regularPrice, p.currency)}</span><span className="ml-2 font-semibold text-success">Save {money(regularPrice - p.priceMinor, p.currency)}</span></p>}
+                    {months && months > 1 && <p className="mt-2 rounded-xl bg-primary/5 px-3 py-2 text-sm font-semibold text-primary">Just {money(Math.round(p.priceMinor / months), p.currency)} per month</p>}
+                    <p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted">Included features</p>
+                    <ul className="mt-2 space-y-2 text-sm">
+                      {feat(p.entitlements).map((x) => <li key={x} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-success" aria-hidden />{x}</li>)}
+                    </ul>
+                    <Button className="mt-5 w-full" variant={p.priceMinor ? "primary" : "secondary"} loading={busy === p.code} disabled={profile?.subscriptionStatus === "PREMIUM" && p.priceMinor > 0} onClick={() => p.priceMinor ? buy(p.code) : router.push(role === "STUDENT" ? "/dashboard" : "/login")}>{p.priceMinor ? (profile?.subscriptionStatus === "PREMIUM" ? "Current plan" : "Choose Premium") : "Start free"}</Button>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </Async>
