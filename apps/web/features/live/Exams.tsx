@@ -7,6 +7,7 @@ import { Badge, Button, Card, EmptyState, Modal, PageHeader, Progress, cx, useTo
 import { BarChart } from "../../components/Charts";
 import { api, ApiError, isOfflineQueued } from "../../lib/api";
 import { useApi } from "../../lib/useApi";
+import { useSession } from "../../lib/session";
 import { fmtTime } from "../../lib/exam";
 import { Async, diffTone } from "./shared";
 
@@ -29,7 +30,7 @@ function catalogSubject(e: ExamRow) {
   return { key: "other", label: "Other exams" };
 }
 
-export function ExamCatalog({ rows }: { rows: ExamRow[] }) {
+export function ExamCatalog({ rows, hasSelectedSubjects = true }: { rows: ExamRow[]; hasSelectedSubjects?: boolean }) {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const catalog = rows.map((e) => ({ ...e, ...catalogSubject(e) })).map((e) => ({ ...e, subjectKey: e.key, subjectLabel: e.label }));
   const subjects = Array.from(new Map(catalog.map((e) => [e.subjectKey, e])).values()).map((first, index) => {
@@ -38,7 +39,8 @@ export function ExamCatalog({ rows }: { rows: ExamRow[] }) {
   });
   const selected = subjects.find((x) => x.key === selectedSubject);
 
-  if (!rows.length) return <EmptyState title="No exams published yet" body="Check back soon." />;
+  if (!rows.length && !hasSelectedSubjects) return <EmptyState title="Choose your subjects to see exams" body="Published exams are filtered to match the subjects in your profile. Select at least one subject and your available exams will appear here." action={<Button href="/profile">Choose subjects in profile</Button>} />;
+  if (!rows.length) return <EmptyState title="No exams available for your selected subjects" body="Your profile is filtering the exam list to your selected subjects. Update your subject choices or check back later for more exams." action={<Button href="/profile" variant="secondary">Update subjects</Button>} />;
   return <div className="space-y-6">
     <div className="relative overflow-hidden rounded-[1.5rem] border border-primary/15 bg-gradient-to-br from-primary to-secondary p-5 text-white shadow-card sm:p-7">
       <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-accent/20 blur-2xl" aria-hidden />
@@ -56,8 +58,10 @@ function ExamCard({ exam: e }: { exam: CatalogExam }) {
 }
 
 export function LiveExams() {
+  const { profile } = useSession();
   const q = useApi(() => api<ExamRow[]>("/exams"));
-  return <><PageHeader title="Exams" sub="A calmer way to move from subject practice to confident exam day." /><Async q={q}>{(rows) => <ExamCatalog rows={rows} />}</Async></>;
+  const hasSelectedSubjects = (profile?.subjectIds.length ?? 0) > 0;
+  return <><PageHeader title="Exams" sub="A calmer way to move from subject practice to confident exam day." /><Async q={q}>{(rows) => <ExamCatalog rows={rows} hasSelectedSubjects={hasSelectedSubjects} />}</Async></>;
 }
 
 type QItem = { id: string; text: string; type: string; difficulty: string; topicId: string; topicName: string; options: { id: string; text: string }[]; yourOptionId: string | null; yourNumeric: number | null; correctOptionId?: string | null; correctNumeric?: number | null; explanation?: string; isCorrect?: boolean | null };
