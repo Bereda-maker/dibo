@@ -18,6 +18,7 @@ import { DEMO } from "../lib/config";
 import { AdminActionCountsContext, useAdminActionCounts, type AdminActionCounts } from "../lib/useAdminActionCounts";
 import { StudentNotificationCountContext, useStudentNotificationCount, type StudentNotificationCountState } from "../lib/useStudentNotificationCount";
 import { demoUnreadNotificationCount } from "../lib/studentNotifications";
+import { api } from "../lib/api";
 
 const main = [["/dashboard", "dashboard", LayoutDashboard], ["/notes", "notes", BookOpen], ["/practice", "practice", Dumbbell], ["/exams", "exams", ClipboardCheck], ["/assistant", "assistant", Bot], ["/progress", "progress", TrendingUp]] as const;
 const extra = [["/bookmarks", "My Bookmarks", Bookmark], ["/mistakes", "Questions I Got Wrong", XCircle], ["/search", "Search", Search], ["/achievements", "Achievements", Medal], ["/leaderboard", "Leaderboard", Trophy], ["/notifications", "Notifications", Bell], ["/profile", "Profile", UserCircle], ["/pricing", "Plans", Crown]] as const;
@@ -81,6 +82,37 @@ function StudentNotificationCountStatus({ state }: { state: StudentNotificationC
   return null;
 }
 
+type WelcomeOffer = { eligible: boolean; discountPercent: number; expiresAt: string | null };
+function StudentWelcomeOffer({ enabled }: { enabled: boolean }) {
+  const [offer, setOffer] = useState<WelcomeOffer | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    let current = true;
+    if (!enabled || DEMO) { setOffer(null); return; }
+    void api<WelcomeOffer>("/subscriptions/welcome-offer").then((data) => { if (current) setOffer(data); }).catch(() => {});
+    return () => { current = false; };
+  }, [enabled]);
+  useEffect(() => {
+    if (!offer?.eligible) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [offer?.eligible]);
+  if (!offer?.eligible || !offer.expiresAt) return null;
+  const remaining = Math.max(0, new Date(offer.expiresAt).getTime() - now);
+  if (!remaining) return null;
+  const hours = Math.floor(remaining / 3_600_000);
+  const minutes = Math.floor((remaining % 3_600_000) / 60_000);
+  const seconds = Math.floor((remaining % 60_000) / 1000);
+  const countdown = [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+  return <aside aria-label="New student welcome offer" className="border-b border-accent/40 bg-accent/10 px-4 py-3 sm:px-6">
+    <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+      <p className="text-sm leading-relaxed"><strong className="mr-1">Welcome to Deborah!</strong> Enjoy {offer.discountPercent}% off any Premium plan during your first six hours.</p>
+      <div className="flex items-center gap-3 text-sm"><p className="text-muted">Offer ends in <time className="font-bold tabular-nums text-text" dateTime={offer.expiresAt}>{countdown}</time></p><Link href="/pricing" className="shrink-0 font-bold text-primary underline underline-offset-2">See plans</Link></div>
+    </div>
+  </aside>;
+}
+
 export function AppShell({ children, admin = false, items }: { children: React.ReactNode; admin?: boolean; items?: readonly (readonly [string, string])[] }) {
   const { state, ready: demoReady, logout: demoLogout } = useStore(); const sess = useSession(); const path = usePathname(); const router = useRouter(); const t = useT();
   const [collapsed, setCollapsed] = useState(false); const [drawerOpen, setDrawerOpen] = useState(false); const [navSearch, setNavSearch] = useState("");
@@ -124,7 +156,7 @@ export function AppShell({ children, admin = false, items }: { children: React.R
       </div>
     </> : <>
       <aside aria-label="Sidebar" className="hidden w-60 shrink-0 border-r border-border bg-surface p-4 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto"><Logo /><nav className="mt-6 space-y-1">{nav.map(({ h, l, I }) => { const isNotifications = h === "/notifications"; const active = path === h || (h !== "/admin" && path.startsWith(h + "/")); return <Link key={h} href={h} aria-label={isNotifications && unread > 0 ? `Notifications, ${unread} unread notifications` : undefined} aria-current={path === h ? "page" : undefined} className={cx("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium", active ? "bg-primary text-white" : "hover:bg-border/50")}>{I && <I size={18} aria-hidden="true" />}{l}{isNotifications && unread > 0 && <span className="ml-auto rounded-full bg-info/15 px-2 py-0.5 text-xs font-bold tabular-nums text-info"><span aria-hidden="true">{unread.toLocaleString()}</span><span className="sr-only">{unread} unread notifications</span></span>}</Link>; })}</nav><StudentNotificationCountStatus state={studentNotificationCount} /><button onClick={signOut} className="mt-6 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-border/50"><LogOut size={18} aria-hidden="true" />Log out</button></aside>
-      <div className="min-w-0 flex-1"><header className="sticky top-0 z-20 flex min-h-16 items-center justify-between border-b border-border bg-bg/90 px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] backdrop-blur sm:px-5"><div className="md:hidden"><Logo /></div><p className="hidden max-w-[40vw] truncate text-sm text-muted md:block">{u.name}</p><div className="flex items-center gap-1"><Link href="/notifications" aria-label={unread > 0 ? `Notifications, ${unread} unread messages` : "Notifications"} aria-current={path === "/notifications" ? "page" : undefined} title={unread > 0 ? `${unread} unread notifications` : "Notifications"} className="relative grid min-h-10 min-w-10 place-items-center rounded-xl text-muted transition hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><Bell size={19} aria-hidden="true" />{unread > 0 && <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 rounded-full bg-info/15 px-1.5 py-0.5 text-[9px] font-bold leading-none tabular-nums text-info">{unread.toLocaleString()}</span>}</Link><LocaleSwitch /><ThemeToggle /></div></header><main className="mx-auto max-w-6xl px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-5 sm:px-5 md:p-8">{children}</main></div>
+      <div className="min-w-0 flex-1"><header className="sticky top-0 z-20 flex min-h-16 items-center justify-between border-b border-border bg-bg/90 px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] backdrop-blur sm:px-5"><div className="md:hidden"><Logo /></div><p className="hidden max-w-[40vw] truncate text-sm text-muted md:block">{u.name}</p><div className="flex items-center gap-1"><Link href="/notifications" aria-label={unread > 0 ? `Notifications, ${unread} unread messages` : "Notifications"} aria-current={path === "/notifications" ? "page" : undefined} title={unread > 0 ? `${unread} unread notifications` : "Notifications"} className="relative grid min-h-10 min-w-10 place-items-center rounded-xl text-muted transition hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><Bell size={19} aria-hidden="true" />{unread > 0 && <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 rounded-full bg-info/15 px-1.5 py-0.5 text-[9px] font-bold leading-none tabular-nums text-info">{unread.toLocaleString()}</span>}</Link><LocaleSwitch /><ThemeToggle /></div></header><StudentWelcomeOffer enabled={!admin && role === "STUDENT" && sess.profile?.subscriptionStatus !== "PREMIUM"} /><main className="mx-auto max-w-6xl px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-5 sm:px-5 md:p-8">{children}</main></div>
       <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur md:hidden">{[...main.slice(0, 4), ["/more", "more", Menu] as const].map(([h, k, I]) => { const mobileRouteActive = main.slice(0, 4).some(([route]) => path === route || path.startsWith(route + "/")); const active = path === h || (h === "/more" && !mobileRouteActive); const moreLabel = h === "/more" && unread > 0 ? `More, ${unread} unread notifications` : undefined; return <Link key={h} href={h} aria-label={moreLabel} aria-current={active ? "page" : undefined} className={cx("flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[11px] transition-colors", active ? "font-bold text-primary" : "text-muted hover:text-primary")}><span className="relative inline-flex"><I size={20} aria-hidden="true" />{h === "/more" && unread > 0 && <span aria-hidden="true" className="absolute -right-3 -top-2 rounded-full bg-info/15 px-1.5 text-[9px] font-bold tabular-nums text-info">{unread.toLocaleString()}</span>}</span>{t(k)}</Link>; })}</nav>
     </>}
   </div></StudentNotificationCountContext.Provider></AdminActionCountsContext.Provider>;

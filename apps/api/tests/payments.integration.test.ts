@@ -33,11 +33,13 @@ const store = new Map<string, Uint8Array>();
 const storage: ReceiptStorage = { put: async (k, b) => { store.set(k, b); return k; }, get: async (k) => store.get(k) ?? null };
 const checkout = new CheckoutService(db, "verify-et", [{ method: "telebirr", accountName: "Dibora", accountNumber: "0911000000" }]);
 const pay = new PaymentService(provider, new DrizzlePaymentRepo(db), storage);
-let userId = "", otherId = "";
+let userId = "", otherId = "", promoUserId = "";
 
 beforeAll(async () => {
   await migrate(raw, { migrationsFolder: resolve(import.meta.dir, "../../../packages/database/migrations") });
-  for (const [i, em] of ["p@q.et", "o@q.et"].entries()) { const [u] = await raw.insert(s.users).values({ email: em, passwordHash: "x" }).returning(); await raw.insert(s.studentProfiles).values({ userId: u!.id, fullName: "P", grade: 12 }); if (i === 0) userId = u!.id; else otherId = u!.id; }
+  for (const [i, em] of ["p@q.et", "o@q.et"].entries()) { const [u] = await raw.insert(s.users).values({ email: em, passwordHash: "x", createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000) }).returning(); await raw.insert(s.studentProfiles).values({ userId: u!.id, fullName: "P", grade: 12 }); if (i === 0) userId = u!.id; else otherId = u!.id; }
+  const [promoUser] = await raw.insert(s.users).values({ email: "welcome@q.et", passwordHash: "x" }).returning(); promoUserId = promoUser!.id;
+  await raw.insert(s.studentProfiles).values({ userId: promoUserId, fullName: "Welcome", grade: 12 });
   await raw.insert(s.subscriptionPlans).values([{ code: "free", interval: "FREE", names: { en: "Free" }, priceMinor: 0, entitlements: {} }, { code: "monthly", interval: "MONTHLY", names: { en: "M" }, priceMinor: 15000, entitlements: { mockExams: true } }]);
 });
 const newPayment = async () => (await checkout.start(userId, "monthly")).reference;
@@ -56,6 +58,18 @@ describe("payment creation + expected amount", () => {
     const c = await checkout.start(userId, "monthly");
     expect(c.amountMinor).toBe(15000); expect(c.methods).toContain("telebirr"); expect(c.accounts.length).toBe(1);
     const p = await row(c.reference); expect(p.amountMinor).toBe(15000); expect(p.status).toBe("PENDING"); expect(p.provider).toBe("verify-et");
+  });
+  test("new students get 50% off for six hours and the discounted amount is stored for verification", async () => {
+    const offer = await checkout.welcomeOffer(promoUserId);
+    expect(offer.eligible).toBe(true); expect(offer.discountPercent).toBe(50); expect(offer.expiresAt).toBeTruthy();
+    const c = await checkout.start(promoUserId, "monthly");
+    expect(c.originalAmountMinor).toBe(15000); expect(c.discountMinor).toBe(7500); expect(c.amountMinor).toBe(7500); expect(c.discountPercent).toBe(50);
+    const p = await row(c.reference); expect(p.amountMinor).toBe(7500); expect(p.metadata).toMatchObject({ welcomeDiscountPercent: 50, originalAmountMinor: 15000, discountMinor: 7500 });
+  });
+  test("older students are not eligible, and the offer expires exactly six hours after signup", async () => {
+    expect((await checkout.welcomeOffer(userId)).eligible).toBe(false);
+    const expiredAt = new Date(Date.now() + 6 * 60 * 60 * 1000);
+    expect((await checkout.welcomeOffer(promoUserId, expiredAt)).eligible).toBe(false);
   });
 });
 

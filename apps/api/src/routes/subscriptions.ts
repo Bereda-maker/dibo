@@ -17,6 +17,7 @@ const ref = z.string().min(8).max(80);
 export const subscriptionRoutes = (checkout: CheckoutService, payments: PaymentService) => {
   const r = new Hono();
   const uid = (c: unknown) => ((c as { get: (k: string) => unknown }).get("auth") as AuthContext).userId;
+  r.get("/welcome-offer", async (c) => ok(c, await checkout.welcomeOffer(uid(c))));
   r.post("/checkout", rateLimit({ limit: 10, windowMs: 60_000, prefix: "checkout", keyBy: "user" }), zValidator("json", z.object({ planCode: z.string().min(1).max(40) })), async (c) => ok(c, await checkout.start(uid(c), c.req.valid("json").planCode), 201));
   r.post("/payments/:reference/submit", rateLimit({ limit: 6, windowMs: 60_000, prefix: "pay-submit", keyBy: "user" }),
     bodyLimit({ maxSize: MAX_RECEIPT_BYTES + 256 * 1024, onError: (c) => c.json({ success: false, error: { code: "BAD_REQUEST", message: "Receipt image must be 8 MB or smaller" } }, 413) }),

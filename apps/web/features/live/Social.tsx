@@ -139,6 +139,7 @@ function ProfileInner() {
 export function LiveProfile() { const { profile } = useSession(); return profile ? <Suspense><ProfileInner /></Suspense> : <Skeleton className="h-60" />; }
 
 type Plan = { code: string; interval: string; names: Record<string, string>; priceMinor: number; currency: string; entitlements: Record<string, number | boolean> };
+type WelcomeOffer = { eligible: boolean; discountPercent: number; expiresAt: string | null };
 const feat = (e: Record<string, number | boolean>) => [
   e.questionsPerDay && (Number(e.questionsPerDay) > 1000 ? "Unlimited practice questions" : `${e.questionsPerDay} practice questions a day`),
   e.fullQuestionBank && "Full question bank",
@@ -151,6 +152,10 @@ const PLAN_MONTHS: Record<string, number> = { MONTHLY: 1, QUARTERLY: 3, ANNUAL: 
 const money = (amount: number, currency: string) => `${currency} ${(amount / 100).toLocaleString("en-US")}`;
 export function LivePricing() {
   const { role, profile } = useSession(); const router = useRouter(); const toast = useToast(); const q = useApi(() => api<Plan[]>("/subscriptions/plans")); const name = useLocalizedName(); const [busy, setBusy] = useState("");
+  const offer = useApi(() => role === "STUDENT" ? api<WelcomeOffer>("/subscriptions/welcome-offer") : Promise.resolve({ eligible: false, discountPercent: 0, expiresAt: null }), [role]);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { if (!offer.data?.eligible) return; setNow(Date.now()); const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, [offer.data?.eligible]);
+  const welcomeActive = !!offer.data?.eligible && !!offer.data.expiresAt && Date.parse(offer.data.expiresAt) > now;
   const buy = async (code: string) => { if (role !== "STUDENT") return router.push("/login"); setBusy(code); try { const r = await api<{ reference: string }>("/subscriptions/checkout", { method: "POST", body: { planCode: code } }); router.push(`/payment/return?ref=${encodeURIComponent(r.reference)}`); } catch (e) { toast(e instanceof ApiError ? e.message : "Payment is unavailable right now", "error"); setBusy(""); } };
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12">
@@ -164,25 +169,26 @@ export function LivePricing() {
                 const monthlyPlan = plans.find((plan) => plan.interval === "MONTHLY");
                 const regularPrice = months && monthlyPlan ? monthlyPlan.priceMinor * months : 0;
                 const discount = regularPrice > p.priceMinor && regularPrice > 0 ? Math.round((1 - p.priceMinor / regularPrice) * 100) : 0;
+                const priceNow = welcomeActive && p.priceMinor > 0 ? p.priceMinor - Math.floor(p.priceMinor * offer.data!.discountPercent / 100) : p.priceMinor;
                 const featuredPlan = p.interval === "ANNUAL";
                 const highlighted = p.interval === "QUARTERLY";
                 return (
                   <Card key={p.code} className={`relative overflow-hidden ${featuredPlan ? "border-2 border-primary shadow-lg shadow-primary/10" : highlighted ? "border-primary/30 shadow-md" : ""}`}>
-                    {discount > 0 && <div className="absolute right-0 top-0 rounded-bl-2xl bg-success px-3 py-1.5 text-xs font-extrabold text-white">SAVE {discount}%</div>}
+                    {welcomeActive && p.priceMinor > 0 ? <div className="absolute right-0 top-0 rounded-bl-2xl bg-success px-3 py-1.5 text-xs font-extrabold text-white">WELCOME {offer.data!.discountPercent}% OFF</div> : discount > 0 && <div className="absolute right-0 top-0 rounded-bl-2xl bg-success px-3 py-1.5 text-xs font-extrabold text-white">SAVE {discount}%</div>}
                     <div className="flex min-h-7 items-center gap-2 pr-16">
                       <h2 className="font-bold">{name(p.names)}</h2>
                     </div>
                     <div className="mt-4 flex items-baseline gap-2">
-                      <p className="text-3xl font-extrabold text-primary">{p.priceMinor === 0 ? "Free" : money(p.priceMinor, p.currency)}</p>
+                      <p className="text-3xl font-extrabold text-primary">{p.priceMinor === 0 ? "Free" : money(priceNow, p.currency)}</p>
                       {months && <span className="text-sm text-muted">/{months === 1 ? "month" : months === 3 ? "3 months" : "year"}</span>}
                     </div>
-                    {discount > 0 && <p className="mt-1 text-sm text-muted"><span className="line-through">{money(regularPrice, p.currency)}</span><span className="ml-2 font-semibold text-success">Save {money(regularPrice - p.priceMinor, p.currency)}</span></p>}
-                    {months && months > 1 && <p className="mt-2 rounded-xl bg-primary/5 px-3 py-2 text-sm font-semibold text-primary">Just {money(Math.round(p.priceMinor / months), p.currency)} per month</p>}
+                    {welcomeActive && p.priceMinor > 0 ? <p className="mt-1 text-sm text-muted"><span className="line-through">{money(p.priceMinor, p.currency)}</span><span className="ml-2 font-semibold text-success">Welcome offer · 50% off</span></p> : discount > 0 && <p className="mt-1 text-sm text-muted"><span className="line-through">{money(regularPrice, p.currency)}</span><span className="ml-2 font-semibold text-success">Save {money(regularPrice - p.priceMinor, p.currency)}</span></p>}
+                    {months && months > 1 && <p className="mt-2 rounded-xl bg-primary/5 px-3 py-2 text-sm font-semibold text-primary">Just {money(Math.round(priceNow / months), p.currency)} per month</p>}
                     <p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted">Included features</p>
                     <ul className="mt-2 space-y-2 text-sm">
                       {feat(p.entitlements).map((x) => <li key={x} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-success" aria-hidden />{x}</li>)}
                     </ul>
-                    <Button className="mt-5 w-full" variant={p.priceMinor ? "primary" : "secondary"} loading={busy === p.code} disabled={profile?.subscriptionStatus === "PREMIUM" && p.priceMinor > 0} onClick={() => p.priceMinor ? buy(p.code) : router.push(role === "STUDENT" ? "/dashboard" : "/login")}>{p.priceMinor ? (profile?.subscriptionStatus === "PREMIUM" ? "Current plan" : "Choose Premium") : "Start free"}</Button>
+                    <Button className="mt-5 w-full" variant={p.priceMinor ? "primary" : "secondary"} loading={busy === p.code} disabled={profile?.subscriptionStatus === "PREMIUM" && p.priceMinor > 0} onClick={() => p.priceMinor ? buy(p.code) : router.push(role === "STUDENT" ? "/dashboard" : "/login")}>{p.priceMinor ? (profile?.subscriptionStatus === "PREMIUM" ? "Current plan" : welcomeActive ? "Claim welcome offer" : "Choose Premium") : "Start free"}</Button>
                   </Card>
                 );
               })}
