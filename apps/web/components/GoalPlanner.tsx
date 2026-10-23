@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, BookOpenCheck, CircleAlert, ClipboardCheck, RotateCcw, Sparkles, Target, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, CircleAlert, RotateCcw, Sparkles, Target } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type PlannerData = { stream: string; city: string; otherCity: string; otherRegion: string; examYear: string; hours: string };
@@ -47,7 +47,10 @@ export function GoalPlanner() {
       ? { label: "Warning", Icon: CircleAlert, color: "border-amber-300 bg-amber-50 text-amber-900", iconColor: "text-amber-600", animate: false }
       : { label: "Great", Icon: BadgeCheck, color: "border-green-300 bg-green-50 text-green-900", iconColor: "text-green-700", animate: false };
   useEffect(() => {
-    if (resultVisible) resultHeadingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (resultVisible) {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      resultHeadingRef.current?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+    }
   }, [resultVisible]);
   const update = (key: keyof PlannerData, value: string) => { setData((current) => ({ ...current, [key]: value })); setError(""); };
   const values = [data.stream, selectedCity && region, data.examYear, data.hours];
@@ -65,18 +68,18 @@ export function GoalPlanner() {
   };
 
   return <main className="relative flex min-h-dvh items-start justify-center overflow-x-hidden bg-background px-3 py-4 sm:px-6 sm:py-6 lg:items-center">
-    <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
-    <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+    <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/[0.06]" />
+    <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-primary/[0.06]" />
     <section className="relative grid w-full max-w-5xl min-w-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_24px_80px_rgba(12,67,44,.16)] sm:rounded-[1.75rem] md:grid-cols-[0.85fr_1.15fr]">
       <div className="relative flex flex-col justify-between overflow-hidden bg-gradient-to-br from-[#176744] via-primary to-[#082f26] p-5 text-white sm:p-7 md:min-h-[500px] md:p-9">
         <div aria-hidden className="absolute -right-20 top-16 h-52 w-52 rounded-full border-[30px] border-white/[0.06]" />
-        <div aria-hidden className="absolute -bottom-24 -left-16 h-52 w-52 rounded-full bg-accent/10 blur-2xl" />
+        <div aria-hidden className="absolute -bottom-24 -left-16 h-52 w-52 rounded-full bg-accent/[0.08]" />
         <div className="relative z-10"><Link href="/" className="text-xs font-bold text-white/75 transition hover:text-white">← Deborah home</Link>
           <p className="mt-7 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-[.15em] text-accent"><Target size={15} /> Grade 12 goal planner</p>
           <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight sm:text-4xl">Your goal.<br />Your next step.</h1>
           <p className="mt-3 max-w-sm text-sm leading-6 text-white/75">One quick question at a time. Choose from the options—no typing needed.</p>
         </div>
-        <div className="relative z-10 mt-5 hidden rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur md:block"><Sparkles size={18} className="text-accent" /><p className="mt-2 text-sm font-bold">Progress is built one day at a time.</p></div>
+        <div className="relative z-10 mt-5 hidden rounded-2xl border border-white/10 bg-white/[0.07] p-4 md:block"><Sparkles size={18} className="text-accent" /><p className="mt-2 text-sm font-bold">Progress is built one day at a time.</p></div>
       </div>
       <div className="flex min-w-0 flex-col justify-center p-5 sm:p-7 md:p-9">
         {!resultVisible ? <>
@@ -92,8 +95,8 @@ export function GoalPlanner() {
           <p className="mt-4 text-center text-[11px] text-muted">A friendly planning guide—not an official exam prediction.</p>
         </> : <>
           <div ref={resultHeadingRef} className="planner-result-enter scroll-mt-4 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-primary"><Sparkles size={15} className="text-accent" /> Your starting estimate</div>
-          <div className="mt-4 rounded-2xl bg-primary p-5 text-white sm:p-6"><p className="text-5xl font-black tracking-tight text-accent">{result.percentage}%</p><p className="mt-1 text-sm font-semibold">estimated chance of reaching {result.band}+ out of 600</p><div role="progressbar" aria-label="Estimated likelihood" aria-valuemin={0} aria-valuemax={100} aria-valuenow={result.percentage} aria-valuetext={`${result.percentage}% estimated chance of reaching ${result.band}+ out of 600`} className="mt-4 h-2 overflow-hidden rounded-full bg-white/25"><div aria-hidden="true" className="h-full rounded-full bg-accent transition-all motion-reduce:transition-none" style={{ width: `${result.percentage}%` }} /></div></div>
-          <div className={`mt-4 rounded-2xl border p-4 ${status.color}`}><div className="flex items-center gap-2"><status.Icon aria-hidden="true" size={23} className={`${status.iconColor} ${status.animate ? "motion-safe:animate-pulse motion-reduce:animate-none" : ""}`} /><span className="text-xs font-black uppercase tracking-wider">{status.label}</span></div><h2 className="mt-2 text-lg font-black">{result.mood.headline}</h2><p className="mt-1 text-sm leading-5">{result.mood.message}</p></div>
+          <div className="mt-4 rounded-2xl bg-primary p-5 text-white sm:p-6"><p className="text-5xl font-black tracking-tight text-accent">{result.percentage}%</p><p className="mt-1 text-sm font-semibold">estimated chance of reaching {result.band}+ out of 600</p><div role="progressbar" aria-label="Estimated likelihood" aria-valuemin={0} aria-valuemax={100} aria-valuenow={result.percentage} aria-valuetext={`${result.percentage}% estimated chance of reaching ${result.band}+ out of 600`} className="mt-4 h-2 overflow-hidden rounded-full bg-white/25"><div aria-hidden="true" className="h-full w-full origin-left rounded-full bg-accent motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-reduce:transition-none" style={{ transform: `scaleX(${result.percentage / 100})` }} /></div></div>
+          <div className={`mt-4 rounded-2xl border p-4 ${status.color}`}><div className="flex items-center gap-2"><status.Icon aria-hidden="true" size={23} className={`${status.iconColor} ${status.animate ? "planner-danger-icon" : ""}`} /><span className="text-xs font-black uppercase tracking-wider">{status.label}</span></div><h2 className="mt-2 text-lg font-black">{result.mood.headline}</h2><p className="mt-1 text-sm leading-5">{result.mood.message}</p></div>
           <p className="mt-4 text-xs leading-5 text-muted">This is a starting-point estimate, not a guarantee. Your stream, {data.hours} study hour{data.hours === "1" ? "" : "s"}/day and {data.examYear} E.C. exam help shape your plan. Your potential is not defined by a number.</p>
           <div className="mt-5 flex flex-col gap-2 sm:flex-row"><button type="button" onClick={back} className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-border text-sm font-bold text-primary hover:bg-background"><ArrowLeft size={15} /> Review answers</button><button type="button" onClick={continueToSignup} className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-center text-sm font-black text-white hover:bg-primary-light">Save my plan & start free <ArrowRight size={15} /></button></div>
           <button type="button" onClick={reset} className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 text-xs font-bold text-muted hover:text-primary"><RotateCcw size={13} /> Start over</button>

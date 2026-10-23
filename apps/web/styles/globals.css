@@ -145,11 +145,25 @@ select {
   animation: dibora-page-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes planner-danger-attention {
+  0% { transform: scale(0.82); opacity: 0.55; }
+  55% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.planner-danger-icon {
+  animation: planner-danger-attention 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-transition-enter {
     animation: none;
   }
   .planner-result-enter {
+    animation: none;
+  }
+  .planner-danger-icon {
     animation: none;
   }
 }
