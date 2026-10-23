@@ -23,6 +23,7 @@ export default function ContactPage() {
     const email = String(values.get("email") ?? "").trim();
     const message = String(values.get("message") ?? "").trim();
     const website = String(values.get("website") ?? "");
+    const metaMarketingConsent = values.get("metaMarketingConsent") === "on";
     const errors: Errors = {};
     if (name.length < 2) errors.name = "Enter your name";
     if (!/^\S+@\S+\.\S+$/.test(email)) errors.email = "Enter a valid email";
@@ -33,7 +34,7 @@ export default function ContactPage() {
 
     setSending(true);
     try {
-      await api<{ received: boolean }>("/contact", { method: "POST", body: { name, email, message, website } });
+      await api<{ received: boolean }>("/contact", { method: "POST", body: { name, email, message, website, metaMarketingConsent } });
       setSent(true);
     } catch (cause) {
       setSubmitError(cause instanceof ApiError ? cause.message : "We couldn't send your message. Please check your connection and try again.");
@@ -61,6 +62,10 @@ export default function ContactPage() {
             <form noValidate className="space-y-4" onSubmit={submit}>
               <div className="grid gap-4 sm:grid-cols-2"><Field label="Name" error={err.name}>{(id, attrs) => <input id={id} name="name" autoComplete="name" className={inputCls} disabled={sending} {...attrs} />}</Field><Field label="Email" error={err.email}>{(id, attrs) => <input id={id} name="email" type="email" autoComplete="email" className={inputCls} disabled={sending} {...attrs} />}</Field></div>
               <Field label="Message" error={err.message}>{(id, attrs) => <textarea id={id} name="message" rows={6} className={inputCls} placeholder="Tell us what is on your mind…" disabled={sending} {...attrs} />}</Field>
+              <label className="flex items-start gap-3 rounded-xl border border-border bg-bg/50 p-3 text-xs leading-5 text-muted">
+                <input name="metaMarketingConsent" type="checkbox" className="mt-1 accent-primary" disabled={sending} />
+                <span>I agree to share my email with Meta for advertising measurement. It is hashed before being sent. This is optional. If you are under 18, please only select this with a parent or guardian’s permission.</span>
+              </label>
               <div aria-hidden="true" className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden"><label htmlFor="website">Leave this field empty</label><input id="website" name="website" tabIndex={-1} autoComplete="off" /></div>
               {submitError && <p role="alert" className="rounded-xl border border-error/25 bg-error/5 px-4 py-3 text-sm text-error">{submitError}</p>}
               <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs leading-5 text-muted">Messages go to the secure Deborah support inbox.</p><Button type="submit" disabled={sending} className="group">{sending ? <>Sending… <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /></> : <>Send message <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" aria-hidden="true" /></>}</Button></div>

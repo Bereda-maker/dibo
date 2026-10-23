@@ -70,6 +70,7 @@ export const contactMessages = pgTable("contact_messages", {
   name: text("name").notNull(),
   email: text("email").notNull(),
   message: text("message").notNull(),
+  metaMarketingConsent: boolean("meta_marketing_consent").notNull().default(false),
   status: text("status").notNull().default("NEW"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

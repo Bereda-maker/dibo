@@ -71,6 +71,13 @@
       "when": 1792270000000,
       "tag": "0009_student_daily_study_hours",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792271000000,
+      "tag": "0010_contact_meta_consent",
+      "breakpoints": true
     }
   ]
 }

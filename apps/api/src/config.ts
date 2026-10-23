@@ -19,6 +19,10 @@ const schema = z.object({
   AI_PROVIDER_API_KEY: z.string().optional().transform((v) => v?.trim() || undefined),
   AI_BASE_URL: z.preprocess((v) => typeof v === "string" && !v.trim() ? undefined : v, z.string().url().default("https://api.openai.com/v1")),
   AI_MODEL: z.preprocess((v) => typeof v === "string" && !v.trim() ? undefined : v, z.string().trim().min(1).default("gpt-6-luna")),
+  META_PIXEL_ID: z.string().optional().transform((v) => v?.trim() || undefined),
+  META_ACCESS_TOKEN: z.string().optional().transform((v) => v?.trim() || undefined),
+  META_GRAPH_API_VERSION: z.string().trim().regex(/^v\d+\.\d+$/).default("v26.0"),
+  META_LEAD_EVENT_SOURCE: z.string().trim().min(1).max(100).default("Dibora contact form"),
 });
 /** Fail fast at boot with a readable message instead of failing on the first request. */
 export function loadConfig(env: Record<string, string | undefined> = process.env) {

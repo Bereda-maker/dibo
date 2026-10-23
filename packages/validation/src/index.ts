@@ -82,6 +82,7 @@ export const contactMessageSchema = z.object({
   name: z.string().trim().min(2, "Enter your name").max(100),
   email: z.string().trim().toLowerCase().email("Enter a valid email address").max(254),
   message: z.string().trim().min(10, "Write at least 10 characters").max(5000),
+  metaMarketingConsent: z.boolean().default(false),
   website: z.string().max(200).optional(), // honeypot field for basic bot filtering
 });
 

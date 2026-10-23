@@ -50,6 +50,12 @@ const app = createApp({
   students: new StudentService(db), practice: new PracticeService(db, progress), progress, chat, admin, learning: new LearningService(db, progress),
   auth, social, cookieSameSite: cfg.COOKIE_SAMESITE, payments, checkout, db,
   attempts: new AttemptService(new DrizzleAttemptRepo(db)), resolveStudent: (uid) => studentContext(db, uid),
+  metaLeadConfig: {
+    pixelId: cfg.META_PIXEL_ID,
+    accessToken: cfg.META_ACCESS_TOKEN,
+    graphApiVersion: cfg.META_GRAPH_API_VERSION,
+    leadEventSource: cfg.META_LEAD_EVENT_SOURCE,
+  },
   webOrigin: env("WEB_ORIGIN"), isProd: cfg.NODE_ENV === "production",
 });
 export default { port: cfg.PORT, fetch: app.fetch };
