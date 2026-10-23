@@ -12,7 +12,6 @@ import { useLocalizedName } from "../../lib/i18n";
 import { Async, diffTone } from "./shared";
 import { MarketingPageHeader } from "../../components/MarketingPageHeader";
 import { notifyStudentUnreadNotificationsChanged, useStudentNotificationCountContext } from "../../lib/useStudentNotificationCount";
-import { FREE_PLAN_BENEFITS } from "../../lib/mock";
 
 export { LiveAssistant } from "../assistant/LiveAssistant";
 
@@ -140,14 +139,13 @@ function ProfileInner() {
 export function LiveProfile() { const { profile } = useSession(); return profile ? <Suspense><ProfileInner /></Suspense> : <Skeleton className="h-60" />; }
 
 type Plan = { code: string; interval: string; names: Record<string, string>; priceMinor: number; currency: string; entitlements: Record<string, number | boolean> };
-const feat = (e: Record<string, number | boolean>, isFree = false) => [
+const feat = (e: Record<string, number | boolean>) => [
   e.questionsPerDay && (Number(e.questionsPerDay) > 1000 ? "Unlimited practice questions" : `${e.questionsPerDay} practice questions a day`),
   e.fullQuestionBank && "Full question bank",
   e.mockExams && "Full mock exams",
   e.advancedAnalytics && "Advanced analytics and detailed reports",
   e.personalizedRecommendations && "Personalized study recommendations",
   e.aiMessagesPerDay && `${e.aiMessagesPerDay} AI study assistant messages a day`,
-  ...(isFree ? FREE_PLAN_BENEFITS : []),
 ].filter(Boolean) as string[];
 const PLAN_MONTHS: Record<string, number> = { MONTHLY: 1, QUARTERLY: 3, ANNUAL: 12 };
 const money = (amount: number, currency: string) => `${currency} ${(amount / 100).toLocaleString("en-US")}`;
@@ -182,7 +180,7 @@ export function LivePricing() {
                     {months && months > 1 && <p className="mt-2 rounded-xl bg-primary/5 px-3 py-2 text-sm font-semibold text-primary">Just {money(Math.round(p.priceMinor / months), p.currency)} per month</p>}
                     <p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted">Included features</p>
                     <ul className="mt-2 space-y-2 text-sm">
-                      {feat(p.entitlements, p.interval === "FREE").map((x) => <li key={x} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-success" aria-hidden />{x}</li>)}
+                      {feat(p.entitlements).map((x) => <li key={x} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-success" aria-hidden />{x}</li>)}
                     </ul>
                     <Button className="mt-5 w-full" variant={p.priceMinor ? "primary" : "secondary"} loading={busy === p.code} disabled={profile?.subscriptionStatus === "PREMIUM" && p.priceMinor > 0} onClick={() => p.priceMinor ? buy(p.code) : router.push(role === "STUDENT" ? "/dashboard" : "/login")}>{p.priceMinor ? (profile?.subscriptionStatus === "PREMIUM" ? "Current plan" : "Choose Premium") : "Start free"}</Button>
                   </Card>

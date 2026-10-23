@@ -76,26 +76,8 @@ export const EXAMS: ExamDef[] = [
   { id: "mock1", type: "MOCK", title: "Full Mock Examination 1", description: "Realistic timed mock across all subjects.", minutes: 45, passing: 50, premium: true, questionIds: Array.from({ length: 24 }, (_, i) => `q${i + 1}`) },
 ];
 
-export const FREE_PLAN_BENEFITS = [
-  "Manage your profile, grade, stream, and selected subjects",
-  "Take the diagnostic assessment",
-  "Explore the first published topic in each selected subject",
-  "Read notes for free topics",
-  "Watch published video tutorials for free topics",
-  "Take free topic quizzes",
-  "Get answer feedback and explanations",
-  "Track readiness, subject performance, and basic progress",
-  "Get one study recommendation at a time",
-  "Review questions you got wrong",
-  "Bookmark notes, questions, and topics",
-  "Earn achievements and build study streaks",
-  "Search available learning content",
-  "Receive in-app notifications",
-  "Choose whether to join the leaderboard",
-];
-
 export const DEFAULT_PLANS: Plan[] = [
-  { id: "free", name: "Free", interval: "FREE", priceMinor: 0, features: ["20 practice questions a day", "5 AI study assistant messages a day", ...FREE_PLAN_BENEFITS] },
+  { id: "free", name: "Free", interval: "FREE", priceMinor: 0, features: ["Student profile", "Selected short notes", "20 practice questions a day", "Topic quizzes", "Basic progress", "5 AI messages a day"] },
   { id: "monthly", name: "Premium · Monthly", interval: "MONTHLY", priceMinor: 30000, features: ["Full question bank", "Full mock exams", "Advanced analytics", "Personalized recommendations", "Advanced AI Study Assistant", "Detailed reports"] },
   { id: "quarterly", name: "Premium · Quarterly", interval: "QUARTERLY", priceMinor: 67500, features: ["Everything in Monthly", "Best for one term"] },
   { id: "annual", name: "Premium · Annual", interval: "ANNUAL", priceMinor: 180000, features: ["Everything in Monthly", "Best value for exam year"] },
