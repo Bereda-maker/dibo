@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, BookOpenCheck, ClipboardCheck, RotateCcw, Sparkles, Target, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, BookOpenCheck, CircleAlert, ClipboardCheck, RotateCcw, Sparkles, Target, TrendingUp } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type PlannerData = { stream: string; city: string; otherCity: string; otherRegion: string; examYear: string; hours: string };
@@ -26,7 +26,7 @@ function estimate(data: PlannerData) {
   const year = Number(data.examYear);
   const percentage = Math.min(92, Math.max(20, Math.round(18 + Number(data.hours) * 8 + (data.stream === "natural" ? 3 : 2) + Math.min(6, Math.max(0, year - currentEthiopianYear())))));
   const band = percentage >= 82 ? "550" : percentage >= 70 ? "500" : percentage >= 56 ? "450" : percentage >= 36 ? "400" : "300";
-  const mood = percentage >= 70 ? { face: "🌟", headline: "You’ve got this!", message: "Your ambition is shining—keep showing up, one focused day at a time." } : percentage >= 45 ? { face: "💪", headline: "A strong start is yours.", message: "You’re building momentum. Every study session brings your goal closer." } : { face: "🌱", headline: "Every big goal starts small.", message: "Be kind to yourself: steady practice can grow your confidence and your score." };
+  const mood = percentage >= 70 ? { headline: "You’ve got this!", message: "Your ambition is shining—keep showing up, one focused day at a time." } : percentage >= 45 ? { headline: "A strong start is yours.", message: "You’re building momentum. Every study session brings your goal closer." } : { headline: "Every big goal starts small.", message: "Be kind to yourself: steady practice can grow your confidence and your score." };
   return { percentage, band, mood };
 }
 
@@ -41,6 +41,11 @@ export function GoalPlanner() {
   const selectedCity = otherCity ? data.otherCity.trim() : data.city;
   const region = otherCity ? data.otherRegion : cities.find(([city]) => city === data.city)?.[1] ?? "";
   const result = useMemo(() => estimate(data), [data]);
+  const status = result.percentage < 45
+    ? { label: "Needs attention", Icon: AlertTriangle, color: "border-red-300 bg-red-50 text-red-800", iconColor: "text-red-600", animate: true }
+    : result.percentage < 70
+      ? { label: "Warning", Icon: CircleAlert, color: "border-amber-300 bg-amber-50 text-amber-900", iconColor: "text-amber-600", animate: false }
+      : { label: "Great", Icon: BadgeCheck, color: "border-green-300 bg-green-50 text-green-900", iconColor: "text-green-700", animate: false };
   useEffect(() => {
     if (resultVisible) resultHeadingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [resultVisible]);
@@ -88,7 +93,7 @@ export function GoalPlanner() {
         </> : <>
           <div ref={resultHeadingRef} className="planner-result-enter scroll-mt-4 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-primary"><Sparkles size={15} className="text-accent" /> Your starting estimate</div>
           <div className="mt-4 rounded-2xl bg-primary p-5 text-white sm:p-6"><p className="text-5xl font-black tracking-tight text-accent">{result.percentage}%</p><p className="mt-1 text-sm font-semibold">estimated chance of reaching {result.band}+ out of 600</p><div role="progressbar" aria-label="Estimated likelihood" aria-valuemin={0} aria-valuemax={100} aria-valuenow={result.percentage} aria-valuetext={`${result.percentage}% estimated chance of reaching ${result.band}+ out of 600`} className="mt-4 h-2 overflow-hidden rounded-full bg-white/25"><div aria-hidden="true" className="h-full rounded-full bg-accent transition-all motion-reduce:transition-none" style={{ width: `${result.percentage}%` }} /></div></div>
-          <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-4"><p className="text-2xl" aria-hidden="true">{result.mood.face}</p><h2 className="mt-1 text-lg font-black text-primary">{result.mood.headline}</h2><p className="mt-1 text-sm leading-5 text-muted">{result.mood.message}</p></div>
+          <div className={`mt-4 rounded-2xl border p-4 ${status.color}`}><div className="flex items-center gap-2"><status.Icon aria-hidden="true" size={23} className={`${status.iconColor} ${status.animate ? "motion-safe:animate-pulse motion-reduce:animate-none" : ""}`} /><span className="text-xs font-black uppercase tracking-wider">{status.label}</span></div><h2 className="mt-2 text-lg font-black">{result.mood.headline}</h2><p className="mt-1 text-sm leading-5">{result.mood.message}</p></div>
           <p className="mt-4 text-xs leading-5 text-muted">This is a starting-point estimate, not a guarantee. Your stream, {data.hours} study hour{data.hours === "1" ? "" : "s"}/day and {data.examYear} E.C. exam help shape your plan. Your potential is not defined by a number.</p>
           <div className="mt-5 flex flex-col gap-2 sm:flex-row"><button type="button" onClick={back} className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-border text-sm font-bold text-primary hover:bg-background"><ArrowLeft size={15} /> Review answers</button><button type="button" onClick={continueToSignup} className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-center text-sm font-black text-white hover:bg-primary-light">Save my plan & start free <ArrowRight size={15} /></button></div>
           <button type="button" onClick={reset} className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 text-xs font-bold text-muted hover:text-primary"><RotateCcw size={13} /> Start over</button>
