@@ -1,8 +1,9 @@
 import { and, eq } from "drizzle-orm";
-import { users, sessions, studentProfiles, studentProgress, authIdentities, type Db } from "@dibora/database";
+import { notifications, users, sessions, studentProfiles, studentProgress, authIdentities, type Db } from "@dibora/database";
 import type { AuthService } from "./auth.service";
 import { GoogleIdTokenVerifier, verifyTelegramLogin } from "./social-verifiers";
 import { AppError } from "../utils/errors";
+import { welcomeNotification } from "../constants/welcome-notification";
 
 type Provider = "google" | "telegram";
 type Cfg = { google?: GoogleIdTokenVerifier; telegram?: { botToken: string; botUsername: string } };
@@ -60,8 +61,10 @@ export class SocialAuthService {
         }
         const unusable = await Bun.password.hash(crypto.randomUUID() + crypto.randomUUID(), { algorithm: "argon2id" });
         const [u] = await tx.insert(users).values({ email: p.email, passwordHash: unusable, role: "STUDENT", emailVerifiedAt: provider === "google" ? new Date() : null }).returning({ id: users.id });
-        const [profile] = await tx.insert(studentProfiles).values({ userId: u!.id, fullName: p.name.trim().slice(0, 100) || "Student", grade: 12, learningStatus: "REGISTERED", subscriptionStatus: "FREE", consentAcceptedAt: new Date() }).returning({ id: studentProfiles.id });
+        const fullName = p.name.trim().slice(0, 100) || "Student";
+        const [profile] = await tx.insert(studentProfiles).values({ userId: u!.id, fullName, grade: 12, learningStatus: "REGISTERED", subscriptionStatus: "FREE", consentAcceptedAt: new Date() }).returning({ id: studentProfiles.id });
         await tx.insert(studentProgress).values({ studentId: profile!.id });
+        await tx.insert(notifications).values({ userId: u!.id, ...welcomeNotification(fullName) });
         await tx.insert(authIdentities).values({ userId: u!.id, provider, providerUserId: pid, email: provider === "google" ? p.email : null });
         return { userId: u!.id, isNew: true };
       });

@@ -445,6 +445,10 @@ describe("exam flow, bookmarks, leaderboard, search over HTTP", () => {
     const firstCookie = await signup(firstEmail), secondCookie = await signup(secondEmail);
     const [firstUser] = await raw.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, firstEmail));
     const [secondUser] = await raw.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, secondEmail));
+    const firstWelcome = await raw.select().from(s.notifications).where(eq(s.notifications.userId, firstUser!.id));
+    expect(firstWelcome).toHaveLength(1);
+    expect(firstWelcome[0]).toMatchObject({ type: "WELCOME", channel: "IN_APP", title: "🎓 Welcome to Deborah!" });
+    expect(firstWelcome[0]!.body).toContain("Hello, Test Student!");
     const notificationRows = await raw.insert(s.notifications).values([
       { userId: firstUser!.id, type: "TEST", title: "Unread one" },
       { userId: firstUser!.id, type: "TEST", title: "Unread two" },
@@ -456,17 +460,17 @@ describe("exam flow, bookmarks, leaderboard, search over HTTP", () => {
     expect((await get("/api/notifications/unread-count", admin)).status).toBe(403);
     const firstCount = (await (await get("/api/notifications/unread-count", firstCookie)).json()).data;
     const secondCount = (await (await get("/api/notifications/unread-count", secondCookie)).json()).data;
-    expect(firstCount.count).toBe(2);
-    expect(secondCount.count).toBe(1);
+    expect(firstCount.count).toBe(3);
+    expect(secondCount.count).toBe(2);
     const firstUnreadId = notificationRows.find((notification) => notification.title === "Unread one")!.id;
     const secondStudentsId = notificationRows.find((notification) => notification.title === "Other student's unread")!.id;
     expect((await post(`/api/notifications/${firstUnreadId}/read`, {}, firstCookie)).status).toBe(200);
-    expect((await (await get("/api/notifications/unread-count", firstCookie)).json()).data.count).toBe(1);
+    expect((await (await get("/api/notifications/unread-count", firstCookie)).json()).data.count).toBe(2);
     expect((await post(`/api/notifications/${secondStudentsId}/read`, {}, firstCookie)).status).toBe(404);
-    expect((await (await get("/api/notifications/unread-count", secondCookie)).json()).data.count).toBe(1);
+    expect((await (await get("/api/notifications/unread-count", secondCookie)).json()).data.count).toBe(2);
     expect((await post("/api/notifications/read-all", {}, firstCookie)).status).toBe(200);
     expect((await (await get("/api/notifications/unread-count", firstCookie)).json()).data.count).toBe(0);
-    expect((await (await get("/api/notifications/unread-count", secondCookie)).json()).data.count).toBe(1);
+    expect((await (await get("/api/notifications/unread-count", secondCookie)).json()).data.count).toBe(2);
   });
   test("leaderboard shows only opted-in students and only display name + points", async () => {
     const c = await signup("lb1@x.et"); await signup("lb2@x.et");

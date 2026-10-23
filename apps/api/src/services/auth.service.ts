@@ -1,8 +1,9 @@
 import { and, eq, gt } from "drizzle-orm";
-import { users, sessions, studentProfiles, studentProgress, type Db } from "@dibora/database";
+import { notifications, users, sessions, studentProfiles, studentProgress, type Db } from "@dibora/database";
 import type { RegisterInput } from "@dibora/validation";
 import type { Role } from "@dibora/types";
 import { AppError, Errors } from "../utils/errors";
+import { welcomeNotification } from "../constants/welcome-notification";
 
 const SESSION_DAYS = 14;
 const sha256 = async (s: string) =>
@@ -23,6 +24,7 @@ export class AuthService {
           learningStatus: "REGISTERED", subscriptionStatus: "FREE", consentAcceptedAt: new Date(),
         }).returning({ id: studentProfiles.id });
         await tx.insert(studentProgress).values({ studentId: profile!.id });
+        await tx.insert(notifications).values({ userId: user!.id, ...welcomeNotification(input.fullName) });
         return { userId: user!.id, studentId: profile!.id };
       });
     } catch (e: unknown) {
